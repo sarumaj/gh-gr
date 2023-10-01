@@ -9,9 +9,9 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
-	"sync"
 
-	"github.com/sarumaj/gh-pr/pkg/config"
+	"github.com/sarumaj/gh-pr/pkg/util"
+	"gopkg.in/go-playground/pool.v3"
 )
 
 var linkRegex = regexp.MustCompile(`<([^>]+)>;\s*rel="([^"]+)"`)
@@ -37,42 +37,55 @@ func getPaged[T any](c RESTClient, ep apiEndpoint, ctx context.Context) (result 
 
 	result = append(result, paged...)
 
-	var wg sync.WaitGroup
-	var mutex sync.Mutex
-	for page, last := 2, getLastPage(resp.Header); page <= last; page++ {
-		wg.Add(1)
-		go func(result *[]T, err *error, page int) {
-			defer wg.Done()
+	p := pool.NewLimited(c.Concurrency)
+	defer p.Close()
 
-			var paged []T
-			*err = c.DoWithContext(
-				ctx,
-				http.MethodGet,
-				newRequestPath(ep).
-					Add("per_page", "100").
-					Add("page", fmt.Sprintf("%d", page)).
-					String(),
-				nil,
-				&paged,
-			)
-			if *err != nil || len(paged) == 0 {
-				return
-			}
+	batch := p.Batch()
 
-			for !mutex.TryLock() {
-			}
-			*result = append(*result, paged...)
-			mutex.Unlock()
-		}(&result, &err, page)
-		c.Debugf("Dispatched request for page %d", page)
-
-		if (page-1)%config.Concurrency == 0 || page == last {
-			c.Debug("Waiting for coroutines to finish")
-			wg.Wait()
+	logger := util.Logger()
+	go func() {
+		for page, last := 2, getLastPage(resp.Header); page <= last; page++ {
+			logger.Debugf("Dispatching request for page %d", page)
+			batch.Queue(getPagedWorkUnit[T](c, ep, ctx, page))
 		}
+
+		batch.QueueComplete()
+	}()
+
+	for items := range batch.Results() {
+		if err := items.Error(); err != nil {
+			return nil, err
+		}
+		result = append(result, items.Value().([]T)...)
 	}
 
 	return
+}
+
+func getPagedWorkUnit[T any](c RESTClient, ep apiEndpoint, ctx context.Context, page int) pool.WorkFunc {
+	return func(wu pool.WorkUnit) (any, error) {
+		var paged []T
+		err := c.DoWithContext(
+			ctx,
+			http.MethodGet,
+			newRequestPath(ep).
+				Add("per_page", "100").
+				Add("page", fmt.Sprintf("%d", page)).
+				String(),
+			nil,
+			&paged,
+		)
+
+		if wu.IsCancelled() {
+			return nil, nil
+		}
+
+		if err != nil || len(paged) == 0 {
+			return nil, err
+		}
+
+		return paged, nil
+	}
 }
 
 func getLastPage(responseHeader http.Header) (limit int) {

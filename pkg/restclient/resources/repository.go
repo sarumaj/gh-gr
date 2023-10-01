@@ -1,9 +1,6 @@
 package resources
 
 import (
-	"fmt"
-	"io"
-	"os"
 	"time"
 )
 
@@ -98,18 +95,4 @@ type Repository struct {
 	Organization        Organization       `json:"organization"`
 	Parent              Parent             `json:"parent,omitempty"` // Present if repository is a fork.
 	Source              Source             `json:"source,omitempty"` // Present if repository is a fork.
-}
-
-type Repositories []Repository
-
-func (r Repositories) Print(out io.Writer) {
-	if out == nil {
-		out = os.Stdout
-	}
-
-	for _, repo := range r {
-		fmt.Fprintf(out, " - %s\n", repo.FullName)
-	}
-
-	fmt.Fprintf(out, "Total number of repositories: %d\n", len(r))
 }

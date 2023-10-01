@@ -2,8 +2,6 @@ package resources
 
 import (
 	"fmt"
-	"io"
-	"os"
 )
 
 type Organization struct {
@@ -21,16 +19,6 @@ type Organization struct {
 	Description      string `json:"description"`
 }
 
-type Organizations []Organization
-
-func (o Organizations) Print(out io.Writer) {
-	if out == nil {
-		out = os.Stdout
-	}
-
-	for _, org := range o {
-		fmt.Fprintf(out, " - %s\n", org.Login)
-	}
-
-	fmt.Fprintf(out, "Total number of organizations: %d\n", len(o))
+func (o Organization) String() string {
+	return fmt.Sprintf(" - ID:%d\tLogin:%s\tURL:%s", o.ID, o.Login, o.URL)
 }
