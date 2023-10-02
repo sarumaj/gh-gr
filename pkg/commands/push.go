@@ -10,19 +10,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var _ = func() *cobra.Command {
-	pushCmd := &cobra.Command{
-		Use:   "push",
-		Short: "Push all repositories",
-		Run: func(cmd *cobra.Command, args []string) {
-			repositoryOperationLoop(runPush, "Pushing")
-		},
-	}
-
-	rootCmd.AddCommand(pushCmd)
-
-	return pushCmd
-}()
+var pushCmd = &cobra.Command{
+	Use:   "push",
+	Short: "Push all repositories",
+	Run: func(cmd *cobra.Command, args []string) {
+		repositoryOperationLoop(runPush, "Pushing")
+	},
+}
 
 func runPush(conf *configfile.Configuration, repo configfile.Repository, status *statusList) {
 	repository, ok := openRepository(repo, status)
@@ -43,8 +37,7 @@ func runPush(conf *configfile.Configuration, repo configfile.Repository, status 
 		status.append(repo.Directory, color.RedString("unauthorized"))
 		return
 
-	case errors.Is(err, git.NoErrAlreadyUpToDate):
-		// Ignore NoErrAlreadyUpToDate
+	case errors.Is(err, git.NoErrAlreadyUpToDate): // ignore
 
 	case err != nil:
 		status.appendError(repo.Directory, err)

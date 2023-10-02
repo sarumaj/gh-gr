@@ -60,10 +60,8 @@ func (statuslist *statusList) print() {
 }
 
 func isRepoDir(path string, repos []configfile.Repository) bool {
-	path = path + "/"
 	for _, r := range repos {
-		repoDir := r.Directory + "/"
-		if strings.HasPrefix(repoDir, path) {
+		if strings.HasPrefix(r.Directory+"/", path+"/") {
 			return true
 		}
 	}

@@ -5,7 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var _ = func() *cobra.Command {
+var removeCmd = func() *cobra.Command {
 	var purge bool
 
 	removeCmd := &cobra.Command{
@@ -19,8 +19,6 @@ var _ = func() *cobra.Command {
 
 	flags := removeCmd.Flags()
 	flags.BoolVarP(&purge, "purge", "p", false, "DANGER!!! Purge directory with local repositories")
-
-	rootCmd.AddCommand(removeCmd)
 
 	return removeCmd
 }()

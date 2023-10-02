@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var _ = func() *cobra.Command {
+var initCmd = func() *cobra.Command {
 	initCmd := &cobra.Command{
 		Use:   "init",
 		Short: "Initialize repository mirror",
@@ -32,8 +32,6 @@ var _ = func() *cobra.Command {
 	initCmd.Flags().BoolVarP(&configFlags.SubDirectories, "subdirs", "s", false, "Enable creation of separate subdirectories for each org/user")
 	initCmd.Flags().StringSliceVarP(&configFlags.Excluded, "exclude", "e", []string{}, "Regular expressions of repositories to exclude")
 	initCmd.Flags().StringSliceVarP(&configFlags.Included, "include", "i", []string{}, "Regular expressions of repositories to include (bind stronger than exclusion list)")
-
-	rootCmd.AddCommand(initCmd)
 
 	return initCmd
 }()

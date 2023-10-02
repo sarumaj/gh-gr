@@ -8,20 +8,14 @@ import (
 	cobra "github.com/spf13/cobra"
 )
 
-var _ = func() *cobra.Command {
-	statusCmd := &cobra.Command{
-		Use:   "status",
-		Short: "Show status for all repositories",
-		Run: func(cmd *cobra.Command, args []string) {
-			repositoryOperationLoop(runStatus, "Checking")
-			runLocalStatus()
-		},
-	}
-
-	rootCmd.AddCommand(statusCmd)
-
-	return statusCmd
-}()
+var statusCmd = &cobra.Command{
+	Use:   "status",
+	Short: "Show status for all repositories",
+	Run: func(cmd *cobra.Command, args []string) {
+		repositoryOperationLoop(runStatus, "Checking")
+		runLocalStatus()
+	},
+}
 
 func runStatus(conf *configfile.Configuration, repo configfile.Repository, status *statusList) {
 	var ret string

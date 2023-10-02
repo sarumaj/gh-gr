@@ -33,8 +33,9 @@ var rootCmd = func() *cobra.Command {
 		util.GetIdealConcurrency(),
 		"Concurrency for concurrent jobs",
 	)
-
 	flags.BoolVarP(&configFlags.Verbose, "verbose", "v", false, "Print verbose logs")
+
+	cmd.AddCommand(initCmd, pullCmd, pushCmd, removeCmd, statusCmd, updateCmd, versionCmd)
 
 	return cmd
 }()
@@ -75,7 +76,8 @@ func repositoryOperationLoop(fn repositoryOperation, msg string) {
 		}
 	}
 
-	fmt.Print(strings.Repeat(" ", len(fmt.Sprintf("\r%[1]s (%[2]d/%[2]d)...", msg, len(conf.Repositories)))) + "\r")
+	finalMsg := fmt.Sprintf("\r%[1]s (%[2]d/%[2]d)...", msg, len(conf.Repositories))
+	fmt.Print(strings.Repeat(" ", len(finalMsg)) + "\r")
 
 	status.print()
 }

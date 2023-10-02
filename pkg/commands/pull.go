@@ -11,19 +11,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var _ = func() *cobra.Command {
-	pullCmd := &cobra.Command{
-		Use:   "pull",
-		Short: "Pull all repositories",
-		Run: func(cmd *cobra.Command, args []string) {
-			repositoryOperationLoop(runPull, "Pulling")
-		},
-	}
-
-	rootCmd.AddCommand(pullCmd)
-
-	return pullCmd
-}()
+var pullCmd = &cobra.Command{
+	Use:   "pull",
+	Short: "Pull all repositories",
+	Run: func(cmd *cobra.Command, args []string) {
+		repositoryOperationLoop(runPull, "Pulling")
+	},
+}
 
 func runPull(conf *configfile.Configuration, repo configfile.Repository, status *statusList) {
 	var repository *git.Repository
@@ -64,8 +58,7 @@ func runPull(conf *configfile.Configuration, repo configfile.Repository, status 
 			status.append(repo.Directory, color.RedString("non-fast-forward update"))
 			return
 
-		case errors.Is(err, git.NoErrAlreadyUpToDate):
-			// iginore
+		case errors.Is(err, git.NoErrAlreadyUpToDate): // iginore
 
 		case err != nil:
 			status.appendError(repo.Directory, err)
@@ -98,8 +91,7 @@ func runPull(conf *configfile.Configuration, repo configfile.Repository, status 
 	}
 
 	for _, s := range submodules {
-		err := pullSubmodule(s)
-		if err != nil {
+		if err := pullSubmodule(s); err != nil {
 			status.appendError(repo.Directory, err)
 			return
 		}

@@ -14,15 +14,15 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-var urlRegex = regexp.MustCompile(`(?P<Schema>[^:]+://)(?P<Creds>[^@]+@)?(?P<Hostpath>.+)`)
-
 const configKey = "gr.conf"
 
-// Configuration holds git configuration data.
+var urlRegex = regexp.MustCompile(`(?P<Schema>[^:]+://)(?P<Creds>[^@]+@)?(?P<Hostpath>.+)`)
+
+// Configuration holds gr configuration data
 type Configuration struct {
 	Username       string       `yaml:"username"`
-	Fullname       string       `yaml:"fullname"` // decom
-	Email          string       `yaml:"Email"`    // decom
+	Fullname       string       `yaml:"fullname"`
+	Email          string       `yaml:"Email"`
 	BaseDirectory  string       `yaml:"baseDirectory"`
 	BaseURL        string       `yaml:"baseURL"`
 	Concurrency    uint         `yaml:"concurrency"`
@@ -71,19 +71,6 @@ func Load() *Configuration {
 	return &conf
 }
 
-func (conf Configuration) Save() {
-	c, err := config.Read()
-	util.FatalIfError(err)
-
-	content, err := yaml.Marshal(conf)
-	util.FatalIfError(err)
-
-	c.Set([]string{configKey}, string(content))
-	util.FatalIfError(config.Write(c))
-
-	fmt.Println("Configuration saved. You can now pull your repositories.")
-}
-
 func (conf Configuration) Remove(purge bool) {
 	c, err := config.Read()
 	util.FatalIfError(err)
@@ -111,4 +98,17 @@ func (conf Configuration) Remove(purge bool) {
 	if conf.BaseDirectory != "." {
 		util.FatalIfError(os.RemoveAll(conf.BaseDirectory))
 	}
+}
+
+func (conf Configuration) Save() {
+	c, err := config.Read()
+	util.FatalIfError(err)
+
+	content, err := yaml.Marshal(conf)
+	util.FatalIfError(err)
+
+	c.Set([]string{configKey}, string(content))
+	util.FatalIfError(config.Write(c))
+
+	fmt.Println("Configuration saved. You can now pull your repositories.")
 }

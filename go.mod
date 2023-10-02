@@ -3,6 +3,7 @@ module github.com/sarumaj/gh-pr
 go 1.21.1
 
 require (
+	bou.ke/monkey v1.0.2
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cli/go-gh/v2 v2.3.0
 	github.com/fatih/color v1.15.0
@@ -53,7 +54,7 @@ require (
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/skeema/knownhosts v1.2.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/testify v1.7.0 // indirect
+	github.com/stretchr/testify v1.8.4 // indirect
 	github.com/tcnksm/go-gitconfig v0.1.2 // indirect
 	github.com/thlib/go-timezone-local v0.0.0-20210907160436-ef149e42d28e // indirect
 	github.com/ulikunitz/xz v0.5.11 // indirect

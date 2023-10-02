@@ -19,7 +19,7 @@ var Version string
 // It gets filled automatically at build time.
 var BuildDate string
 
-var _ = func() *cobra.Command {
+var versionCmd = func() *cobra.Command {
 	var update bool
 
 	versionCmd := &cobra.Command{
@@ -37,10 +37,8 @@ var _ = func() *cobra.Command {
 	flags := versionCmd.Flags()
 	flags.BoolVarP(&update, "update", "u", false, "Update extension")
 
-	rootCmd.AddCommand(versionCmd)
-
 	return versionCmd
-}
+}()
 
 func printVersion() {
 	current := semver.MustParse(Version)
