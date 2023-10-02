@@ -21,7 +21,8 @@ BUILD_DATE="$(date -u "+%Y-%m-%d %H:%M:%S UTC")"
 
 echo "VERSION=${VERSION} BUILD_DATE=${BUILD_DATE}"
 
-for p in "${supported_platforms[@]}"; do
+for ((j = 0; j < ${#supported_platforms[@]}; j++)); do
+    p="${supported_platforms[$j]}"
     goos="${p%-*}"
     goarch="${p#*-}"
 
@@ -30,7 +31,7 @@ for p in "${supported_platforms[@]}"; do
         ext=".exe"
     fi
 
-    echo "go build: GOOS=${goos} GOARCH=${goarch} CGO_ENABLED=${CGO_ENABLED:-0} -o dist/gh-gr_${VERSION}_${p}${ext}"
+    echo "go build ( ${j} / ${#supported_platforms[@]} ): GOOS=${goos} GOARCH=${goarch} CGO_ENABLED=${CGO_ENABLED:-0} -o dist/gh-gr_${VERSION}_${p}${ext}"
 
     GOOS="$goos" GOARCH="$goarch" CGO_ENABLED="${CGO_ENABLED:-0}" go build \
         -trimpath \
