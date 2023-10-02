@@ -23,31 +23,31 @@ gh extension install https://github.com/sarumaj/gh-gr
 First, create the configuration:
 
 ```
-gr init -d SOMEDIR -c 10
+gh gr init -d SOMEDIR -c 10
 ```
 
 or, if you are using GitHub Enterprise:
 
 ```
-gr init -c 10 -r https://example.com/api/v3/ -d SOMEDIR -e "repo1|SOMEORG/repo-.*" -s
+gh gr init -c 10 -r https://example.com/api/v3/ -d SOMEDIR -e "repo1|SOMEORG/repo-.*" -s
 ```
 
 After the configuration is created, you can pull all repositories using:
 
 ```
-gr pull
+gh gr pull
 ```
 
 you can view the status of the repositories using:
 
 ```
-gr status
+gh gr status
 ```
 
 and you can push all repositories using:
 
 ```
-gr push
+gh gr push
 ```
 
 After creating new repositories on the server or after user data changes, you can update the local configuration using:
