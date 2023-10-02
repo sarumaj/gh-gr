@@ -23,5 +23,5 @@ jobs:
       - name: precompile binaries na dupload as assets
         uses: cli/gh-extension-precompile@v1
         with:
-          build_script_override: "script/build.sh"
+          build_script_override: "scripts/build.sh"
           go_version: ${{ matrix.go }}
