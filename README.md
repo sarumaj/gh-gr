@@ -22,6 +22,34 @@ gh extension install https://github.com/sarumaj/gh-gr
 
 ## Usage
 
+```
+gh gr --help
+
+>> gr is a gh cli extension allowing management of multiple repositories at once
+>> 
+>> Usage:
+>>   gr [flags]
+>>   gr [command]
+>> 
+>> Available Commands:
+>>   completion  Generate the autocompletion script for the specified shell
+>>   help        Help about any command
+>>   init        Initialize repository mirror
+>>   pull        Pull all repositories
+>>   push        Push all repositories
+>>   remove      Remove current configuration
+>>   status      Show status for all repositories
+>>   update      Update configuration
+>>   version     Display version information
+>> 
+>> Flags:
+>>   -c, --concurrency uint   Concurrency for concurrent jobs (default 16)
+>>   -h, --help               help for gr
+>>   -v, --verbose            Print verbose logs
+>> 
+>> Use "gr [command] --help" for more information about a command.
+```
+
 First, create the configuration:
 
 ```
