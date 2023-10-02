@@ -31,7 +31,7 @@ for ((j = 0; j < ${#supported_platforms[@]}; j++)); do
         ext=".exe"
     fi
 
-    echo "go build ( ${j} / ${#supported_platforms[@]} ): GOOS=${goos} GOARCH=${goarch} CGO_ENABLED=${CGO_ENABLED:-0} -o dist/gh-gr_${VERSION}_${p}${ext}"
+    echo "go build ( $(($j + 1)) / ${#supported_platforms[@]} ): GOOS=${goos} GOARCH=${goarch} CGO_ENABLED=${CGO_ENABLED:-0} -o dist/gh-gr_${VERSION}_${p}${ext}"
 
     GOOS="$goos" GOARCH="$goarch" CGO_ENABLED="${CGO_ENABLED:-0}" go build \
         -trimpath \
@@ -39,7 +39,8 @@ for ((j = 0; j < ${#supported_platforms[@]}; j++)); do
         -tags="osusergo netgo static_build" \
         -o "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed"
 
-    if [ "$goos" = "windows" ]; then
+    # since upx does not support win64/arm64 yet
+    if [ "$p" = "windows-arm64" ]; then
         mv "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed" "dist/gh-gr_${VERSION}_${p}${ext}"
     else
         upx --best -v "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed" -o "dist/gh-gr_${VERSION}_${p}${ext}" &&
