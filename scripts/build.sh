@@ -1,9 +1,7 @@
 #!/bin/bash
 set -e
 
-platforms=(
-    android-amd64
-    android-arm64
+supported_platforms=(
     darwin-amd64
     darwin-arm64
     freebsd-386
@@ -26,13 +24,9 @@ fi
 
 BUILD_DATE="$(date -u "+%Y-%m-%d %H:%M:%S UTC")"
 
-for p in "${platforms[@]}"; do
+for p in "${supported_platforms[@]}"; do
     goos="${p%-*}"
     goarch="${p#*-}"
-    if [[ " ${supported_platforms[*]} " != *" ${goos}/${goarch} "* ]]; then
-        echo "warning: skipping unsupported platform $p" >&2
-        continue
-    fi
     ext=""
     if [ "$goos" = "windows" ]; then
         ext=".exe"
