@@ -19,6 +19,8 @@ supported_platforms=(
 VERSION="$1"
 BUILD_DATE="$(date -u "+%Y-%m-%d %H:%M:%S UTC")"
 
+echo "VERSION=${VERSION} BUILD_DATE=${BUILD_DATE}"
+
 go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
 gofmt -s -d ./
@@ -33,13 +35,14 @@ for p in "${supported_platforms[@]}"; do
         ext=".exe"
     fi
 
-    echo "build: GOOS=${goos} GOARCH=${goarch} CGO_ENABLED=${CGO_ENABLED:-0} ... -o dist/gh-gr_${VERSION}_${p}${ext}"
+    echo "go build: GOOS=${goos} GOARCH=${goarch} CGO_ENABLED=${CGO_ENABLED:-0} -o dist/gh-gr_${VERSION}_${p}${ext}"
 
     GOOS="$goos" GOARCH="$goarch" CGO_ENABLED="${CGO_ENABLED:-0}" go build \
         -trimpath \
         -ldflags="-s -w -X 'main.Version=${VERSION}' -X 'main.BuildDate=${BUILD_DATE}' -extldflags=-static" \
         -tags="osusergo netgo static_build" \
-        -o "dist/gh-gr_${VERSION}_${p}${ext}"
+        -o "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed"
 
-    upx --best -v "dist/gh-gr_${VERSION}_${p}${ext}" -o "dist/gh-gr_${VERSION}_${p}${ext}"
+    upx --best -v "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed" -o "dist/gh-gr_${VERSION}_${p}${ext}" &&
+        rm "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed"
 done
