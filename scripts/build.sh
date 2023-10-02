@@ -33,11 +33,13 @@ for p in "${supported_platforms[@]}"; do
         ext=".exe"
     fi
 
+    echo "build: GOOS=${goos} GOARCH=${goarch} CGO_ENABLED=${CGO_ENABLED:-0} ... -o dist/gh-gr_${VERSION}_${p}${ext}"
+
     GOOS="$goos" GOARCH="$goarch" CGO_ENABLED="${CGO_ENABLED:-0}" go build \
         -trimpath \
         -ldflags="-s -w -X 'main.Version=${VERSION}' -X 'main.BuildDate=${BUILD_DATE}' -extldflags=-static" \
         -tags="osusergo netgo static_build" \
         -o "dist/gh-gr_${VERSION}_${p}${ext}"
 
-    upx -best "dist/gh-gr_${VERSION}_${p}${ext}" -o "dist/gh-gr_${VERSION}_${p}${ext}"
+    upx --best -v "dist/gh-gr_${VERSION}_${p}${ext}" -o "dist/gh-gr_${VERSION}_${p}${ext}"
 done
