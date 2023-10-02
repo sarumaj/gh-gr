@@ -39,6 +39,10 @@ for ((j = 0; j < ${#supported_platforms[@]}; j++)); do
         -tags="osusergo netgo static_build" \
         -o "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed"
 
-    upx --best -v "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed" -o "dist/gh-gr_${VERSION}_${p}${ext}" &&
-        rm "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed"
+    if [ "$goos" = "windows" ]; then
+        mv "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed" "dist/gh-gr_${VERSION}_${p}${ext}"
+    else
+        upx --best -v "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed" -o "dist/gh-gr_${VERSION}_${p}${ext}" &&
+            rm "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed"
+    fi
 done
