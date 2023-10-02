@@ -53,7 +53,7 @@ gh gr push
 After creating new repositories on the server or after user data changes, you can update the local configuration using:
 
 ```
-gr update
+gh gr update
 ```
 
 # Acknowledgments
