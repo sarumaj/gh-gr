@@ -6,7 +6,7 @@
 
 # gh-gr
 
-**gh-gr** is a GitHub repository management tool based on the project [github-repo](https://github.com/CristianHenzel/github-repo) of [Cristian Henzel](https://github.com/CristianHenzel).
+**gh-gr** is a GitHub repository management tool based on the project [github-repo](https://github.com/CristianHenzel/github-repo) by [Cristian Henzel](https://github.com/CristianHenzel).
 
 Since the original project used a configuration file containing sensitive information, the issue has been adressed by reinventing the tool as an extension to the [github cli (gh)](https://cli.github.com/).
 
