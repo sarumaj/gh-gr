@@ -1,6 +1,6 @@
 module github.com/sarumaj/gh-pr
 
-go 1.21.1
+go 1.21
 
 require (
 	bou.ke/monkey v1.0.2

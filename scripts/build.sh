@@ -21,6 +21,7 @@ BUILD_DATE="$(date -u "+%Y-%m-%d %H:%M:%S UTC")"
 
 go install golang.org/x/tools/gopls@latest
 go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
 gofmt -s -d ./
 golangci-lint run
 
