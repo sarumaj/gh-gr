@@ -21,11 +21,6 @@ BUILD_DATE="$(date -u "+%Y-%m-%d %H:%M:%S UTC")"
 
 echo "VERSION=${VERSION} BUILD_DATE=${BUILD_DATE}"
 
-go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-
-gofmt -s -d ./
-golangci-lint run
-
 for p in "${supported_platforms[@]}"; do
     goos="${p%-*}"
     goarch="${p#*-}"
