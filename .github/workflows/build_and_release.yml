@@ -7,7 +7,7 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  build_and_release:
     strategy:
       fail-fast: false
       matrix:
