@@ -3,8 +3,8 @@ package commands
 import (
 	color "github.com/fatih/color"
 	git "github.com/go-git/go-git/v5"
-	configfile "github.com/sarumaj/gh-pr/pkg/configfile"
-	util "github.com/sarumaj/gh-pr/pkg/util"
+	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
+	util "github.com/sarumaj/gh-gr/pkg/util"
 	cobra "github.com/spf13/cobra"
 )
 

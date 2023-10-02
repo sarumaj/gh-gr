@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"github.com/cli/go-gh/v2/pkg/auth"
-	"github.com/sarumaj/gh-pr/pkg/configfile"
-	"github.com/sarumaj/gh-pr/pkg/restclient"
-	"github.com/sarumaj/gh-pr/pkg/util"
+	"github.com/sarumaj/gh-gr/pkg/configfile"
+	"github.com/sarumaj/gh-gr/pkg/restclient"
+	"github.com/sarumaj/gh-gr/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

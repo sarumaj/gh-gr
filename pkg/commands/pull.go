@@ -6,8 +6,8 @@ import (
 	"github.com/fatih/color"
 	"github.com/go-git/go-git/v5"
 	gitconfig "github.com/go-git/go-git/v5/config"
-	"github.com/sarumaj/gh-pr/pkg/configfile"
-	"github.com/sarumaj/gh-pr/pkg/util"
+	"github.com/sarumaj/gh-gr/pkg/configfile"
+	"github.com/sarumaj/gh-gr/pkg/util"
 	"github.com/spf13/cobra"
 )
 

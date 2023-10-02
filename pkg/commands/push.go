@@ -6,7 +6,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/transport"
-	"github.com/sarumaj/gh-pr/pkg/configfile"
+	"github.com/sarumaj/gh-gr/pkg/configfile"
 	"github.com/spf13/cobra"
 )
 

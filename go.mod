@@ -1,4 +1,4 @@
-module github.com/sarumaj/gh-pr
+module github.com/sarumaj/gh-gr
 
 go 1.21
 

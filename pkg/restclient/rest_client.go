@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/cli/go-gh/v2/pkg/api"
-	"github.com/sarumaj/gh-pr/pkg/configfile"
-	"github.com/sarumaj/gh-pr/pkg/restclient/resources"
+	"github.com/sarumaj/gh-gr/pkg/configfile"
+	"github.com/sarumaj/gh-gr/pkg/restclient/resources"
 )
 
 type ClientOptions = api.ClientOptions

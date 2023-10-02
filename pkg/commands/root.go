@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/sarumaj/gh-pr/pkg/configfile"
-	"github.com/sarumaj/gh-pr/pkg/util"
+	"github.com/sarumaj/gh-gr/pkg/configfile"
+	"github.com/sarumaj/gh-gr/pkg/util"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 	"gopkg.in/go-playground/pool.v3"

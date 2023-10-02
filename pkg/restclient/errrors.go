@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sarumaj/gh-pr/pkg/restclient/resources"
+	"github.com/sarumaj/gh-gr/pkg/restclient/resources"
 )
 
 func CheckRateLimit(r *resources.RateLimit) error {

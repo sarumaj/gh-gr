@@ -10,7 +10,7 @@ import (
 	auth "github.com/cli/go-gh/v2/pkg/auth"
 	config "github.com/cli/go-gh/v2/pkg/config"
 	prompter "github.com/cli/go-gh/v2/pkg/prompter"
-	util "github.com/sarumaj/gh-pr/pkg/util"
+	util "github.com/sarumaj/gh-gr/pkg/util"
 	yaml "gopkg.in/yaml.v2"
 )
 

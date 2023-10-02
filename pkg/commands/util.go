@@ -10,8 +10,8 @@ import (
 	"github.com/fatih/color"
 	git "github.com/go-git/go-git/v5"
 	gitconfig "github.com/go-git/go-git/v5/config"
-	configfile "github.com/sarumaj/gh-pr/pkg/configfile"
-	"github.com/sarumaj/gh-pr/pkg/util"
+	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
+	"github.com/sarumaj/gh-gr/pkg/util"
 )
 
 type status struct {
