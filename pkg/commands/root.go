@@ -6,11 +6,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/sarumaj/gh-gr/pkg/configfile"
-	"github.com/sarumaj/gh-gr/pkg/util"
-	"github.com/spf13/cobra"
-	"golang.org/x/term"
-	"gopkg.in/go-playground/pool.v3"
+	term "github.com/cli/go-gh/v2/pkg/term"
+	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
+	util "github.com/sarumaj/gh-gr/pkg/util"
+	cobra "github.com/spf13/cobra"
+	pool "gopkg.in/go-playground/pool.v3"
 )
 
 var configFlags = &configfile.Configuration{}
@@ -66,7 +66,7 @@ func repositoryOperationLoop(fn repositoryOperation, msg string) {
 		batch.QueueComplete()
 	}()
 
-	if term.IsTerminal(int(os.Stdout.Fd())) || flag.Lookup("test.v") != nil {
+	if term.IsTerminal(os.Stdout) || flag.Lookup("test.v") != nil {
 		fmt.Printf("\r%s (0/%d)...", msg, len(conf.Repositories))
 
 		i := 0

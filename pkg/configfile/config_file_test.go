@@ -3,7 +3,7 @@ package configfile
 import (
 	"testing"
 
-	"bou.ke/monkey"
+	monkey "bou.ke/monkey"
 	auth "github.com/cli/go-gh/v2/pkg/auth"
 )
 

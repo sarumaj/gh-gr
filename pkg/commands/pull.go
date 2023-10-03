@@ -3,12 +3,12 @@ package commands
 import (
 	"errors"
 
-	"github.com/fatih/color"
-	"github.com/go-git/go-git/v5"
+	color "github.com/fatih/color"
+	git "github.com/go-git/go-git/v5"
 	gitconfig "github.com/go-git/go-git/v5/config"
-	"github.com/sarumaj/gh-gr/pkg/configfile"
-	"github.com/sarumaj/gh-gr/pkg/util"
-	"github.com/spf13/cobra"
+	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
+	util "github.com/sarumaj/gh-gr/pkg/util"
+	cobra "github.com/spf13/cobra"
 )
 
 var pullCmd = &cobra.Command{
@@ -58,7 +58,7 @@ func runPull(conf *configfile.Configuration, repo configfile.Repository, status 
 			status.append(repo.Directory, color.RedString("non-fast-forward update"))
 			return
 
-		case errors.Is(err, git.NoErrAlreadyUpToDate): // iginore
+		case errors.Is(err, git.NoErrAlreadyUpToDate): // ignore
 
 		case err != nil:
 			status.appendError(repo.Directory, err)

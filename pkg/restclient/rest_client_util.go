@@ -14,7 +14,28 @@ import (
 	"gopkg.in/go-playground/pool.v3"
 )
 
-var linkRegex = regexp.MustCompile(`<([^>]+)>;\s*rel="([^"]+)"`)
+var linkRegex = regexp.MustCompile(`<(?P<Link>[^>]+)>;\s*rel="(?P<Type>[^"]+)"`)
+
+func getLastPage(responseHeader http.Header) (limit int) {
+	for _, m := range linkRegex.FindAllStringSubmatch(responseHeader.Get("Link"), -1) {
+		if len(m) <= 2 || m[2] != "last" {
+			continue
+		}
+
+		parsed, err := url.Parse(m[1])
+		if err != nil {
+			return
+		}
+
+		page, err := strconv.Atoi(parsed.Query().Get("page"))
+		if err != nil {
+			return
+		}
+
+		return page
+	}
+	return
+}
 
 func getPaged[T any](c RESTClient, ep apiEndpoint, ctx context.Context) (result []T, err error) {
 	resp, err := c.doRequest(
@@ -63,6 +84,7 @@ func getPaged[T any](c RESTClient, ep apiEndpoint, ctx context.Context) (result 
 }
 
 func getPagedWorkUnit[T any](c RESTClient, ep apiEndpoint, ctx context.Context, page int) pool.WorkFunc {
+	logger := util.Logger()
 	return func(wu pool.WorkUnit) (any, error) {
 		var paged []T
 		err := c.DoWithContext(
@@ -77,36 +99,17 @@ func getPagedWorkUnit[T any](c RESTClient, ep apiEndpoint, ctx context.Context, 
 		)
 
 		if wu.IsCancelled() {
+			logger.Warn("work unit has been prematurely canceled")
 			return nil, nil
 		}
 
 		if err != nil || len(paged) == 0 {
+			logger.Error(err)
 			return nil, err
 		}
 
 		return paged, nil
 	}
-}
-
-func getLastPage(responseHeader http.Header) (limit int) {
-	for _, m := range linkRegex.FindAllStringSubmatch(responseHeader.Get("Link"), -1) {
-		if len(m) <= 2 || m[2] != "last" {
-			continue
-		}
-
-		parsed, err := url.Parse(m[1])
-		if err != nil {
-			return
-		}
-
-		page, err := strconv.Atoi(parsed.Query().Get("page"))
-		if err != nil {
-			return
-		}
-
-		return page
-	}
-	return
 }
 
 func unmarshalListHead[T any](response *http.Response) ([]T, error) {

@@ -5,7 +5,7 @@ import (
 
 	semver "github.com/blang/semver"
 	selfupdate "github.com/rhysd/go-github-selfupdate/selfupdate"
-	"github.com/sarumaj/gh-gr/pkg/util"
+	util "github.com/sarumaj/gh-gr/pkg/util"
 	cobra "github.com/spf13/cobra"
 )
 

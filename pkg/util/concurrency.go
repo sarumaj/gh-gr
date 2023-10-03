@@ -6,7 +6,5 @@ import (
 )
 
 func GetIdealConcurrency() uint {
-	con := float64(runtime.NumCPU() * 2)
-	con = math.Max(con, 4)
-	return uint(con)
+	return uint(math.Max(float64(runtime.NumCPU()*2), 4))
 }

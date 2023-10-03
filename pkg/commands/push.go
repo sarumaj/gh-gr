@@ -3,11 +3,11 @@ package commands
 import (
 	"errors"
 
-	"github.com/fatih/color"
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/transport"
-	"github.com/sarumaj/gh-gr/pkg/configfile"
-	"github.com/spf13/cobra"
+	color "github.com/fatih/color"
+	git "github.com/go-git/go-git/v5"
+	transport "github.com/go-git/go-git/v5/plumbing/transport"
+	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
+	cobra "github.com/spf13/cobra"
 )
 
 var pushCmd = &cobra.Command{

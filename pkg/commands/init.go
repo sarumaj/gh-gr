@@ -5,12 +5,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cli/go-gh/v2/pkg/auth"
-	"github.com/sarumaj/gh-gr/pkg/configfile"
-	"github.com/sarumaj/gh-gr/pkg/restclient"
-	"github.com/sarumaj/gh-gr/pkg/util"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
+	auth "github.com/cli/go-gh/v2/pkg/auth"
+	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
+	restclient "github.com/sarumaj/gh-gr/pkg/restclient"
+	util "github.com/sarumaj/gh-gr/pkg/util"
+	logrus "github.com/sirupsen/logrus"
+	cobra "github.com/spf13/cobra"
 )
 
 var initCmd = func() *cobra.Command {
@@ -80,9 +80,14 @@ func runInit(conf *configfile.Configuration, update bool) {
 	}
 
 	for _, repo := range repos {
-		if true &&
+		switch {
+		case
+			// not explicitly included
+			len(conf.Included) > 0 &&
+				!util.RegexList(conf.Included).Match(repo.FullName),
+			// explicitly excluded and not included
 			util.RegexList(conf.Excluded).Match(repo.FullName) &&
-			!util.RegexList(conf.Included).Match(repo.FullName) {
+				!util.RegexList(conf.Included).Match(repo.FullName):
 
 			continue
 		}

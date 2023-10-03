@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"github.com/sarumaj/gh-gr/pkg/configfile"
-	"github.com/spf13/cobra"
+	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
+	cobra "github.com/spf13/cobra"
 )
 
 var updateCmd = &cobra.Command{

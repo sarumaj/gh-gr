@@ -37,10 +37,12 @@ for ((j = 0; j < ${#supported_platforms[@]}; j++)); do
         -trimpath \
         -ldflags="-s -w -X 'main.Version=${VERSION}' -X 'main.BuildDate=${BUILD_DATE}' -extldflags=-static" \
         -tags="osusergo netgo static_build" \
-        -o "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed"
+        -o "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed" \
+        "cmd/gr/main.go"
 
     # since upx does not support win64/arm64 yet
-    if [ "$p" = "windows-arm64" ]; then
+    # since upx does not work on freebsd with 64 bit arch
+    if [[ "$p" == windows-arm64 ]] || [[ "$p" == freebsd* ]]; then
         mv "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed" "dist/gh-gr_${VERSION}_${p}${ext}"
     else
         upx --best -v "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed" -o "dist/gh-gr_${VERSION}_${p}${ext}" &&

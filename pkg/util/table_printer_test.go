@@ -10,14 +10,30 @@ import (
 )
 
 func TestTeblePrinter(t *testing.T) {
+	stderr, stdout := os.Stderr, os.Stdout
+
+	stdoutpath := filepath.Join(os.TempDir(), "stdout")
+	stderrpath := filepath.Join(os.TempDir(), "stderr")
+
+	os.Stdout, _ = os.Create(stdoutpath)
+	os.Stderr, _ = os.Create(stderrpath)
+
+	defer func() {
+		os.Stderr, os.Stdout = stderr, stdout
+		_ = os.Remove(stdoutpath)
+		_ = os.Remove(stderrpath)
+	}()
+
 	type text struct {
 		text   string
 		colors []color.Attribute
 	}
+
 	type args struct {
 		input    []text
 		isStdErr bool
 	}
+
 	for _, tt := range []struct {
 		name string
 		args args
@@ -26,20 +42,6 @@ func TestTeblePrinter(t *testing.T) {
 		{"test#1", args{[]text{{"hello", nil}, {"world", []color.Attribute{}}}, false}, "hello\tworld\n"},
 		{"test#2", args{[]text{{"hello", nil}, {"world", []color.Attribute{}}}, true}, "hello\tworld\n"},
 	} {
-
-		stderr, stdout := os.Stderr, os.Stdout
-
-		stdoutname := filepath.Join(os.TempDir(), "stdout")
-		stderrname := filepath.Join(os.TempDir(), "stderr")
-
-		os.Stdout, _ = os.Create(stdoutname)
-		os.Stderr, _ = os.Create(stderrname)
-
-		defer func() {
-			os.Stderr, os.Stdout = stderr, stdout
-			_ = os.Remove(stdoutname)
-			_ = os.Remove(stderrname)
-		}()
 
 		t.Run(tt.name, func(t *testing.T) {
 			printer := TablePrinter().SetOutputToStdErr(tt.args.isStdErr)
@@ -53,9 +55,9 @@ func TestTeblePrinter(t *testing.T) {
 
 			var got []byte
 			if tt.args.isStdErr {
-				got, _ = os.ReadFile(stderrname)
+				got, _ = os.ReadFile(stderrpath)
 			} else {
-				got, _ = os.ReadFile(stdoutname)
+				got, _ = os.ReadFile(stdoutpath)
 			}
 
 			if !reflect.DeepEqual(got, []byte(tt.want)) {

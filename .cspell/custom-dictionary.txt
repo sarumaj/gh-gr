@@ -1,0 +1,25 @@
+# Custom Dictionary Words
+blang
+configfile
+Debugf
+exluded
+fatih
+Fullname
+Hostpath
+logrus
+Querystring
+restclient
+rhysd
+sarumaj
+selfupdate
+sirupsen
+statuslist
+stderrpath
+stdoutpath
+Storer
+subdirs
+tableprinter
+Teble
+Unpatch
+worktree
+Worktree

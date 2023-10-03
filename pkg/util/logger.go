@@ -4,7 +4,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/sirupsen/logrus"
+	logrus "github.com/sirupsen/logrus"
 )
 
 var logger = sync.Pool{New: initLogger}

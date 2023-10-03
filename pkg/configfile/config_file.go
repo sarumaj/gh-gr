@@ -10,6 +10,7 @@ import (
 	auth "github.com/cli/go-gh/v2/pkg/auth"
 	config "github.com/cli/go-gh/v2/pkg/config"
 	prompter "github.com/cli/go-gh/v2/pkg/prompter"
+	color "github.com/fatih/color"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -84,7 +85,7 @@ func (conf Configuration) Remove(purge bool) {
 	}
 
 	confirm, err := prompter.New(os.Stdin, os.Stdout, os.Stderr).
-		Confirm("DANGER!!! You will delete all local repositories! Are you sure?", false)
+		Confirm(color.RedString("DANGER!!! ")+"You will delete all local repositories! Are you sure?", false)
 	util.FatalIfError(err)
 
 	if !confirm {
