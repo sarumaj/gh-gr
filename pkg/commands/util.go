@@ -70,7 +70,6 @@ func addGitAliases() {
 
 	util.FatalIfError(json.Unmarshal(extras.AliasesJSON, &ga))
 
-	cfg := gitconfig.NewConfig()
 	home, err := os.UserHomeDir()
 	util.FatalIfError(err)
 
@@ -78,6 +77,7 @@ func addGitAliases() {
 	gitconfigRaw, err := os.ReadFile(gitconfigPath)
 	util.FatalIfError(err)
 
+	cfg := gitconfig.NewConfig()
 	util.FatalIfError(cfg.Unmarshal(gitconfigRaw))
 
 	section := cfg.Raw.Section("alias")
