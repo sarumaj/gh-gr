@@ -27,11 +27,12 @@ var initCmd = func() *cobra.Command {
 
 	host, _ := auth.DefaultHost()
 
-	initCmd.Flags().StringVarP(&configFlags.BaseURL, "url", "r", host, "GitHub (Enterprise) URL")
-	initCmd.Flags().StringVarP(&configFlags.BaseDirectory, "dir", "d", ".", "Directory in which repositories will be stored")
-	initCmd.Flags().BoolVarP(&configFlags.SubDirectories, "subdirs", "s", false, "Enable creation of separate subdirectories for each org/user")
-	initCmd.Flags().StringSliceVarP(&configFlags.Excluded, "exclude", "e", []string{}, "Regular expressions of repositories to exclude")
-	initCmd.Flags().StringSliceVarP(&configFlags.Included, "include", "i", []string{}, "Regular expressions of repositories to include (bind stronger than exclusion list)")
+	flags := initCmd.Flags()
+	flags.StringVarP(&configFlags.BaseURL, "url", "r", host, "GitHub (Enterprise) URL")
+	flags.StringVarP(&configFlags.BaseDirectory, "dir", "d", ".", "Directory in which repositories will be stored")
+	flags.BoolVarP(&configFlags.SubDirectories, "subdirs", "s", false, "Enable creation of separate subdirectories for each org/user")
+	flags.StringArrayVarP(&configFlags.Excluded, "exclude", "e", []string{}, "Regular expressions of repositories to exclude")
+	flags.StringArrayVarP(&configFlags.Included, "include", "i", []string{}, "Regular expressions of repositories to include (bind stronger than exclusion list)")
 
 	return initCmd
 }()
