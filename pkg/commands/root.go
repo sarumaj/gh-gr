@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	term "github.com/cli/go-gh/v2/pkg/term"
+	color "github.com/fatih/color"
 	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 	cobra "github.com/spf13/cobra"
@@ -50,8 +51,12 @@ func repositoryWorkUnit(fn repositoryOperation, conf *configfile.Configuration, 
 }
 
 func repositoryOperationLoop(fn repositoryOperation, msg string) {
-	conf := configfile.Load()
+	if !configfile.ConfigurationExists() {
+		fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, configfile.ConfigNotFound))
+		return
+	}
 
+	conf := configfile.Load()
 	p := pool.NewLimited(conf.Concurrency)
 	defer p.Close()
 

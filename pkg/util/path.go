@@ -1,8 +1,19 @@
 package util
 
-import "os"
+import (
+	"os"
+)
 
 func PathExists(path string) bool {
 	_, err := os.Stat(path)
-	return err == nil || (err != nil && os.IsNotExist(err))
+	if err == nil {
+		return true
+	}
+
+	if os.IsNotExist(err) {
+		return false
+	}
+
+	FatalIfError(err)
+	return false
 }

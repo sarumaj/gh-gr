@@ -1,8 +1,10 @@
 package commands
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -11,6 +13,7 @@ import (
 	git "github.com/go-git/go-git/v5"
 	gitconfig "github.com/go-git/go-git/v5/config"
 	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
+	extras "github.com/sarumaj/gh-gr/pkg/extras"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 )
 
@@ -57,6 +60,37 @@ func (statuslist *statusList) print() {
 	_ = printer.AddField(fmt.Sprintf("Total number: %d\n", len(*statuslist))).
 		EndRow().
 		Render()
+}
+
+func addGitAliases() {
+	var ga []struct {
+		Alias   string `json:"alias"`
+		Command string `json:"command"`
+	}
+
+	util.FatalIfError(json.Unmarshal(extras.AliasesJSON, &ga))
+
+	cfg := gitconfig.NewConfig()
+	home, err := os.UserHomeDir()
+	util.FatalIfError(err)
+
+	gitconfigPath := filepath.Join(home, ".gitconfig")
+	gitconfigRaw, err := os.ReadFile(gitconfigPath)
+	util.FatalIfError(err)
+
+	util.FatalIfError(cfg.Unmarshal(gitconfigRaw))
+
+	section := cfg.Raw.Section("alias")
+	for _, alias := range ga {
+		section.SetOption(alias.Alias, alias.Command)
+	}
+
+	util.FatalIfError(cfg.Validate())
+
+	gitconfigNew, err := cfg.Marshal()
+	util.FatalIfError(err)
+
+	util.FatalIfError(os.WriteFile(gitconfigPath, gitconfigNew, os.ModePerm))
 }
 
 func isRepoDir(path string, repos []configfile.Repository) bool {

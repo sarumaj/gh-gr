@@ -23,9 +23,7 @@ func initLogger() any {
 func FatalIfError(err error) {
 	if err != nil {
 		l := logger.Get().(*logrus.Logger)
-		l.Error(err)
-
-		os.Exit(1)
+		l.Fatalln(err)
 	}
 }
 

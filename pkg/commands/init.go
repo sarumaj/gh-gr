@@ -2,10 +2,13 @@ package commands
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
 	auth "github.com/cli/go-gh/v2/pkg/auth"
+	color "github.com/fatih/color"
 	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
 	restclient "github.com/sarumaj/gh-gr/pkg/restclient"
 	util "github.com/sarumaj/gh-gr/pkg/util"
@@ -38,8 +41,19 @@ var initCmd = func() *cobra.Command {
 }()
 
 func runInit(conf *configfile.Configuration, update bool) {
-	if conf.Exists() && !update {
-		util.FatalIfError(configfile.ErrConfExists)
+	switch exists := configfile.ConfigurationExists(); {
+
+	case exists && !update:
+		fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, configfile.ConfigShouldNotExist))
+		return
+
+	case !exists && update:
+		fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, configfile.ConfigNotFound))
+		return
+
+	case conf == nil:
+		conf = configfile.Load()
+
 	}
 
 	logger := util.Logger()
@@ -66,7 +80,12 @@ func runInit(conf *configfile.Configuration, update bool) {
 
 	conf.Username = user.Login
 	conf.Fullname = user.Name
-	conf.Email = user.Email
+
+	if user.Email == "" {
+		conf.Email = fmt.Sprintf("%d-%s@users.noreply.github.com", user.ID, user.Login)
+	} else {
+		conf.Email = user.Email
+	}
 
 	repos, err := client.GetUserRepos(ctx)
 	util.FatalIfError(err)
@@ -107,5 +126,6 @@ func runInit(conf *configfile.Configuration, update bool) {
 		})
 	}
 
+	addGitAliases()
 	conf.Save()
 }

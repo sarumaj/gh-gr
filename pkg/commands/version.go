@@ -3,7 +3,7 @@ package commands
 import (
 	"fmt"
 
-	"github.com/blang/semver"
+	semver "github.com/blang/semver"
 	selfupdate "github.com/rhysd/go-github-selfupdate/selfupdate"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 	cobra "github.com/spf13/cobra"

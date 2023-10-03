@@ -1,0 +1,26 @@
+[
+  {
+    "alias": "wip",
+    "command": "!git add -u && git commit -m \"WIP\""
+  },
+  {
+    "alias": "undo",
+    "command": "reset HEAD~1 --mixed"
+  },
+  {
+    "alias": "fup",
+    "command": "!git pull upstream main && git push"
+  },
+  {
+    "alias": "bcl",
+    "command": "!git checkout main && git branch --merged main | grep -v \"main$\" | xargs -n 1 git branch -d"
+  },
+  {
+    "alias": "nub",
+    "command": "\"!f() { git checkout main && git fup && git checkout -b ${1-main}; }; f\""
+  },
+  {
+    "alias": "cap",
+    "command": "!git add . && git commit --amend --no-edit && git push -f"
+  }
+]

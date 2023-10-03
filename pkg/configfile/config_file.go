@@ -17,6 +17,13 @@ import (
 
 const configKey = "gr.conf"
 
+const (
+	ConfigNotFound       = "No configuration found. Make sure to run 'init' to create initial configuration."
+	ConfigShouldNotExist = "Configuration already exists. " +
+		"Please run 'update' if you want to update your settings. " +
+		"Alternatively, run 'remove' if you want to setup from scratch once again."
+)
+
 var urlRegex = regexp.MustCompile(`(?P<Schema>[^:]+://)(?P<Creds>[^@]+@)?(?P<Hostpath>.+)`)
 
 // Configuration holds gr configuration data
@@ -50,8 +57,32 @@ func (conf Configuration) Authenticate(targetURL *string) {
 	*targetURL = parsed.String()
 }
 
-func (Configuration) Exists() bool {
-	return util.PathExists(configKey)
+func ConfigurationExists() bool {
+	c, err := config.Read()
+	if err != nil {
+		return false
+	}
+
+	raw, err := c.Get([]string{configKey})
+	return err == nil && len(raw) > 0
+}
+
+func Load() *Configuration {
+	var conf Configuration
+
+	c, err := config.Read()
+	util.FatalIfError(err)
+
+	content, err := c.Get([]string{configKey})
+	util.FatalIfError(err)
+
+	util.FatalIfError(yaml.Unmarshal([]byte(content), &conf))
+
+	return &conf
+}
+
+func (conf Configuration) Display() {
+	util.FatalIfError(yaml.NewEncoder(os.Stdout).Encode(conf))
 }
 
 func (conf Configuration) GetToken() string {
@@ -59,24 +90,12 @@ func (conf Configuration) GetToken() string {
 	return token
 }
 
-func Load() *Configuration {
-	c, err := config.Read()
-	util.FatalIfError(err)
-
-	content, err := c.Get([]string{configKey})
-	util.FatalIfError(err)
-
-	var conf Configuration
-	util.FatalIfError(yaml.Unmarshal([]byte(content), &conf))
-
-	return &conf
-}
-
 func (conf Configuration) Remove(purge bool) {
 	c, err := config.Read()
 	util.FatalIfError(err)
 
 	util.FatalIfError(c.Remove([]string{configKey}))
+	util.FatalIfError(config.Write(c))
 
 	fmt.Println("Configuration removed.")
 
@@ -85,7 +104,13 @@ func (conf Configuration) Remove(purge bool) {
 	}
 
 	confirm, err := prompter.New(os.Stdin, os.Stdout, os.Stderr).
-		Confirm(util.CheckColors(color.RedString, "DANGER!!! ")+"You will delete all local repositories! Are you sure?", false)
+		Confirm(
+			util.CheckColors(
+				color.RedString,
+				"DANGER!!! ",
+			)+"You will delete all local repositories! Are you sure?",
+			false,
+		)
 	util.FatalIfError(err)
 
 	if !confirm {
@@ -99,6 +124,8 @@ func (conf Configuration) Remove(purge bool) {
 	if conf.BaseDirectory != "." {
 		util.FatalIfError(os.RemoveAll(conf.BaseDirectory))
 	}
+
+	fmt.Println("Successfully removed repositories from local filesystem.")
 }
 
 func (conf Configuration) Save() {

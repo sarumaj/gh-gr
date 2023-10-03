@@ -1,19 +1,25 @@
 package commands
 
 import (
+	"fmt"
 	"os"
 
+	color "github.com/fatih/color"
 	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 	cobra "github.com/spf13/cobra"
-	yaml "gopkg.in/yaml.v2"
 )
 
 var viewCmd = &cobra.Command{
 	Use:   "view",
 	Short: "Display current configuration",
 	Run: func(cmd *cobra.Command, args []string) {
+		if !configfile.ConfigurationExists() {
+			fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, configfile.ConfigNotFound))
+			return
+		}
+
 		conf := configfile.Load()
-		util.FatalIfError(yaml.NewEncoder(os.Stdout).Encode(conf))
+		conf.Display()
 	},
 }

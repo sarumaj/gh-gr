@@ -10,6 +10,7 @@ Fullname
 Henzel
 Hostpath
 logrus
+noreply
 Querystring
 restclient
 rhysd
@@ -25,6 +26,8 @@ Storer
 subdirs
 tableprinter
 Teble
+tmpl
 Unpatch
+Warnf
 worktree
 Worktree
