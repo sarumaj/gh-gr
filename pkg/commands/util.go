@@ -62,35 +62,50 @@ func (statuslist *statusList) print() {
 		Render()
 }
 
-func addGitAliases() {
+func addGitAliases() error {
 	var ga []struct {
 		Alias   string `json:"alias"`
 		Command string `json:"command"`
 	}
-
-	util.FatalIfError(json.Unmarshal(extras.AliasesJSON, &ga))
+	if err := json.Unmarshal(extras.AliasesJSON, &ga); err != nil {
+		return err
+	}
 
 	home, err := os.UserHomeDir()
-	util.FatalIfError(err)
+	if err != nil {
+		return err
+	}
 
 	gitconfigPath := filepath.Join(home, ".gitconfig")
 	gitconfigRaw, err := os.ReadFile(gitconfigPath)
-	util.FatalIfError(err)
+	if err != nil {
+		return err
+	}
 
 	cfg := gitconfig.NewConfig()
-	util.FatalIfError(cfg.Unmarshal(gitconfigRaw))
+	if err := cfg.Unmarshal(gitconfigRaw); err != nil {
+		return err
+	}
 
 	section := cfg.Raw.Section("alias")
 	for _, alias := range ga {
 		section.SetOption(alias.Alias, alias.Command)
 	}
 
-	util.FatalIfError(cfg.Validate())
+	if err := cfg.Validate(); err != nil {
+		return err
+	}
 
 	gitconfigNew, err := cfg.Marshal()
-	util.FatalIfError(err)
+	if err != nil {
+		return err
+	}
 
-	util.FatalIfError(os.WriteFile(gitconfigPath, gitconfigNew, os.ModePerm))
+	if err := os.WriteFile(gitconfigPath, gitconfigNew, os.ModePerm); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func isRepoDir(path string, repos []configfile.Repository) bool {

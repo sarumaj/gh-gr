@@ -126,6 +126,9 @@ func runInit(conf *configfile.Configuration, update bool) {
 		})
 	}
 
-	addGitAliases()
+	if err := addGitAliases(); err != nil {
+		logger.Warnf("failed to set up git alias commands: %v", err)
+	}
+
 	conf.Save()
 }
