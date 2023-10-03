@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	semver "github.com/blang/semver"
 	color "github.com/fatih/color"
 	git "github.com/go-git/go-git/v5"
 	gitconfig "github.com/go-git/go-git/v5/config"
@@ -57,6 +58,14 @@ func (statuslist *statusList) print() {
 	_ = printer.AddField(fmt.Sprintf("Total number: %d\n", len(*statuslist))).
 		EndRow().
 		Render()
+}
+
+func currentVersion() semver.Version {
+	mmp := versionRegex.ReplaceAllString(Version, "$MMP")
+	current, err := semver.Parse(mmp)
+	util.FatalIfError(err)
+
+	return current
 }
 
 func isRepoDir(path string, repos []configfile.Repository) bool {

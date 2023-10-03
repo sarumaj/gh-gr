@@ -2,14 +2,16 @@ package commands
 
 import (
 	"fmt"
+	"regexp"
 
-	semver "github.com/blang/semver"
 	selfupdate "github.com/rhysd/go-github-selfupdate/selfupdate"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 	cobra "github.com/spf13/cobra"
 )
 
 const remoteRepositoryName = "sarumaj/gh-gr"
+
+var versionRegex = regexp.MustCompile(`^v(?P<MMP>(?:\d+\.){1,2}(?:\d+))(?:.*)$`)
 
 // Version holds the application version.
 // It gets filled automatically at build time.
@@ -41,7 +43,7 @@ var versionCmd = func() *cobra.Command {
 }()
 
 func printVersion() {
-	current := semver.MustParse(Version)
+	current := currentVersion()
 	latest, found, err := selfupdate.DetectLatest(remoteRepositoryName)
 	util.FatalIfError(err)
 
@@ -57,7 +59,8 @@ func printVersion() {
 }
 
 func selfUpdate() {
-	current := semver.MustParse(Version)
+	current := currentVersion()
+
 	updater, err := selfupdate.NewUpdater(selfupdate.Config{
 		Validator: &selfupdate.SHA2Validator{},
 	})
