@@ -10,6 +10,7 @@ import (
 	auth "github.com/cli/go-gh/v2/pkg/auth"
 	config "github.com/cli/go-gh/v2/pkg/config"
 	prompter "github.com/cli/go-gh/v2/pkg/prompter"
+	term "github.com/cli/go-gh/v2/pkg/term"
 	color "github.com/fatih/color"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 	yaml "gopkg.in/yaml.v2"
@@ -41,22 +42,6 @@ type Configuration struct {
 	Repositories   []Repository `yaml:"repositories"`
 }
 
-func (conf Configuration) Authenticate(targetURL *string) {
-	if targetURL == nil || *targetURL == "" || !urlRegex.MatchString(*targetURL) {
-		return
-	}
-
-	parsed, err := url.Parse(urlRegex.ReplaceAllString(
-		*targetURL,
-		fmt.Sprintf("${Schema}%s:%s@${Hostpath}", conf.Username, conf.GetToken()),
-	))
-	if err != nil {
-		return
-	}
-
-	*targetURL = parsed.String()
-}
-
 func ConfigurationExists() bool {
 	c, err := config.Read()
 	if err != nil {
@@ -81,6 +66,22 @@ func Load() *Configuration {
 	return &conf
 }
 
+func (conf Configuration) Authenticate(targetURL *string) {
+	if targetURL == nil || *targetURL == "" || !urlRegex.MatchString(*targetURL) {
+		return
+	}
+
+	parsed, err := url.Parse(urlRegex.ReplaceAllString(
+		*targetURL,
+		fmt.Sprintf("${Schema}%s:%s@${Hostpath}", conf.Username, conf.GetToken()),
+	))
+	if err != nil {
+		return
+	}
+
+	*targetURL = parsed.String()
+}
+
 func (conf Configuration) Display() {
 	util.FatalIfError(yaml.NewEncoder(os.Stdout).Encode(conf))
 }
@@ -103,18 +104,20 @@ func (conf Configuration) Remove(purge bool) {
 		return
 	}
 
-	confirm, err := prompter.New(os.Stdin, os.Stdout, os.Stderr).
-		Confirm(
-			util.CheckColors(
-				color.RedString,
-				"DANGER!!! ",
-			)+"You will delete all local repositories! Are you sure?",
-			false,
-		)
-	util.FatalIfError(err)
+	if term.IsTerminal(os.Stdout) && term.IsTerminal(os.Stderr) {
+		confirm, err := prompter.New(os.Stdin, os.Stdout, os.Stderr).
+			Confirm(
+				util.CheckColors(
+					color.RedString,
+					"DANGER!!! ",
+				)+"You will delete all local repositories! Are you sure?",
+				false,
+			)
+		util.FatalIfError(err)
 
-	if !confirm {
-		return
+		if !confirm {
+			return
+		}
 	}
 
 	for _, repo := range conf.Repositories {
