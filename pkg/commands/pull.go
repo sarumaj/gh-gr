@@ -105,10 +105,14 @@ func runPull(conf *configfile.Configuration, repo configfile.Repository, status 
 		return
 	}
 
-	updateRepoConfig(conf, repository)
-	_, err = repository.Remote("upstream")
+	if err := updateRepoConfig(conf, repository); err != nil {
+		status.appendError(repo.Directory, err)
+		return
+	}
 
-	if repo.ParentURL != "" && errors.Is(err, git.ErrRemoteNotFound) {
+	switch _, err := repository.Remote("upstream"); {
+
+	case repo.ParentURL != "" && errors.Is(err, git.ErrRemoteNotFound):
 		_, err := repository.CreateRemote(&gitconfig.RemoteConfig{
 			Name: "upstream",
 			URLs: []string{repo.ParentURL},
@@ -117,6 +121,7 @@ func runPull(conf *configfile.Configuration, repo configfile.Repository, status 
 			status.appendError(repo.Directory, err)
 			return
 		}
+
 	}
 
 	status.append(repo.Directory, color.GreenString("ok"))

@@ -2,8 +2,8 @@ package commands
 
 import (
 	"fmt"
-	"regexp"
 
+	"github.com/blang/semver"
 	selfupdate "github.com/rhysd/go-github-selfupdate/selfupdate"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 	cobra "github.com/spf13/cobra"
@@ -11,15 +11,13 @@ import (
 
 const remoteRepositoryName = "sarumaj/gh-gr"
 
-var versionRegex = regexp.MustCompile(`^v(?P<MMP>(?:\d+\.){1,2}(?:\d+))(?:.*)$`)
-
 // Version holds the application version.
 // It gets filled automatically at build time.
-var Version string
+var version string
 
 // BuildDate holds the date and time at which the application was build.
 // It gets filled automatically at build time.
-var BuildDate string
+var buildDate string
 
 var versionCmd = func() *cobra.Command {
 	var update bool
@@ -43,7 +41,9 @@ var versionCmd = func() *cobra.Command {
 }()
 
 func printVersion() {
-	current := currentVersion()
+	current, err := semver.ParseTolerant(version)
+	util.FatalIfError(err)
+
 	latest, found, err := selfupdate.DetectLatest(remoteRepositoryName)
 	util.FatalIfError(err)
 
@@ -54,12 +54,13 @@ func printVersion() {
 		vSuffix = "(newer version available: " + latest.Version.String() + ")"
 	}
 
-	fmt.Println("gr version:", Version, vSuffix)
-	fmt.Println("Built at:", BuildDate)
+	fmt.Println("gr version:", version, vSuffix)
+	fmt.Println("Built at:", buildDate)
 }
 
 func selfUpdate() {
-	current := currentVersion()
+	current, err := semver.ParseTolerant(version)
+	util.FatalIfError(err)
 
 	updater, err := selfupdate.NewUpdater(selfupdate.Config{
 		Validator: &selfupdate.SHA2Validator{},
@@ -70,7 +71,7 @@ func selfUpdate() {
 	util.FatalIfError(err)
 
 	if latest.Version.LTE(current) {
-		fmt.Println("You are already using the latest version:", Version)
+		fmt.Println("You are already using the latest version:", version)
 	} else {
 		fmt.Println("Successfully updated to version", latest.Version)
 	}

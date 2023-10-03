@@ -13,7 +13,7 @@ var statusCmd = &cobra.Command{
 	Short: "Show status for all repositories",
 	Run: func(cmd *cobra.Command, args []string) {
 		repositoryOperationLoop(runStatus, "Checking")
-		runLocalStatus()
+		util.FatalIfError(runLocalStatus())
 	},
 }
 

@@ -7,7 +7,6 @@ import (
 	"sort"
 	"strings"
 
-	semver "github.com/blang/semver"
 	color "github.com/fatih/color"
 	git "github.com/go-git/go-git/v5"
 	gitconfig "github.com/go-git/go-git/v5/config"
@@ -58,14 +57,6 @@ func (statuslist *statusList) print() {
 	_ = printer.AddField(fmt.Sprintf("Total number: %d\n", len(*statuslist))).
 		EndRow().
 		Render()
-}
-
-func currentVersion() semver.Version {
-	mmp := versionRegex.ReplaceAllString(Version, "$MMP")
-	current, err := semver.Parse(mmp)
-	util.FatalIfError(err)
-
-	return current
 }
 
 func isRepoDir(path string, repos []configfile.Repository) bool {
@@ -161,15 +152,20 @@ func pullSubmodule(submodule *git.Submodule) error {
 	return nil
 }
 
-func runLocalStatus() {
+func runLocalStatus() error {
 	conf := configfile.Load()
 
 	files, err := filepath.Glob(conf.BaseDirectory + "/*")
-	util.FatalIfError(err)
+	if err != nil {
+		return err
+	}
 
 	if conf.SubDirectories {
 		parents, err := filepath.Glob(conf.BaseDirectory + "/*/*")
-		util.FatalIfError(err)
+		if err != nil {
+			return err
+		}
+
 		files = append(files, parents...)
 	}
 
@@ -181,16 +177,27 @@ func runLocalStatus() {
 	}
 
 	status.print()
+
+	return nil
 }
 
-func updateRepoConfig(conf *configfile.Configuration, repository *git.Repository) {
+func updateRepoConfig(conf *configfile.Configuration, repository *git.Repository) error {
 	repoConf, err := repository.Config()
-	util.FatalIfError(err)
+	if err != nil {
+		return err
+	}
 
 	section := repoConf.Raw.Section("user")
 	section.SetOption("name", conf.Fullname)
 	section.SetOption("email", conf.Email)
 
-	util.FatalIfError(repoConf.Validate())
-	util.FatalIfError(repository.Storer.SetConfig(repoConf))
+	if err := repoConf.Validate(); err != nil {
+		return err
+	}
+
+	if err := repository.Storer.SetConfig(repoConf); err != nil {
+		return err
+	}
+
+	return nil
 }

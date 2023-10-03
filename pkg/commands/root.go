@@ -22,7 +22,7 @@ var rootCmd = func() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			util.FatalIfError(cmd.Help())
 		},
-		Version: Version,
+		Version: version,
 	}
 
 	flags := cmd.PersistentFlags()
@@ -83,6 +83,7 @@ func repositoryOperationLoop(fn repositoryOperation, msg string) {
 }
 
 // Execute executes the root command.
-func Execute() {
+func Execute(Version, BuildDate string) {
+	version, buildDate = Version, BuildDate
 	util.FatalIfError(rootCmd.Execute())
 }
