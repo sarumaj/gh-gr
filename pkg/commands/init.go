@@ -28,7 +28,7 @@ var initCmd = func() *cobra.Command {
 	host, _ := auth.DefaultHost()
 
 	flags := initCmd.Flags()
-	flags.StringVarP(&configFlags.BaseURL, "url", "r", host, "GitHub (Enterprise) URL")
+	flags.StringVarP(&configFlags.BaseURL, "url", "u", host, "GitHub (Enterprise) URL")
 	flags.StringVarP(&configFlags.BaseDirectory, "dir", "d", ".", "Directory in which repositories will be stored")
 	flags.BoolVarP(&configFlags.SubDirectories, "subdirs", "s", false, "Enable creation of separate subdirectories for each org/user")
 	flags.StringArrayVarP(&configFlags.Excluded, "exclude", "e", []string{}, "Regular expressions of repositories to exclude")

@@ -24,7 +24,7 @@ type statusList []status
 func (statuslist *statusList) appendError(repoName string, err error) {
 	*statuslist = append(*statuslist, status{
 		Name:  repoName,
-		State: color.RedString(err.Error()),
+		State: util.CheckColors(color.RedString, err.Error()),
 	})
 }
 
@@ -74,7 +74,7 @@ func openRepository(repo configfile.Repository, status *statusList) (*git.Reposi
 
 	// If we get ErrRepositoryNotExists here, it means the repo is broken
 	case errors.Is(err, git.ErrRepositoryNotExists):
-		status.append(repo.Directory, color.RedString("broken"))
+		status.append(repo.Directory, util.CheckColors(color.RedString, "broken"))
 		return nil, false
 
 	case err != nil:

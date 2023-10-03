@@ -85,7 +85,7 @@ func (conf Configuration) Remove(purge bool) {
 	}
 
 	confirm, err := prompter.New(os.Stdin, os.Stdout, os.Stderr).
-		Confirm(color.RedString("DANGER!!! ")+"You will delete all local repositories! Are you sure?", false)
+		Confirm(util.CheckColors(color.RedString, "DANGER!!! ")+"You will delete all local repositories! Are you sure?", false)
 	util.FatalIfError(err)
 
 	if !confirm {

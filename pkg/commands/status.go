@@ -21,7 +21,7 @@ func runStatus(conf *configfile.Configuration, repo configfile.Repository, statu
 	var ret string
 
 	if !util.PathExists(repo.Directory) {
-		status.append(repo.Directory, color.RedString("absent"))
+		status.append(repo.Directory, util.CheckColors(color.RedString, "absent"))
 
 		return
 	}
@@ -38,9 +38,9 @@ func runStatus(conf *configfile.Configuration, repo configfile.Repository, statu
 	}
 
 	if branch := head.Name().Short(); branch == repo.Branch {
-		ret += color.GreenString(branch)
+		ret += util.CheckColors(color.GreenString, branch)
 	} else {
-		ret += color.RedString(branch)
+		ret += util.CheckColors(color.RedString, branch)
 	}
 
 	workTree, err := repository.Worktree()
@@ -56,9 +56,9 @@ func runStatus(conf *configfile.Configuration, repo configfile.Repository, statu
 	}
 
 	if repoStatus.IsClean() {
-		ret += "\t" + color.GreenString("clean")
+		ret += "\t" + util.CheckColors(color.GreenString, "clean")
 	} else {
-		ret += "\t" + color.RedString("dirty")
+		ret += "\t" + util.CheckColors(color.RedString, "dirty")
 	}
 
 	remote, err := repository.Remote(git.DefaultRemoteName)
@@ -76,9 +76,9 @@ func runStatus(conf *configfile.Configuration, repo configfile.Repository, statu
 	for _, r := range remoteRef {
 		if r.Name().String() == "refs/heads/"+repo.Branch {
 			if r.Hash() == head.Hash() {
-				ret += "\t" + color.GreenString("latest")
+				ret += "\t" + util.CheckColors(color.GreenString, "latest")
 			} else {
-				ret += "\t" + color.RedString("stale")
+				ret += "\t" + util.CheckColors(color.RedString, "stale")
 			}
 
 			break

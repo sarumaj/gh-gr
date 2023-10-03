@@ -55,7 +55,7 @@ func runPull(conf *configfile.Configuration, repo configfile.Repository, status 
 		}); {
 
 		case errors.Is(err, git.ErrNonFastForwardUpdate):
-			status.append(repo.Directory, color.RedString("non-fast-forward update"))
+			status.append(repo.Directory, util.CheckColors(color.RedString, "non-fast-forward update"))
 			return
 
 		case errors.Is(err, git.NoErrAlreadyUpToDate): // ignore
@@ -124,5 +124,5 @@ func runPull(conf *configfile.Configuration, repo configfile.Repository, status 
 
 	}
 
-	status.append(repo.Directory, color.GreenString("ok"))
+	status.append(repo.Directory, util.CheckColors(color.GreenString, "ok"))
 }

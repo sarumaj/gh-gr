@@ -1,12 +1,13 @@
 package util
 
 import (
+	"fmt"
 	"os"
 	"sync"
 
 	tableprinter "github.com/cli/go-gh/v2/pkg/tableprinter"
 	term "github.com/cli/go-gh/v2/pkg/term"
-	"github.com/fatih/color"
+	color "github.com/fatih/color"
 )
 
 var printer = sync.Pool{New: newTablePrinter}
@@ -58,6 +59,14 @@ func (t *tablePrinter) Render() error {
 func (t *tablePrinter) SetOutputToStdErr(isStdErr bool) *tablePrinter {
 	t.isStdErr = isStdErr
 	return t
+}
+
+func CheckColors(fn func(string, ...any) string, format string, a ...any) string {
+	if UseColors() {
+		return fn(format, a...)
+	}
+
+	return fmt.Sprintf(format, a...)
 }
 
 func newTablePrinter() any {
