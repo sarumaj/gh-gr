@@ -1,10 +1,13 @@
 # Custom Dictionary Words
+adressed
 blang
 configfile
+Cristian
 Debugf
 exluded
 fatih
 Fullname
+Henzel
 Hostpath
 logrus
 Querystring
@@ -13,6 +16,8 @@ rhysd
 sarumaj
 selfupdate
 sirupsen
+SOMEDIR
+SOMEORG
 statuslist
 stderrpath
 stdoutpath

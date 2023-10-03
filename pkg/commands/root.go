@@ -35,7 +35,7 @@ var rootCmd = func() *cobra.Command {
 	)
 	flags.BoolVarP(&configFlags.Verbose, "verbose", "v", false, "Print verbose logs")
 
-	cmd.AddCommand(initCmd, pullCmd, pushCmd, removeCmd, statusCmd, updateCmd, versionCmd)
+	cmd.AddCommand(initCmd, pullCmd, pushCmd, removeCmd, statusCmd, updateCmd, versionCmd, viewCmd)
 
 	return cmd
 }()

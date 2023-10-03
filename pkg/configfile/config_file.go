@@ -23,15 +23,15 @@ var urlRegex = regexp.MustCompile(`(?P<Schema>[^:]+://)(?P<Creds>[^@]+@)?(?P<Hos
 type Configuration struct {
 	Username       string       `yaml:"username"`
 	Fullname       string       `yaml:"fullname"`
-	Email          string       `yaml:"Email"`
+	Email          string       `yaml:"email,omitempty"`
 	BaseDirectory  string       `yaml:"baseDirectory"`
 	BaseURL        string       `yaml:"baseURL"`
 	Concurrency    uint         `yaml:"concurrency"`
 	SubDirectories bool         `yaml:"subDirectories"`
-	Excluded       []string     `yaml:"exluded"`
-	Included       []string     `yaml:"included"`
+	Verbose        bool         `yaml:"verbose"`
+	Excluded       []string     `yaml:"exluded,omitempty"`
+	Included       []string     `yaml:"included,omitempty"`
 	Repositories   []Repository `yaml:"repositories"`
-	Verbose        bool         `yaml:"-"`
 }
 
 func (conf Configuration) Authenticate(targetURL *string) {

@@ -26,11 +26,11 @@ gh extension install https://github.com/sarumaj/gh-gr
 gh gr --help
 
 >> gr is a gh cli extension allowing management of multiple repositories at once
->> 
+>>
 >> Usage:
 >>   gr [flags]
 >>   gr [command]
->> 
+>>
 >> Available Commands:
 >>   completion  Generate the autocompletion script for the specified shell
 >>   help        Help about any command
@@ -41,12 +41,13 @@ gh gr --help
 >>   status      Show status for all repositories
 >>   update      Update configuration
 >>   version     Display version information
->> 
+>>   view        Display current configuration
+>>
 >> Flags:
 >>   -c, --concurrency uint   Concurrency for concurrent jobs (default 16)
 >>   -h, --help               help for gr
 >>   -v, --verbose            Print verbose logs
->> 
+>>
 >> Use "gr [command] --help" for more information about a command.
 ```
 
@@ -59,8 +60,10 @@ gh gr init -d SOMEDIR -c 10
 or, if you are using GitHub Enterprise:
 
 ```
-gh gr init -c 10 -r https://example.com/api/v3/ -d SOMEDIR -e "repo1|SOMEORG/repo-.*" -s
+gh gr init -c 10 -r https://example.com/api/v3/ -d SOMEDIR -e "repo1" -e "SOMEORG/repo-.*" -s
 ```
+
+Run `gh gr init --help` or `gh gr help init` to retrieve more information about the init command.
 
 After the configuration is created, you can pull all repositories using:
 
