@@ -48,4 +48,5 @@ for ((j = 0; j < ${#supported_platforms[@]}; j++)); do
         upx --best -v "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed" -o "dist/gh-gr_${VERSION}_${p}${ext}" &&
             rm "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed"
     fi
+    sha256sum "dist/gh-gr_${VERSION}_${p}${ext}" | awk '{print $1}' >"dist/gh-gr_${VERSION}_${p}${ext}.sha256"
 done
