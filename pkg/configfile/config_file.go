@@ -39,7 +39,7 @@ type Configuration struct {
 	Verbose        bool         `yaml:"verbose"`
 	Excluded       []string     `yaml:"exluded,omitempty"`
 	Included       []string     `yaml:"included,omitempty"`
-	Repositories   []Repository `yaml:"repositories"`
+	Repositories   Repositories `yaml:"repositories"`
 }
 
 func ConfigurationExists() bool {
@@ -82,13 +82,43 @@ func (conf Configuration) Authenticate(targetURL *string) {
 	*targetURL = parsed.String()
 }
 
+func (conf Configuration) Copy() *Configuration {
+	n := &Configuration{
+		Username:       conf.Username,
+		Fullname:       conf.Fullname,
+		Email:          conf.Email,
+		BaseDirectory:  conf.BaseDirectory,
+		BaseURL:        conf.BaseURL,
+		Concurrency:    conf.Concurrency,
+		SubDirectories: conf.SubDirectories,
+		Verbose:        conf.Verbose,
+	}
+
+	if conf.Excluded != nil {
+		n.Excluded = make([]string, 0)
+		_ = copy(n.Excluded, conf.Excluded)
+	}
+
+	if conf.Included != nil {
+		n.Included = make([]string, 0)
+		_ = copy(n.Included, conf.Included)
+	}
+
+	if conf.Repositories != nil {
+		n.Repositories = make(Repositories, 0)
+		_ = copy(n.Repositories, conf.Repositories)
+	}
+
+	return n
+}
+
 func (conf Configuration) Display() {
 	util.FatalIfError(yaml.NewEncoder(os.Stdout).Encode(conf))
 }
 
 func (conf Configuration) GetToken() string {
 	host := conf.BaseURL
-	
+
 	if parsed, err := url.Parse(conf.BaseURL); err == nil {
 		host = parsed.Hostname()
 	}

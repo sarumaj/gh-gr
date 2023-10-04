@@ -21,10 +21,7 @@ var initCmd = func() *cobra.Command {
 		Use:   "init",
 		Short: "Initialize repository mirror",
 		Run: func(cmd *cobra.Command, args []string) {
-			if configFlags == nil {
-				configFlags = &configfile.Configuration{}
-			}
-			runInit(configFlags, false)
+			runInit(configFlags.Copy(), false)
 		},
 	}
 
@@ -41,7 +38,9 @@ var initCmd = func() *cobra.Command {
 }()
 
 func runInit(conf *configfile.Configuration, update bool) {
-	switch exists := configfile.ConfigurationExists(); {
+	exists := configfile.ConfigurationExists()
+
+	switch {
 
 	case exists && !update:
 		fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, configfile.ConfigShouldNotExist))
@@ -51,8 +50,14 @@ func runInit(conf *configfile.Configuration, update bool) {
 		fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, configfile.ConfigNotFound))
 		return
 
-	case conf == nil:
+	}
+
+	if exists && conf == nil {
 		conf = configfile.Load()
+
+	} else if conf == nil {
+		fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, configfile.ConfigNotFound))
+		return
 
 	}
 
@@ -104,6 +109,7 @@ func runInit(conf *configfile.Configuration, update bool) {
 			// not explicitly included
 			len(conf.Included) > 0 &&
 				!util.RegexList(conf.Included).Match(repo.FullName),
+
 			// explicitly excluded and not included
 			util.RegexList(conf.Excluded).Match(repo.FullName) &&
 				!util.RegexList(conf.Included).Match(repo.FullName):
@@ -117,12 +123,13 @@ func runInit(conf *configfile.Configuration, update bool) {
 			dir = strings.ReplaceAll(dir, conf.Username+"_", "")
 		}
 
-		conf.Repositories = append(conf.Repositories, configfile.Repository{
+		conf.Repositories = conf.Repositories.AppendRepository(configfile.Repository{
 			URL:       repo.CloneURL,
 			Branch:    repo.DefaultBranch,
 			ParentURL: repo.Parent.CloneURL,
 			Directory: filepath.Join(conf.BaseDirectory, dir),
 		})
+
 	}
 
 	if err := addGitAliases(); err != nil {
