@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/cli/go-gh/v2/pkg/api"
 	"github.com/sarumaj/gh-gr/pkg/configfile"
@@ -57,6 +58,8 @@ func (c RESTClient) GetUserOrgs(ctx context.Context) ([]resources.Organization, 
 }
 
 func NewRESTClient(conf *configfile.Configuration, options ClientOptions) (*RESTClient, error) {
+	options.Host = strings.TrimSuffix(options.Host, "/")
+	
 	client, err := api.NewRESTClient(options)
 	if err != nil {
 		return nil, err
