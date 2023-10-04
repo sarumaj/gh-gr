@@ -61,9 +61,8 @@ func runInit(conf *configfile.Configuration, update bool) {
 		logger.SetLevel(logrus.DebugLevel)
 	}
 
-	token, _ := auth.TokenForHost(conf.BaseURL)
 	client, err := restclient.NewRESTClient(conf, restclient.ClientOptions{
-		AuthToken:   token,
+		AuthToken:   conf.GetToken(),
 		Log:         logger.WriterLevel(logrus.DebugLevel),
 		LogColorize: true,
 		Host:        conf.BaseURL,
