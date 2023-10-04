@@ -87,7 +87,13 @@ func (conf Configuration) Display() {
 }
 
 func (conf Configuration) GetToken() string {
-	token, _ := auth.TokenForHost(conf.BaseURL)
+	host := conf.BaseURL
+	
+	if parsed, err := url.Parse(conf.BaseURL); err == nil {
+		host = parsed.Hostname()
+	}
+
+	token, _ := auth.TokenForHost(host)
 	return token
 }
 
