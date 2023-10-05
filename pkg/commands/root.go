@@ -50,19 +50,26 @@ func repositoryWorkUnit(fn repositoryOperation, conf *configfile.Configuration, 
 }
 
 func repositoryOperationLoop(bar *util.Progressbar, fn repositoryOperation) {
-	if !configfile.ConfigurationExists() {
+	logger := util.Logger()
+	entry := logger.WithField("command", "root")
+
+	exists := configfile.ConfigurationExists()
+	entry.Debugf("Config exists: %t", exists)
+	if !exists {
 		fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, configfile.ConfigNotFound))
 		return
 	}
 
+	entry.Debug("Loading config")
 	conf := configfile.Load()
 	p := pool.NewLimited(conf.Concurrency)
 	defer p.Close()
 
 	batch := p.Batch()
 
-	finished := make(chan bool)
+	entry.Debugf("Dispatching %d workers", len(conf.Repositories))
 
+	finished := make(chan bool)
 	var status statusList
 	go func(finished chan<- bool) {
 		for _, repo := range conf.Repositories {
@@ -88,16 +95,23 @@ func repositoryOperationLoop(bar *util.Progressbar, fn repositoryOperation) {
 		}
 	}(finished)
 
+	entry.Debugf("Collecting %d workers", len(conf.Repositories))
 	_ = bar.ChangeMax(len(conf.Repositories))
 	for range batch.Results() {
 		bar.Inc()
 	}
 
+	entry.Debug("Collected workers")
 	status.print()
 }
 
 // Execute executes the root command.
 func Execute(Version, BuildDate string) {
+	logger := util.Logger()
+	entry := logger.WithField("command", "root")
+
 	version, buildDate = Version, BuildDate
+	entry.Debugf("Version: %s, build date: %s", version, buildDate)
+
 	util.FatalIfError(rootCmd.Execute())
 }
