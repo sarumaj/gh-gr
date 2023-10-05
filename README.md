@@ -46,6 +46,7 @@ gh gr --help
 >> Flags:
 >>   -c, --concurrency uint   Concurrency for concurrent jobs (default 16)
 >>   -h, --help               help for gr
+>>   -t, --timeout duration   Set timeout for long running jobs (default 10m0s)
 >>   -v, --verbose            Print verbose logs
 >>
 >> Use "gr [command] --help" for more information about a command.
