@@ -9,27 +9,35 @@ import (
 	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 	cobra "github.com/spf13/cobra"
+	"gopkg.in/go-playground/pool.v3"
 )
 
 var pullCmd = &cobra.Command{
 	Use:   "pull",
 	Short: "Pull all repositories",
 	Run: func(cmd *cobra.Command, args []string) {
-		repositoryOperationLoop(runPull, "Pulling")
+		bar := util.NewProgressbar(100).Describe(util.CheckColors(color.BlueString, "Pulling..."))
+		repositoryOperationLoop(bar, runPull)
 	},
 }
 
-func runPull(conf *configfile.Configuration, repo configfile.Repository, status *statusList) {
+func runPull(wu pool.WorkUnit, conf *configfile.Configuration, repo configfile.Repository, status *statusList) {
 	var repository *git.Repository
 	var workTree *git.Worktree
 	var err error
+
+	logger := util.Logger()
+	if wu.IsCancelled() {
+		logger.Warn("work unit has been prematurely canceled")
+		return
+	}
 
 	conf.Authenticate(&repo.URL)
 	conf.Authenticate(&repo.ParentURL)
 
 	if util.PathExists(repo.Directory) {
-		repository, ok := openRepository(repo, status)
-		if !ok {
+		repository, err = openRepository(repo, status)
+		if err != nil {
 			return
 		}
 

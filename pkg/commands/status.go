@@ -6,28 +6,34 @@ import (
 	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 	cobra "github.com/spf13/cobra"
+	"gopkg.in/go-playground/pool.v3"
 )
 
 var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show status for all repositories",
 	Run: func(cmd *cobra.Command, args []string) {
-		repositoryOperationLoop(runStatus, "Checking")
+		bar := util.NewProgressbar(100).Describe(util.CheckColors(color.BlueString, "Checking..."))
+		repositoryOperationLoop(bar, runStatus)
 		util.FatalIfError(runLocalStatus())
 	},
 }
 
-func runStatus(conf *configfile.Configuration, repo configfile.Repository, status *statusList) {
-	var ret string
-
-	if !util.PathExists(repo.Directory) {
-		status.append(repo.Directory, util.CheckColors(color.RedString, "absent"))
-
+func runStatus(wu pool.WorkUnit, conf *configfile.Configuration, repo configfile.Repository, status *statusList) {
+	logger := util.Logger()
+	if wu.IsCancelled() {
+		logger.Warn("work unit has been prematurely canceled")
 		return
 	}
 
-	repository, ok := openRepository(repo, status)
-	if !ok {
+	var ret string
+	if !util.PathExists(repo.Directory) {
+		status.append(repo.Directory, util.CheckColors(color.RedString, "absent"))
+		return
+	}
+
+	repository, err := openRepository(repo, status)
+	if err != nil {
 		return
 	}
 
@@ -80,7 +86,6 @@ func runStatus(conf *configfile.Configuration, repo configfile.Repository, statu
 			} else {
 				ret += "\t" + util.CheckColors(color.RedString, "stale")
 			}
-
 			break
 		}
 	}

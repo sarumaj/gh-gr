@@ -9,19 +9,27 @@ import (
 	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 	cobra "github.com/spf13/cobra"
+	"gopkg.in/go-playground/pool.v3"
 )
 
 var pushCmd = &cobra.Command{
 	Use:   "push",
 	Short: "Push all repositories",
 	Run: func(cmd *cobra.Command, args []string) {
-		repositoryOperationLoop(runPush, "Pushing")
+		bar := util.NewProgressbar(100).Describe(util.CheckColors(color.BlueString, "Pushing..."))
+		repositoryOperationLoop(bar, runPush)
 	},
 }
 
-func runPush(conf *configfile.Configuration, repo configfile.Repository, status *statusList) {
-	repository, ok := openRepository(repo, status)
-	if !ok {
+func runPush(wu pool.WorkUnit, conf *configfile.Configuration, repo configfile.Repository, status *statusList) {
+	logger := util.Logger()
+	if wu.IsCancelled() {
+		logger.Warn("work unit has been prematurely canceled")
+		return
+	}
+
+	repository, err := openRepository(repo, status)
+	if err != nil {
 		return
 	}
 
