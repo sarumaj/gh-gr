@@ -65,7 +65,7 @@ func Load() *Configuration {
 	content, err := c.Get([]string{configKey})
 	util.FatalIfError(err)
 
-	bar := binaryProgressbar().Describe(util.CheckColors(color.BlueString, "Loading..."))
+	bar := newBinaryProgressbar().Describe(util.CheckColors(color.BlueString, "Loading..."))
 	util.FatalIfError(yaml.NewDecoder(io.TeeReader(strings.NewReader(content), bar)).Decode(&conf))
 	_ = bar.Clear()
 
@@ -182,7 +182,7 @@ func (conf Configuration) Save() {
 	util.FatalIfError(err)
 
 	buffer := bytes.NewBuffer(nil)
-	bar := binaryProgressbar().Describe(util.CheckColors(color.BlueString, "Saving..."))
+	bar := newBinaryProgressbar().Describe(util.CheckColors(color.BlueString, "Saving..."))
 	util.FatalIfError(yaml.NewEncoder(io.MultiWriter(buffer, bar)).Encode(conf))
 	_ = bar.Clear()
 
@@ -192,7 +192,7 @@ func (conf Configuration) Save() {
 	fmt.Println(util.CheckColors(color.GreenString, "Configuration saved. You can now pull your repositories."))
 }
 
-func binaryProgressbar() *util.Progressbar {
+func newBinaryProgressbar() *util.Progressbar {
 	return util.NewProgressbar(
 		-1,
 		util.EnableColorCodes(util.UseColors()),

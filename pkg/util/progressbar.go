@@ -13,7 +13,7 @@ import (
 type Progressbar struct {
 	*progressbar.ProgressBar
 	w               io.Writer
-	msgOnComplation string
+	msgOnCompletion string
 }
 
 type ProgressbarOption = progressbar.Option
@@ -69,11 +69,11 @@ func (p *Progressbar) Inc() *Progressbar {
 }
 
 func (p *Progressbar) Print() {
-	fmt.Fprint(p.w, p.msgOnComplation)
+	fmt.Fprint(p.w, p.msgOnCompletion)
 }
 
 func (p *Progressbar) SetMessageOnCompletion(msg string) *Progressbar {
-	p.msgOnComplation = msg
+	p.msgOnCompletion = msg
 	return p
 }
 

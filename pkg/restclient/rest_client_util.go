@@ -67,7 +67,7 @@ func getPaged[T any](c RESTClient, ep apiEndpoint, ctx context.Context) (result 
 
 	go func() {
 		last := getLastPage(resp.Header)
-		c.ChangeMax(last)
+		_ = c.ChangeMax(last)
 		for page := 2; page <= last; page++ {
 			logger.Debugf("Dispatching request for page %d", page)
 			batch.Queue(getPagedWorkUnit[T](c, ep, ctx, page))

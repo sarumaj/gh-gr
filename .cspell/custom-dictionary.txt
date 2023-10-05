@@ -11,10 +11,12 @@ Henzel
 Hostpath
 logrus
 noreply
+Progressbar
 Querystring
 restclient
 rhysd
 sarumaj
+schollz
 selfupdate
 sirupsen
 SOMEDIR
