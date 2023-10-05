@@ -10,6 +10,7 @@ import (
 	"github.com/sarumaj/gh-gr/pkg/configfile"
 	"github.com/sarumaj/gh-gr/pkg/restclient/resources"
 	"github.com/sarumaj/gh-gr/pkg/util"
+	"github.com/sirupsen/logrus"
 )
 
 type ClientOptions = api.ClientOptions
@@ -18,13 +19,16 @@ type RESTClient struct {
 	*api.RESTClient
 	*configfile.Configuration
 	*util.Progressbar
+	*logrus.Entry
 }
 
 func (c RESTClient) do(ctx context.Context, method, path string, body io.Reader, response any) error {
+	c.WithField("method", method).WithField("path", path).Debug("do")
 	return c.DoWithContext(ctx, method, path, body, response)
 }
 
 func (c RESTClient) doRequest(ctx context.Context, method, path string, body io.Reader) (*http.Response, error) {
+	c.WithField("method", method).WithField("path", path).Debug("request")
 	return c.RequestWithContext(ctx, method, path, body)
 }
 
@@ -64,9 +68,14 @@ func (c RESTClient) GetUserOrgs(ctx context.Context) ([]resources.Organization, 
 }
 
 func NewRESTClient(conf *configfile.Configuration, options ClientOptions) (*RESTClient, error) {
+	logger := util.Logger()
+	entry := logger.WithField("restclient", true)
+
 	if parsed, err := url.Parse(options.Host); err == nil {
 		options.Host = parsed.Hostname()
 	}
+
+	entry.Debugf("Creating client with options: %+v", options)
 
 	client, err := api.NewRESTClient(options)
 	if err != nil {
@@ -77,5 +86,6 @@ func NewRESTClient(conf *configfile.Configuration, options ClientOptions) (*REST
 		RESTClient:    client,
 		Configuration: conf,
 		Progressbar:   util.NewProgressbar(-1),
+		Entry:         entry,
 	}, nil
 }

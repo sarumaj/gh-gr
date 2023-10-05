@@ -22,7 +22,13 @@ var removeCmd = func() *cobra.Command {
 				return
 			}
 
+			logger := util.Logger()
+			entry := logger.WithField("command", "remove")
+
+			entry.Debug("Loading config")
 			conf := configfile.Load()
+
+			entry.Debugf("Removing config, purge: %t", purge)
 			conf.Remove(purge)
 		},
 	}

@@ -23,8 +23,9 @@ var pushCmd = &cobra.Command{
 
 func runPush(wu pool.WorkUnit, conf *configfile.Configuration, repo configfile.Repository, status *statusList) {
 	logger := util.Logger()
+	entry := logger.WithField("command", "push")
 	if wu.IsCancelled() {
-		logger.Warn("work unit has been prematurely canceled")
+		entry.Warn("work unit has been prematurely canceled")
 		return
 	}
 
@@ -33,22 +34,27 @@ func runPush(wu pool.WorkUnit, conf *configfile.Configuration, repo configfile.R
 		return
 	}
 
+	entry.Debugf("Repository %s: pushing to remote", repo.Directory)
 	switch err := repository.Push(&git.PushOptions{}); {
 
 	case errors.Is(err, git.ErrNonFastForwardUpdate):
+		entry.Debugf("Repository %s: non-fast-forward", repo.Directory)
 		status.append(repo.Directory, util.CheckColors(color.RedString, "non-fast-forward update"))
 		return
 
 	case
 		errors.Is(err, transport.ErrAuthenticationRequired),
 		errors.Is(err, transport.ErrAuthorizationFailed):
+		entry.Debugf("Repository %s: unauthorized", repo.Directory)
 
 		status.append(repo.Directory, util.CheckColors(color.RedString, "unauthorized"))
 		return
 
 	case errors.Is(err, git.NoErrAlreadyUpToDate): // ignore
+		entry.Debugf("Repository %s: already up-to-date", repo.Directory)
 
 	case err != nil:
+		entry.Debugf("Repository %s: failure: %v", repo.Directory, err)
 		status.appendError(repo.Directory, err)
 		return
 

@@ -19,7 +19,13 @@ var viewCmd = &cobra.Command{
 			return
 		}
 
+		logger := util.Logger()
+		entry := logger.WithField("command", "view")
+
+		entry.Debug("Loading config")
 		conf := configfile.Load()
+
+		entry.Debug("Flushing")
 		conf.Display()
 	},
 }

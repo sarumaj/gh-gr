@@ -16,6 +16,7 @@ import (
 	term "github.com/cli/go-gh/v2/pkg/term"
 	color "github.com/fatih/color"
 	util "github.com/sarumaj/gh-gr/pkg/util"
+	"github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -32,6 +33,7 @@ var urlRegex = regexp.MustCompile(`(?P<Schema>[^:]+://)(?P<Creds>[^@]+@)?(?P<Hos
 
 // Configuration holds gr configuration data
 type Configuration struct {
+	*logrus.Entry  `yaml:"-"`
 	Username       string        `yaml:"username"`
 	Fullname       string        `yaml:"fullname"`
 	Email          string        `yaml:"email,omitempty"`
@@ -57,7 +59,11 @@ func ConfigurationExists() bool {
 }
 
 func Load() *Configuration {
-	var conf Configuration
+	logger := util.Logger()
+	entry := logger.WithField("configfile", true)
+
+	conf := &Configuration{Entry: entry}
+	entry.Debug("Loading")
 
 	c, err := config.Read()
 	util.FatalIfError(err)
@@ -66,13 +72,14 @@ func Load() *Configuration {
 	util.FatalIfError(err)
 
 	bar := newBinaryProgressbar().Describe(util.CheckColors(color.BlueString, "Loading..."))
-	util.FatalIfError(yaml.NewDecoder(io.TeeReader(strings.NewReader(content), bar)).Decode(&conf))
+	util.FatalIfError(yaml.NewDecoder(io.TeeReader(strings.NewReader(content), bar)).Decode(conf))
 	_ = bar.Clear()
 
-	return &conf
+	return conf
 }
 
 func (conf Configuration) Authenticate(targetURL *string) {
+	conf.Debugf("Authenticating URL: %v", targetURL)
 	if targetURL == nil || *targetURL == "" || !urlRegex.MatchString(*targetURL) {
 		return
 	}
@@ -89,7 +96,9 @@ func (conf Configuration) Authenticate(targetURL *string) {
 }
 
 func (conf Configuration) Copy() *Configuration {
+	conf.Debug("Copying conf")
 	n := &Configuration{
+		Entry:          conf.Entry,
 		Username:       conf.Username,
 		Fullname:       conf.Fullname,
 		Email:          conf.Email,
@@ -120,6 +129,7 @@ func (conf Configuration) Copy() *Configuration {
 }
 
 func (conf Configuration) Display() {
+	conf.Debug("Displaying")
 	util.FatalIfError(yaml.NewEncoder(os.Stdout).Encode(conf))
 }
 
@@ -130,11 +140,17 @@ func (conf Configuration) GetToken() string {
 		host = parsed.Hostname()
 	}
 
+	conf.Debugf("Retrieving token for host: %s", host)
+
 	token, _ := auth.TokenForHost(host)
+
+	conf.Debugf("Retrieved token: %t", len(token) > 0)
 	return token
 }
 
 func (conf Configuration) Remove(purge bool) {
+	conf.Debug("Removing")
+
 	c, err := config.Read()
 	util.FatalIfError(err)
 
@@ -163,6 +179,8 @@ func (conf Configuration) Remove(purge bool) {
 		}
 	}
 
+	conf.Debug("Removing local repositories")
+
 	bar := util.NewProgressbar(len(conf.Repositories))
 	for _, repo := range conf.Repositories {
 		bar.Describe(util.CheckColors(color.RedString, "Removing %s...", repo.Directory))
@@ -178,6 +196,8 @@ func (conf Configuration) Remove(purge bool) {
 }
 
 func (conf Configuration) Save() {
+	conf.Debug("Saving")
+
 	c, err := config.Read()
 	util.FatalIfError(err)
 

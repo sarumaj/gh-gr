@@ -27,9 +27,14 @@ var versionCmd = func() *cobra.Command {
 		Use:   "version",
 		Short: "Display version information",
 		Run: func(cmd *cobra.Command, args []string) {
+			logger := util.Logger()
+			entry := logger.WithField("command", "version")
+
 			if update {
+				entry.Debug("Performing update")
 				selfUpdate()
 			} else {
+				entry.Debug("Printing version")
 				printVersion()
 			}
 		},
