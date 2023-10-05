@@ -1,11 +1,14 @@
 package configfile
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
-	"path/filepath"
 	"regexp"
+	"strings"
+	"time"
 
 	auth "github.com/cli/go-gh/v2/pkg/auth"
 	config "github.com/cli/go-gh/v2/pkg/config"
@@ -29,17 +32,18 @@ var urlRegex = regexp.MustCompile(`(?P<Schema>[^:]+://)(?P<Creds>[^@]+@)?(?P<Hos
 
 // Configuration holds gr configuration data
 type Configuration struct {
-	Username       string       `yaml:"username"`
-	Fullname       string       `yaml:"fullname"`
-	Email          string       `yaml:"email,omitempty"`
-	BaseDirectory  string       `yaml:"baseDirectory"`
-	BaseURL        string       `yaml:"baseURL"`
-	Concurrency    uint         `yaml:"concurrency"`
-	SubDirectories bool         `yaml:"subDirectories"`
-	Verbose        bool         `yaml:"verbose"`
-	Excluded       []string     `yaml:"exluded,omitempty"`
-	Included       []string     `yaml:"included,omitempty"`
-	Repositories   Repositories `yaml:"repositories"`
+	Username       string        `yaml:"username"`
+	Fullname       string        `yaml:"fullname"`
+	Email          string        `yaml:"email,omitempty"`
+	BaseDirectory  string        `yaml:"baseDirectory"`
+	BaseURL        string        `yaml:"baseURL"`
+	Concurrency    uint          `yaml:"concurrency"`
+	SubDirectories bool          `yaml:"subDirectories"`
+	Verbose        bool          `yaml:"verbose"`
+	Timeout        time.Duration `yaml:"timeout"`
+	Excluded       []string      `yaml:"exluded,omitempty"`
+	Included       []string      `yaml:"included,omitempty"`
+	Repositories   Repositories  `yaml:"repositories"`
 }
 
 func ConfigurationExists() bool {
@@ -61,7 +65,9 @@ func Load() *Configuration {
 	content, err := c.Get([]string{configKey})
 	util.FatalIfError(err)
 
-	util.FatalIfError(yaml.Unmarshal([]byte(content), &conf))
+	bar := binaryProgressbar().Describe(util.CheckColors(color.BlueString, "Loading..."))
+	util.FatalIfError(yaml.NewDecoder(io.TeeReader(strings.NewReader(content), bar)).Decode(&conf))
+	_ = bar.Clear()
 
 	return &conf
 }
@@ -92,6 +98,7 @@ func (conf Configuration) Copy() *Configuration {
 		Concurrency:    conf.Concurrency,
 		SubDirectories: conf.SubDirectories,
 		Verbose:        conf.Verbose,
+		Timeout:        conf.Timeout,
 	}
 
 	if conf.Excluded != nil {
@@ -134,7 +141,7 @@ func (conf Configuration) Remove(purge bool) {
 	util.FatalIfError(c.Remove([]string{configKey}))
 	util.FatalIfError(config.Write(c))
 
-	fmt.Println("Configuration removed.")
+	fmt.Println(util.CheckColors(color.GreenString, "Configuration removed."))
 
 	if !purge {
 		return
@@ -156,26 +163,43 @@ func (conf Configuration) Remove(purge bool) {
 		}
 	}
 
+	bar := util.NewProgressbar(len(conf.Repositories))
 	for _, repo := range conf.Repositories {
-		util.FatalIfError(os.RemoveAll(filepath.Join(conf.BaseDirectory, repo.Directory)))
+		bar.Describe(util.CheckColors(color.RedString, "Removing %s...", repo.Directory))
+		util.FatalIfError(os.RemoveAll(repo.Directory))
+		bar.Inc()
 	}
 
 	if conf.BaseDirectory != "." {
 		util.FatalIfError(os.RemoveAll(conf.BaseDirectory))
 	}
 
-	fmt.Println("Successfully removed repositories from local filesystem.")
+	fmt.Println(util.CheckColors(color.GreenString, "Successfully removed repositories from local filesystem."))
 }
 
 func (conf Configuration) Save() {
 	c, err := config.Read()
 	util.FatalIfError(err)
 
-	content, err := yaml.Marshal(conf)
-	util.FatalIfError(err)
+	buffer := bytes.NewBuffer(nil)
+	bar := binaryProgressbar().Describe(util.CheckColors(color.BlueString, "Saving..."))
+	util.FatalIfError(yaml.NewEncoder(io.MultiWriter(buffer, bar)).Encode(conf))
+	_ = bar.Clear()
 
-	c.Set([]string{configKey}, string(content))
+	c.Set([]string{configKey}, buffer.String())
 	util.FatalIfError(config.Write(c))
 
-	fmt.Println("Configuration saved. You can now pull your repositories.")
+	fmt.Println(util.CheckColors(color.GreenString, "Configuration saved. You can now pull your repositories."))
+}
+
+func binaryProgressbar() *util.Progressbar {
+	return util.NewProgressbar(
+		-1,
+		util.EnableColorCodes(util.UseColors()),
+		util.SetWidth(10),
+		util.ShowBytes(true),
+		util.SetRenderBlankState(true),
+		util.ClearOnFinish(),
+		util.ShowCount(),
+	)
 }

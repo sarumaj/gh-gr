@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	semver "github.com/blang/semver"
+	color "github.com/fatih/color"
 	selfupdate "github.com/rhysd/go-github-selfupdate/selfupdate"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 	cobra "github.com/spf13/cobra"
@@ -54,8 +55,8 @@ func printVersion() {
 		vSuffix = "(newer version available: " + latest.Version.String() + ")"
 	}
 
-	fmt.Println("gr version:", version, vSuffix)
-	fmt.Println("Built at:", buildDate)
+	fmt.Println(util.CheckColors(color.BlueString, "gr version: %s %s", version, vSuffix))
+	fmt.Println(util.CheckColors(color.BlueString, "Built at: %s", buildDate))
 }
 
 func selfUpdate() {
@@ -71,8 +72,8 @@ func selfUpdate() {
 	util.FatalIfError(err)
 
 	if latest.Version.LTE(current) {
-		fmt.Println("You are already using the latest version:", version)
+		fmt.Println(util.CheckColors(color.BlueString, "You are already using the latest version: %s", version))
 	} else {
-		fmt.Println("Successfully updated to version", latest.Version)
+		fmt.Println(util.CheckColors(color.GreenString, "Successfully updated to version: %s", latest.Version))
 	}
 }

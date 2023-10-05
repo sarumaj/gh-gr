@@ -12,15 +12,13 @@ type Repository struct {
 
 type Repositories []Repository
 
-func (r Repositories) AppendRepository(repo Repository) Repositories {
-	if !r.HasRepository(repo) {
-		r = append(r, repo)
+func (r *Repositories) Append(repo Repository) {
+	if !r.Has(repo) {
+		*r = append(*r, repo)
 	}
-
-	return r
 }
 
-func (r Repositories) HasRepository(repo Repository) bool {
+func (r Repositories) Has(repo Repository) bool {
 	for _, own := range r {
 		if reflect.DeepEqual(own, repo) {
 			return true

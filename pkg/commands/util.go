@@ -48,7 +48,6 @@ func (statuslist *statusList) print() {
 	})
 
 	printer := util.TablePrinter()
-
 	for _, s := range *statuslist {
 		_ = printer.AddField(s.Name)
 		for _, state := range strings.Split(s.State, "\t") {
@@ -57,9 +56,9 @@ func (statuslist *statusList) print() {
 		_ = printer.EndRow()
 	}
 
-	_ = printer.AddField(fmt.Sprintf("Total number: %d\n", len(*statuslist))).
+	util.FatalIfError(printer.AddField(fmt.Sprintf("Total number: %d\n", len(*statuslist))).
 		EndRow().
-		Render()
+		Render())
 }
 
 func addGitAliases() error {
@@ -118,20 +117,20 @@ func isRepoDir(path string, repos []configfile.Repository) bool {
 	return false
 }
 
-func openRepository(repo configfile.Repository, status *statusList) (*git.Repository, bool) {
+func openRepository(repo configfile.Repository, status *statusList) (*git.Repository, error) {
 	switch repository, err := git.PlainOpen(repo.Directory); {
 
 	// If we get ErrRepositoryNotExists here, it means the repo is broken
 	case errors.Is(err, git.ErrRepositoryNotExists):
 		status.append(repo.Directory, util.CheckColors(color.RedString, "broken"))
-		return nil, false
+		return nil, err
 
 	case err != nil:
 		status.appendError(repo.Directory, err)
-		return nil, false
+		return nil, err
 
 	default:
-		return repository, true
+		return repository, nil
 	}
 }
 

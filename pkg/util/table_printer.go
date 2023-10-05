@@ -73,12 +73,9 @@ func newTablePrinter() any {
 	console := term.FromEnv()
 
 	width, _, _ := console.Size()
-	if width == 0 {
-		width = 14
-	}
+	width = max(width, 40)
 
 	isTTy := console.IsTerminalOutput()
-
 	return &tablePrinter{
 		stdOut: tableprinter.New(os.Stdout, isTTy, width),
 		stdErr: tableprinter.New(os.Stderr, isTTy, width),

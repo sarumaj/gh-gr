@@ -64,8 +64,11 @@ func getPaged[T any](c RESTClient, ep apiEndpoint, ctx context.Context) (result 
 	batch := p.Batch()
 
 	logger := util.Logger()
+
 	go func() {
-		for page, last := 2, getLastPage(resp.Header); page <= last; page++ {
+		last := getLastPage(resp.Header)
+		c.ChangeMax(last)
+		for page := 2; page <= last; page++ {
 			logger.Debugf("Dispatching request for page %d", page)
 			batch.Queue(getPagedWorkUnit[T](c, ep, ctx, page))
 		}
@@ -86,6 +89,8 @@ func getPaged[T any](c RESTClient, ep apiEndpoint, ctx context.Context) (result 
 func getPagedWorkUnit[T any](c RESTClient, ep apiEndpoint, ctx context.Context, page int) pool.WorkFunc {
 	logger := util.Logger()
 	return func(wu pool.WorkUnit) (any, error) {
+		defer c.Inc()
+
 		var paged []T
 		err := c.DoWithContext(
 			ctx,

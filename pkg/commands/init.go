@@ -74,7 +74,9 @@ func runInit(conf *configfile.Configuration, update bool) {
 	})
 	util.FatalIfError(err)
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), conf.Timeout)
+	defer cancel()
+
 	rate, err := client.GetRateLimit(ctx)
 	util.FatalIfError(err)
 	util.FatalIfError(restclient.CheckRateLimit(rate))
@@ -123,7 +125,7 @@ func runInit(conf *configfile.Configuration, update bool) {
 			dir = strings.ReplaceAll(dir, conf.Username+"_", "")
 		}
 
-		conf.Repositories = conf.Repositories.AppendRepository(configfile.Repository{
+		conf.Repositories.Append(configfile.Repository{
 			URL:       repo.CloneURL,
 			Branch:    repo.DefaultBranch,
 			ParentURL: repo.Parent.CloneURL,

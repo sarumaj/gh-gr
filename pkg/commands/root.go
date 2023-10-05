@@ -1,12 +1,10 @@
 package commands
 
 import (
-	"flag"
 	"fmt"
 	"os"
-	"strings"
+	"time"
 
-	term "github.com/cli/go-gh/v2/pkg/term"
 	color "github.com/fatih/color"
 	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
 	util "github.com/sarumaj/gh-gr/pkg/util"
@@ -35,22 +33,23 @@ var rootCmd = func() *cobra.Command {
 		"Concurrency for concurrent jobs",
 	)
 	flags.BoolVarP(&configFlags.Verbose, "verbose", "v", false, "Print verbose logs")
+	flags.DurationVarP(&configFlags.Timeout, "timeout", "t", 10*time.Minute, "Set timeout for long running jobs")
 
 	cmd.AddCommand(initCmd, pullCmd, pushCmd, removeCmd, statusCmd, updateCmd, versionCmd, viewCmd)
 
 	return cmd
 }()
 
-type repositoryOperation func(*configfile.Configuration, configfile.Repository, *statusList)
+type repositoryOperation func(pool.WorkUnit, *configfile.Configuration, configfile.Repository, *statusList)
 
 func repositoryWorkUnit(fn repositoryOperation, conf *configfile.Configuration, repo configfile.Repository, status *statusList) pool.WorkFunc {
 	return func(wu pool.WorkUnit) (interface{}, error) {
-		fn(conf, repo, status)
-		return true, nil
+		fn(wu, conf, repo, status)
+		return nil, nil
 	}
 }
 
-func repositoryOperationLoop(fn repositoryOperation, msg string) {
+func repositoryOperationLoop(bar *util.Progressbar, fn repositoryOperation) {
 	if !configfile.ConfigurationExists() {
 		fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, configfile.ConfigNotFound))
 		return
@@ -62,27 +61,37 @@ func repositoryOperationLoop(fn repositoryOperation, msg string) {
 
 	batch := p.Batch()
 
+	finished := make(chan bool)
+
 	var status statusList
-	go func() {
+	go func(finished chan<- bool) {
 		for _, repo := range conf.Repositories {
 			batch.Queue(repositoryWorkUnit(fn, conf, repo, &status))
 		}
 
 		batch.QueueComplete()
-	}()
+		finished <- true
+	}(finished)
 
-	if term.IsTerminal(os.Stdout) || flag.Lookup("test.v") != nil {
-		fmt.Printf("\r%s (0/%d)...", msg, len(conf.Repositories))
+	go func(finished <-chan bool) {
+		for timer := time.NewTimer(conf.Timeout); true; {
+			select {
 
-		i := 0
-		for range batch.Results() {
-			fmt.Printf("\r%s (%d/%d)...", msg, i, len(conf.Repositories))
-			i++
+			case <-timer.C:
+				batch.Cancel()
+				return
+
+			case <-finished:
+				return
+
+			}
 		}
-	}
+	}(finished)
 
-	finalMsg := fmt.Sprintf("\r%[1]s (%[2]d/%[2]d)...", msg, len(conf.Repositories))
-	fmt.Print(strings.Repeat(" ", len(finalMsg)) + "\r")
+	_ = bar.ChangeMax(len(conf.Repositories))
+	for range batch.Results() {
+		bar.Inc()
+	}
 
 	status.print()
 }
