@@ -103,7 +103,7 @@ func getPagedWorkUnit[T any](c RESTClient, ep apiEndpoint, ctx context.Context, 
 			return nil, nil
 		}
 
-		if err != nil || len(paged) == 0 {
+		if err != nil {
 			logger.Error(err)
 			return nil, err
 		}
