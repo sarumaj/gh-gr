@@ -27,3 +27,14 @@ func (r Repositories) Has(repo Repository) bool {
 
 	return false
 }
+
+func (r Repositories) LongestName() string {
+	var name string
+	for _, own := range r {
+		if len(own.Directory) > len(name) {
+			name = own.Directory
+		}
+	}
+
+	return name
+}

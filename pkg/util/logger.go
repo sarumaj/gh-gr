@@ -2,31 +2,44 @@ package util
 
 import (
 	"os"
-	"sync"
+	"strings"
 
 	logrus "github.com/sirupsen/logrus"
+	"github.com/ztrue/tracerr"
 )
 
-var logger = sync.Pool{New: initLogger}
-
-func initLogger() any {
+var Logger = func() *logrus.Logger {
 	l := logrus.New()
 	l.SetLevel(logrus.WarnLevel)
 	l.SetOutput(os.Stdout)
-	l.SetFormatter(&logrus.TextFormatter{
-		DisableLevelTruncation: true,
-		FullTimestamp:          true,
+	l.SetFormatter(&logrus.JSONFormatter{
+		PrettyPrint: true,
 	})
 	return l
-}
+}()
 
 func FatalIfError(err error) {
 	if err != nil {
-		l := logger.Get().(*logrus.Logger)
-		l.Fatalln(err)
-	}
-}
+		err := tracerr.Wrap(err)
 
-func Logger() *logrus.Logger {
-	return logger.Get().(*logrus.Logger)
+		var frames []string
+		for _, frame := range err.StackTrace() {
+			switch ctx := frame.String(); {
+
+			case
+				strings.Contains(ctx, "FatalIfError()"),
+				strings.Contains(ctx, "runtime.main()"),
+				strings.Contains(ctx, "runtime.goexit()"):
+
+				continue
+
+			default:
+				frames = append(frames, frame.String())
+
+			}
+		}
+
+		Logger.SetOutput(os.Stderr)
+		Logger.WithField("stack", frames).Fatalln(err)
+	}
 }

@@ -79,9 +79,6 @@ func (p *Progressbar) SetMessageOnCompletion(msg string) *Progressbar {
 
 func NewProgressbar(m int, options ...ProgressbarOption) *Progressbar {
 	p := &Progressbar{w: os.Stdout}
-	if !term.IsTerminal(os.Stdout) || flag.Lookup("test.v") != nil {
-		p.w = io.Discard
-	}
 
 	if options == nil {
 		options = []ProgressbarOption{
@@ -92,6 +89,12 @@ func NewProgressbar(m int, options ...ProgressbarOption) *Progressbar {
 			ClearOnFinish(),
 			OnCompletion(p.Print),
 		}
+	}
+
+	if interactive := term.IsTerminal(os.Stdout); !interactive || flag.Lookup("test.v") != nil {
+		p.w = io.Discard
+	} else if interactive {
+		options = append(options, UseANSICodes(true))
 	}
 
 	options = append(options, progressbar.OptionSetWriter(p.w))

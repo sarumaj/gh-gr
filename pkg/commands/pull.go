@@ -16,106 +16,111 @@ var pullCmd = &cobra.Command{
 	Use:   "pull",
 	Short: "Pull all repositories",
 	Run: func(cmd *cobra.Command, args []string) {
-		bar := util.NewProgressbar(100).Describe(util.CheckColors(color.BlueString, "Pulling..."))
-		repositoryOperationLoop(bar, runPull)
+		repositoryOperationLoop(runPull)
 	},
 }
 
-func runPull(wu pool.WorkUnit, conf *configfile.Configuration, repo configfile.Repository, status *statusList) {
+func runPull(wu pool.WorkUnit, bar *util.Progressbar, conf *configfile.Configuration, repo configfile.Repository, status *statusList) {
+	interrupt := util.NewInterrupt()
+	defer interrupt.Stop()
+
+	logger := loggerEntry.WithField("command", "pull").WithField("repository", repo.Directory)
+
+	if bar != nil && conf != nil {
+		bar.Describe(util.CheckColors(color.BlueString, conf.GetProgressbarDescriptionForVerb("Pulling", repo)))
+	}
+
+	if wu.IsCancelled() {
+		logger.Warn("work unit has been prematurely canceled")
+		return
+	}
+
+	conf.Authenticate(&repo.URL)
+	conf.Authenticate(&repo.ParentURL)
+	logger.Debugf("Authenticated: URL: %t, ParentURL: %t", repo.URL != "", repo.ParentURL != "")
+
 	var repository *git.Repository
 	var workTree *git.Worktree
 	var err error
 
-	logger := util.Logger()
-	entry := logger.WithField("command", "pull").WithField("repository", repo.Directory)
-	if wu.IsCancelled() {
-		entry.Warn("work unit has been prematurely canceled")
-		return
-	}
-
-	entry.Debug("Authenticating")
-	conf.Authenticate(&repo.URL)
-	conf.Authenticate(&repo.ParentURL)
-	entry.Debugf("Authenticated: URL: %t, ParentURL: %t", repo.URL != "", repo.ParentURL != "")
-
 	if util.PathExists(repo.Directory) {
-		entry.Debug("Local repository exists")
+		logger.Debug("Local repository exists")
 		repository, err = openRepository(repo, status)
 		if err != nil {
-			entry.Debugf("Failed to open: %v", err)
+			logger.Debugf("Failed to open: %v", err)
 			return
 		}
 
 		workTree, err = repository.Worktree()
 		if err != nil {
-			entry.Debugf("Retrieval of worktree failed: %v", err)
+			logger.Debugf("Retrieval of worktree failed: %v", err)
 			status.appendError(repo.Directory, err)
 			return
 		}
 
 		repoStatus, err := workTree.Status()
 		if err != nil {
-			entry.Debugf("Failed to retrieve worktree status: %v", err)
+			logger.Debugf("Failed to retrieve worktree status: %v", err)
 			status.appendError(repo.Directory, err)
 			return
 		}
 
 		if !repoStatus.IsClean() {
-			entry.Debug("Repository is dirty")
+			logger.Debug("Repository is dirty")
 			status.appendError(repo.Directory, git.ErrWorktreeNotClean)
 			return
 		}
 
-		entry.Debug("Pulling repository")
+		logger.Debug("Pulling repository")
 		switch err = workTree.Pull(&git.PullOptions{
 			RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
 		}); {
 
 		case errors.Is(err, git.ErrNonFastForwardUpdate):
-			entry.Debugf("Repository is non-fast-forward")
+			logger.Debugf("Repository is non-fast-forward")
 			status.append(repo.Directory, util.CheckColors(color.RedString, "non-fast-forward update"))
 			return
 
 		case errors.Is(err, git.NoErrAlreadyUpToDate): // ignore
-			entry.Debugf("Repository is already up-to-date")
+			logger.Debugf("Repository is already up-to-date")
 
 		case err != nil:
-			entry.Debugf("Failure: %v", err)
+			logger.Debugf("Failure: %v", err)
 			status.appendError(repo.Directory, err)
 			return
 
 		}
 
 	} else {
-		entry.Debug("Cloning")
+		logger.Debug("Cloning")
 		repository, err = git.PlainClone(repo.Directory, false, &git.CloneOptions{
 			URL:               repo.URL,
 			RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
 		})
 		if err != nil {
-			entry.Debugf("Cloning failed: %v", err)
+			logger.Debugf("Cloning failed: %v", err)
 			status.appendError(repo.Directory, err)
 			return
 		}
 
 		workTree, err = repository.Worktree()
 		if err != nil {
-			entry.Debugf("Retrieval of worktree failed: %v", err)
+			logger.Debugf("Retrieval of worktree failed: %v", err)
 			status.appendError(repo.Directory, err)
 			return
 		}
 	}
 
-	entry.Debug("Retrieving submodules")
+	logger.Debug("Retrieving submodules")
 	submodules, err := workTree.Submodules()
 	if err != nil {
-		entry.Debugf("Failed to retrieve submodules: %v", err)
+		logger.Debugf("Failed to retrieve submodules: %v", err)
 		status.appendError(repo.Directory, err)
 		return
 	}
-	entry.Debugf("Retrieved %d submodules", len(submodules))
+	logger.Debugf("Retrieved %d submodules", len(submodules))
 
-	entry.Debugf("Pulling %d submodules", len(submodules))
+	logger.Debugf("Pulling %d submodules", len(submodules))
 	for _, s := range submodules {
 		if err := pullSubmodule(s); err != nil {
 			status.appendError(repo.Directory, err)
@@ -123,7 +128,7 @@ func runPull(wu pool.WorkUnit, conf *configfile.Configuration, repo configfile.R
 		}
 	}
 
-	entry.Debug("Fetching references")
+	logger.Debug("Fetching references")
 	err = repository.Fetch(&git.FetchOptions{
 		RefSpecs: []gitconfig.RefSpec{"refs/*:refs/*"},
 	})
@@ -132,7 +137,7 @@ func runPull(wu pool.WorkUnit, conf *configfile.Configuration, repo configfile.R
 		return
 	}
 
-	entry.Debug("Updating repository config")
+	logger.Debug("Updating repository config")
 	if err := updateRepoConfig(conf, repository); err != nil {
 		status.appendError(repo.Directory, err)
 		return
@@ -141,13 +146,13 @@ func runPull(wu pool.WorkUnit, conf *configfile.Configuration, repo configfile.R
 	switch _, err := repository.Remote("upstream"); {
 
 	case repo.ParentURL != "" && errors.Is(err, git.ErrRemoteNotFound):
-		entry.Debugf("Creating remote mirror")
+		logger.Debugf("Creating remote mirror")
 		_, err := repository.CreateRemote(&gitconfig.RemoteConfig{
 			Name: "upstream",
 			URLs: []string{repo.ParentURL},
 		})
 		if err != nil {
-			entry.Debugf("Failed to create mirror: %v", err)
+			logger.Debugf("Failed to create mirror: %v", err)
 			status.appendError(repo.Directory, err)
 			return
 		}

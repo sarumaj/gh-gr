@@ -38,7 +38,7 @@ func getLastPage(responseHeader http.Header) (limit int) {
 }
 
 func getPaged[T any](c RESTClient, ep apiEndpoint, ctx context.Context) (result []T, err error) {
-	resp, err := c.doRequest(
+	resp, err := c.RequestWithContext(
 		ctx,
 		http.MethodGet,
 		newRequestPath(ep).
@@ -63,13 +63,11 @@ func getPaged[T any](c RESTClient, ep apiEndpoint, ctx context.Context) (result 
 
 	batch := p.Batch()
 
-	logger := util.Logger()
-
 	go func() {
 		last := getLastPage(resp.Header)
 		_ = c.ChangeMax(last)
 		for page := 2; page <= last; page++ {
-			logger.Debugf("Dispatching request for page %d", page)
+			util.Logger.Debugf("Dispatching request for page %d", page)
 			batch.Queue(getPagedWorkUnit[T](c, ep, ctx, page))
 		}
 
@@ -87,7 +85,6 @@ func getPaged[T any](c RESTClient, ep apiEndpoint, ctx context.Context) (result 
 }
 
 func getPagedWorkUnit[T any](c RESTClient, ep apiEndpoint, ctx context.Context, page int) pool.WorkFunc {
-	logger := util.Logger()
 	return func(wu pool.WorkUnit) (any, error) {
 		defer c.Inc()
 
@@ -104,12 +101,12 @@ func getPagedWorkUnit[T any](c RESTClient, ep apiEndpoint, ctx context.Context, 
 		)
 
 		if wu.IsCancelled() {
-			logger.Warn("work unit has been prematurely canceled")
+			util.Logger.Warn("work unit has been prematurely canceled")
 			return nil, nil
 		}
 
 		if err != nil {
-			logger.Error(err)
+			util.Logger.Error(err)
 			return nil, err
 		}
 
