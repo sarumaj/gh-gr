@@ -33,9 +33,7 @@ gh gr --help
 >>
 >> Available Commands:
 >>   completion  Generate the autocompletion script for the specified shell
->>   export      Export current configuration to stdout
 >>   help        Help about any command
->>   import      Import configuration from stdin
 >>   init        Initialize repository mirror
 >>   pull        Pull all repositories
 >>   push        Push all repositories

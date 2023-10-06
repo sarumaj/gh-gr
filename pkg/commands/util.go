@@ -9,11 +9,9 @@ import (
 	"sort"
 	"strings"
 
-	auth "github.com/cli/go-gh/v2/pkg/auth"
 	color "github.com/fatih/color"
 	git "github.com/go-git/go-git/v5"
 	gitconfig "github.com/go-git/go-git/v5/config"
-	selfupdate "github.com/rhysd/go-github-selfupdate/selfupdate"
 	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
 	extras "github.com/sarumaj/gh-gr/pkg/extras"
 	util "github.com/sarumaj/gh-gr/pkg/util"
@@ -109,19 +107,6 @@ func addGitAliases() error {
 	return nil
 }
 
-func getUpdater() (updater *selfupdate.Updater, err error) {
-	token, _ := auth.TokenForHost(remoteHost)
-	if token != "" {
-		updater = selfupdate.DefaultUpdater()
-		return
-	}
-
-	return selfupdate.NewUpdater(selfupdate.Config{
-		Validator: &selfupdate.SHA2Validator{},
-		APIToken:  token,
-	})
-}
-
 func isRepoDir(path string, repos []configfile.Repository) bool {
 	for _, r := range repos {
 		if strings.HasPrefix(r.Directory+"/", path+"/") {
@@ -213,17 +198,6 @@ func pullSubmodule(submodule *git.Submodule) error {
 	}
 
 	return nil
-}
-
-func updateConfigFlags() {
-	var conf *configfile.Configuration
-	if configfile.ConfigurationExists() {
-		conf = configfile.Load()
-	}
-
-	if conf != nil {
-		configFlags = conf
-	}
 }
 
 func runLocalStatus() error {

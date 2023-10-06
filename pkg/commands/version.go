@@ -5,14 +5,12 @@ import (
 
 	semver "github.com/blang/semver"
 	color "github.com/fatih/color"
+	selfupdate "github.com/rhysd/go-github-selfupdate/selfupdate"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 	cobra "github.com/spf13/cobra"
 )
 
-const (
-	remoteRepositoryName = "sarumaj/gh-gr"
-	remoteHost           = "github.com"
-)
+const remoteRepositoryName = "sarumaj/gh-gr"
 
 // Version holds the application version.
 // It gets filled automatically at build time.
@@ -50,10 +48,7 @@ func printVersion() {
 	current, err := semver.ParseTolerant(version)
 	util.FatalIfError(err)
 
-	updater, err := getUpdater()
-	util.FatalIfError(err)
-
-	latest, found, err := updater.DetectLatest(remoteRepositoryName)
+	latest, found, err := selfupdate.DetectLatest(remoteRepositoryName)
 	util.FatalIfError(err)
 
 	var vSuffix string
@@ -74,7 +69,9 @@ func selfUpdate() {
 	current, err := semver.ParseTolerant(version)
 	util.FatalIfError(err)
 
-	updater, err := getUpdater()
+	updater, err := selfupdate.NewUpdater(selfupdate.Config{
+		Validator: &selfupdate.SHA2Validator{},
+	})
 	util.FatalIfError(err)
 
 	latest, err := updater.UpdateSelf(current, remoteRepositoryName)
