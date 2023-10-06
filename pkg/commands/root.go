@@ -8,11 +8,13 @@ import (
 	color "github.com/fatih/color"
 	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
 	util "github.com/sarumaj/gh-gr/pkg/util"
+	logrus "github.com/sirupsen/logrus"
 	cobra "github.com/spf13/cobra"
 	pool "gopkg.in/go-playground/pool.v3"
 )
 
 var configFlags = &configfile.Configuration{}
+var loggerEntry = util.Logger.WithFields(logrus.Fields{"mod": "commands"})
 
 var rootCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
@@ -21,17 +23,22 @@ var rootCmd = func() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			util.FatalIfError(cmd.Help())
 		},
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			if configfile.ConfigurationExists() {
+				configFlags = configfile.Load()
+			}
+
+			if configFlags.Verbose {
+				util.Logger.SetLevel(logrus.DebugLevel)
+			}
+
+			util.Logger.Debug("Running in verbose mode")
+		},
 		Version: version,
 	}
 
 	flags := cmd.PersistentFlags()
-	flags.UintVarP(
-		&configFlags.Concurrency,
-		"concurrency",
-		"c",
-		util.GetIdealConcurrency(),
-		"Concurrency for concurrent jobs",
-	)
+	flags.UintVarP(&configFlags.Concurrency, "concurrency", "c", util.GetIdealConcurrency(), "Concurrency for concurrent jobs")
 	flags.BoolVarP(&configFlags.Verbose, "verbose", "v", false, "Print verbose logs")
 	flags.DurationVarP(&configFlags.Timeout, "timeout", "t", 10*time.Minute, "Set timeout for long running jobs")
 
@@ -40,40 +47,39 @@ var rootCmd = func() *cobra.Command {
 	return cmd
 }()
 
-type repositoryOperation func(pool.WorkUnit, *configfile.Configuration, configfile.Repository, *statusList)
+type repositoryOperation func(pool.WorkUnit, *util.Progressbar, *configfile.Configuration, configfile.Repository, *statusList)
 
-func repositoryWorkUnit(fn repositoryOperation, conf *configfile.Configuration, repo configfile.Repository, status *statusList) pool.WorkFunc {
+func repositoryWorkUnit(fn repositoryOperation, bar *util.Progressbar, conf *configfile.Configuration, repo configfile.Repository, status *statusList) pool.WorkFunc {
 	return func(wu pool.WorkUnit) (interface{}, error) {
-		fn(wu, conf, repo, status)
+		fn(wu, bar, conf, repo, status)
 		return nil, nil
 	}
 }
 
-func repositoryOperationLoop(bar *util.Progressbar, fn repositoryOperation) {
-	logger := util.Logger()
-	entry := logger.WithField("command", "root")
+func repositoryOperationLoop(fn repositoryOperation) {
+	logger := loggerEntry
+	bar := util.NewProgressbar(100)
 
 	exists := configfile.ConfigurationExists()
-	entry.Debugf("Config exists: %t", exists)
+	logger.Debugf("Config exists: %t", exists)
 	if !exists {
 		fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, configfile.ConfigNotFound))
 		return
 	}
 
-	entry.Debug("Loading config")
 	conf := configfile.Load()
 	p := pool.NewLimited(conf.Concurrency)
 	defer p.Close()
 
 	batch := p.Batch()
 
-	entry.Debugf("Dispatching %d workers", len(conf.Repositories))
+	logger.Debugf("Dispatching %d workers", len(conf.Repositories))
 
 	finished := make(chan bool)
 	var status statusList
 	go func(finished chan<- bool) {
 		for _, repo := range conf.Repositories {
-			batch.Queue(repositoryWorkUnit(fn, conf, repo, &status))
+			batch.Queue(repositoryWorkUnit(fn, bar, conf, repo, &status))
 		}
 
 		batch.QueueComplete()
@@ -95,23 +101,19 @@ func repositoryOperationLoop(bar *util.Progressbar, fn repositoryOperation) {
 		}
 	}(finished)
 
-	entry.Debugf("Collecting %d workers", len(conf.Repositories))
 	_ = bar.ChangeMax(len(conf.Repositories))
 	for range batch.Results() {
 		bar.Inc()
 	}
 
-	entry.Debug("Collected workers")
+	logger.Debug("Collected workers")
 	status.print()
 }
 
 // Execute executes the root command.
 func Execute(Version, BuildDate string) {
-	logger := util.Logger()
-	entry := logger.WithField("command", "root")
-
 	version, buildDate = Version, BuildDate
-	entry.Debugf("Version: %s, build date: %s", version, buildDate)
+	util.Logger.Debugf("Version: %s, build date: %s", version, buildDate)
 
 	util.FatalIfError(rootCmd.Execute())
 }

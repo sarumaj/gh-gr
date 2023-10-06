@@ -17,18 +17,18 @@ var removeCmd = func() *cobra.Command {
 		Use:   "remove",
 		Short: "Remove current configuration",
 		Run: func(cmd *cobra.Command, args []string) {
+			interrupt := util.NewInterrupt()
+			defer interrupt.Stop()
+
 			if !configfile.ConfigurationExists() {
 				fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, configfile.ConfigNotFound))
 				return
 			}
 
-			logger := util.Logger()
-			entry := logger.WithField("command", "remove")
-
-			entry.Debug("Loading config")
+			logger := loggerEntry.WithField("command", "remove")
 			conf := configfile.Load()
 
-			entry.Debugf("Removing config, purge: %t", purge)
+			logger.Debugf("Removing config, purge: %t", purge)
 			conf.Remove(purge)
 		},
 	}

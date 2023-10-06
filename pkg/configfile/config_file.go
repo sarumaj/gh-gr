@@ -1,11 +1,13 @@
 package configfile
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -30,10 +32,10 @@ const (
 )
 
 var urlRegex = regexp.MustCompile(`(?P<Schema>[^:]+://)(?P<Creds>[^@]+@)?(?P<Hostpath>.+)`)
+var loggerEntry = util.Logger.WithFields(logrus.Fields{"mod": "configfile"})
 
 // Configuration holds gr configuration data
 type Configuration struct {
-	*logrus.Entry  `yaml:"-"`
 	Username       string        `yaml:"username"`
 	Fullname       string        `yaml:"fullname"`
 	Email          string        `yaml:"email,omitempty"`
@@ -59,27 +61,23 @@ func ConfigurationExists() bool {
 }
 
 func Load() *Configuration {
-	logger := util.Logger()
-	entry := logger.WithField("configfile", true)
-
-	conf := &Configuration{Entry: entry}
-	entry.Debug("Loading")
-
 	c, err := config.Read()
 	util.FatalIfError(err)
 
 	content, err := c.Get([]string{configKey})
 	util.FatalIfError(err)
 
+	var conf Configuration
 	bar := newBinaryProgressbar().Describe(util.CheckColors(color.BlueString, "Loading..."))
-	util.FatalIfError(yaml.NewDecoder(io.TeeReader(strings.NewReader(content), bar)).Decode(conf))
+	util.FatalIfError(yaml.NewDecoder(io.TeeReader(strings.NewReader(content), bar)).Decode(&conf))
 	_ = bar.Clear()
 
-	return conf
+	return &conf
 }
 
 func (conf Configuration) Authenticate(targetURL *string) {
-	conf.Debugf("Authenticating URL: %v", targetURL)
+	logger := loggerEntry
+	logger.Debugf("Authenticating URL: %v", targetURL)
 	if targetURL == nil || *targetURL == "" || !urlRegex.MatchString(*targetURL) {
 		return
 	}
@@ -96,9 +94,7 @@ func (conf Configuration) Authenticate(targetURL *string) {
 }
 
 func (conf Configuration) Copy() *Configuration {
-	conf.Debug("Copying conf")
 	n := &Configuration{
-		Entry:          conf.Entry,
 		Username:       conf.Username,
 		Fullname:       conf.Fullname,
 		Email:          conf.Email,
@@ -129,28 +125,59 @@ func (conf Configuration) Copy() *Configuration {
 }
 
 func (conf Configuration) Display() {
-	conf.Debug("Displaying")
-	util.FatalIfError(yaml.NewEncoder(os.Stdout).Encode(conf))
+	reader, writer := io.Pipe()
+
+	go func() {
+		defer writer.Close()
+		util.FatalIfError(yaml.NewEncoder(writer).Encode(conf))
+	}()
+
+	interactive := term.IsTerminal(os.Stdout) &&
+		term.IsTerminal(os.Stdin) &&
+		util.UseColors()
+
+	for iter, noLines, scanner := 0, 10, bufio.NewScanner(reader); scanner.Scan(); iter++ {
+		fmt.Fprintln(os.Stdout, scanner.Text())
+
+		if interactive && iter > 0 && iter%noLines == 0 {
+			fmt.Fprint(os.Stdout, color.BlueString("(more):"))
+
+			var in string
+			fmt.Fscanln(os.Stdin, &in)
+			fmt.Fprint(os.Stdout, "\033[1A\r") // move one line up and use carriage return to move to the beginning of line
+			if strings.HasPrefix(strings.ToLower(in), "q") {
+				fmt.Fprintln(os.Stdout)
+				break
+			}
+		}
+	}
+
+}
+
+func (conf *Configuration) GetProgressbarDescriptionForVerb(verb string, repo Repository) string {
+	trim := func(in string) string {
+		return strings.TrimPrefix(filepath.ToSlash(in), conf.BaseDirectory+"/")
+	}
+
+	maxLength := len(fmt.Sprintf("%s %s", verb, trim(conf.Repositories.LongestName())))
+	description := fmt.Sprintf("%s %s", verb, trim(repo.Directory))
+	result := description + strings.Repeat(".", maxLength-len(description))
+
+	return result
 }
 
 func (conf Configuration) GetToken() string {
-	host := conf.BaseURL
+	logger := loggerEntry
 
-	if parsed, err := url.Parse(conf.BaseURL); err == nil {
-		host = parsed.Hostname()
-	}
-
-	conf.Debugf("Retrieving token for host: %s", host)
+	host := util.GetHostnameFromPath(conf.BaseURL)
+	logger.Debugf("Retrieving token for host: %s", host)
 
 	token, _ := auth.TokenForHost(host)
-
-	conf.Debugf("Retrieved token: %t", len(token) > 0)
+	logger.Debugf("Retrieved token: %t", len(token) > 0)
 	return token
 }
 
 func (conf Configuration) Remove(purge bool) {
-	conf.Debug("Removing")
-
 	c, err := config.Read()
 	util.FatalIfError(err)
 
@@ -179,25 +206,27 @@ func (conf Configuration) Remove(purge bool) {
 		}
 	}
 
-	conf.Debug("Removing local repositories")
-
 	bar := util.NewProgressbar(len(conf.Repositories))
+	subDirectories := make(map[string]bool)
 	for _, repo := range conf.Repositories {
-		bar.Describe(util.CheckColors(color.RedString, "Removing %s...", repo.Directory))
+		bar.Describe(util.CheckColors(color.RedString, conf.GetProgressbarDescriptionForVerb("Removing", repo)))
+		subDirectories[filepath.Dir(repo.Directory)] = true
 		util.FatalIfError(os.RemoveAll(repo.Directory))
 		bar.Inc()
 	}
 
 	if conf.BaseDirectory != "." {
 		util.FatalIfError(os.RemoveAll(conf.BaseDirectory))
+	} else if conf.SubDirectories {
+		for folder := range subDirectories {
+			util.FatalIfError(os.Remove(folder))
+		}
 	}
 
 	fmt.Println(util.CheckColors(color.GreenString, "Successfully removed repositories from local filesystem."))
 }
 
 func (conf Configuration) Save() {
-	conf.Debug("Saving")
-
 	c, err := config.Read()
 	util.FatalIfError(err)
 

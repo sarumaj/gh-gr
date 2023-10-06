@@ -2,15 +2,12 @@ package restclient
 
 import (
 	"context"
-	"io"
 	"net/http"
-	"net/url"
 
 	"github.com/cli/go-gh/v2/pkg/api"
 	"github.com/sarumaj/gh-gr/pkg/configfile"
 	"github.com/sarumaj/gh-gr/pkg/restclient/resources"
 	"github.com/sarumaj/gh-gr/pkg/util"
-	"github.com/sirupsen/logrus"
 )
 
 type ClientOptions = api.ClientOptions
@@ -19,21 +16,10 @@ type RESTClient struct {
 	*api.RESTClient
 	*configfile.Configuration
 	*util.Progressbar
-	*logrus.Entry
-}
-
-func (c RESTClient) do(ctx context.Context, method, path string, body io.Reader, response any) error {
-	c.WithField("method", method).WithField("path", path).Debug("do")
-	return c.DoWithContext(ctx, method, path, body, response)
-}
-
-func (c RESTClient) doRequest(ctx context.Context, method, path string, body io.Reader) (*http.Response, error) {
-	c.WithField("method", method).WithField("path", path).Debug("request")
-	return c.RequestWithContext(ctx, method, path, body)
 }
 
 func (c RESTClient) GetOrg(ctx context.Context, name string) (org *resources.Organization, err error) {
-	err = c.do(ctx, http.MethodGet, newRequestPath(orgEp.Format(map[string]any{"org": name})).String(), nil, &org)
+	err = c.DoWithContext(ctx, http.MethodGet, newRequestPath(orgEp.Format(map[string]any{"org": name})).String(), nil, &org)
 	return
 }
 
@@ -48,12 +34,12 @@ func (c RESTClient) GetOrgs(ctx context.Context) ([]resources.Organization, erro
 }
 
 func (c RESTClient) GetRateLimit(ctx context.Context) (rate *resources.RateLimit, err error) {
-	err = c.do(ctx, http.MethodGet, newRequestPath(rateLimitEp).String(), nil, &rate)
+	err = c.DoWithContext(ctx, http.MethodGet, newRequestPath(rateLimitEp).String(), nil, &rate)
 	return
 }
 
 func (c RESTClient) GetUser(ctx context.Context) (user *resources.User, err error) {
-	err = c.do(ctx, http.MethodGet, newRequestPath(userEp).String(), nil, &user)
+	err = c.DoWithContext(ctx, http.MethodGet, newRequestPath(userEp).String(), nil, &user)
 	return
 }
 
@@ -68,14 +54,11 @@ func (c RESTClient) GetUserOrgs(ctx context.Context) ([]resources.Organization, 
 }
 
 func NewRESTClient(conf *configfile.Configuration, options ClientOptions) (*RESTClient, error) {
-	logger := util.Logger()
-	entry := logger.WithField("restclient", true)
+	logger := util.Logger.WithField("restclient", true)
 
-	if parsed, err := url.Parse(options.Host); err == nil {
-		options.Host = parsed.Hostname()
-	}
+	options.Host = util.GetHostnameFromPath(options.Host)
 
-	entry.Debugf("Creating client with options: %+v", options)
+	logger.Debugf("Creating client with options: %+v", options)
 
 	client, err := api.NewRESTClient(options)
 	if err != nil {
@@ -86,6 +69,5 @@ func NewRESTClient(conf *configfile.Configuration, options ClientOptions) (*REST
 		RESTClient:    client,
 		Configuration: conf,
 		Progressbar:   util.NewProgressbar(-1),
-		Entry:         entry,
 	}, nil
 }

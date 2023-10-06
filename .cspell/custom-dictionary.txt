@@ -29,7 +29,9 @@ subdirs
 tableprinter
 Teble
 tmpl
+tracerr
 Unpatch
 Warnf
 worktree
 Worktree
+ztrue

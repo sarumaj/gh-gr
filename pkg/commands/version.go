@@ -27,14 +27,12 @@ var versionCmd = func() *cobra.Command {
 		Use:   "version",
 		Short: "Display version information",
 		Run: func(cmd *cobra.Command, args []string) {
-			logger := util.Logger()
-			entry := logger.WithField("command", "version")
+			logger := loggerEntry.WithField("command", "version")
+			logger.Debugf("Update: %t", update)
 
 			if update {
-				entry.Debug("Performing update")
 				selfUpdate()
 			} else {
-				entry.Debug("Printing version")
 				printVersion()
 			}
 		},
@@ -65,6 +63,9 @@ func printVersion() {
 }
 
 func selfUpdate() {
+	interrupt := util.NewInterrupt()
+	defer interrupt.Stop()
+
 	current, err := semver.ParseTolerant(version)
 	util.FatalIfError(err)
 

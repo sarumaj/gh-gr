@@ -38,20 +38,18 @@ var initCmd = func() *cobra.Command {
 }()
 
 func runInit(conf *configfile.Configuration, update bool) {
-	logger := util.Logger()
-	if configFlags.Verbose {
-		logger.SetLevel(logrus.DebugLevel)
-	}
+	interrupt := util.NewInterrupt()
+	defer interrupt.Stop()
 
-	var entry *logrus.Entry
+	var logger *logrus.Entry
 	if update {
-		entry = logger.WithField("command", "update")
+		logger = loggerEntry.WithField("command", "update")
 	} else {
-		entry = logger.WithField("command", "init")
+		logger = loggerEntry.WithField("command", "init")
 	}
 
 	exists := configfile.ConfigurationExists()
-	entry.Debugf("Check configuration: %t, update: %t, conf: %t", exists, update, conf != nil)
+	logger.Debugf("Exists: %t, update: %t, conf: %t", exists, update, conf != nil)
 
 	switch {
 
@@ -85,12 +83,10 @@ func runInit(conf *configfile.Configuration, update bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), conf.Timeout)
 	defer cancel()
 
-	entry.Debug("Retrieving rate limitation")
 	rate, err := client.GetRateLimit(ctx)
 	util.FatalIfError(err)
 	util.FatalIfError(restclient.CheckRateLimit(rate))
 
-	entry.Debug("Retrieving user")
 	user, err := client.GetUser(ctx)
 	util.FatalIfError(err)
 
@@ -103,23 +99,20 @@ func runInit(conf *configfile.Configuration, update bool) {
 		conf.Email = user.Email
 	}
 
-	entry.Debugf("Retrieved username: %s, name: %s, email: %s", conf.Username, conf.Fullname, conf.Email)
+	logger.Debugf("Username: %s, name: %s, email: %s", conf.Username, conf.Fullname, conf.Email)
 
-	entry.Debug("Retrieving user repositories")
 	repos, err := client.GetUserRepos(ctx)
 	util.FatalIfError(err)
-	entry.Debugf("Retrieved %d user repositories", len(repos))
+	logger.Debugf("Retrieved %d user repositories", len(repos))
 
-	entry.Debug("Retrieving user organizations")
 	orgs, err := client.GetUserOrgs(ctx)
 	util.FatalIfError(err)
-	entry.Debugf("Retrieved %d user organizations", len(orgs))
+	logger.Debugf("Retrieved %d user organizations", len(orgs))
 
 	for _, org := range orgs {
-		entry.Debugf("Retrieving repositories for organization: %s", org.Login)
 		orgRepos, err := client.GetOrgRepos(ctx, org.Login)
 		util.FatalIfError(err)
-		entry.Debugf("Retrieved %d repositories for organization: %s", len(orgRepos), org.Login)
+		logger.Debugf("Retrieved %d repositories for organization: %s", len(orgRepos), org.Login)
 		repos = append(repos, orgRepos...)
 	}
 
@@ -127,14 +120,12 @@ func runInit(conf *configfile.Configuration, update bool) {
 		switch {
 		case
 			// not explicitly included
-			len(conf.Included) > 0 &&
-				!util.RegexList(conf.Included).Match(repo.FullName),
+			len(conf.Included) > 0 && !util.RegexList(conf.Included).Match(repo.FullName),
 
 			// explicitly excluded and not included
-			util.RegexList(conf.Excluded).Match(repo.FullName) &&
-				!util.RegexList(conf.Included).Match(repo.FullName):
+			util.RegexList(conf.Excluded).Match(repo.FullName) && !util.RegexList(conf.Included).Match(repo.FullName):
 
-			entry.Debugf("Excluding repository: %s", repo.FullName)
+			logger.Debugf("Excluding repository: %s", repo.FullName)
 			continue
 		}
 
@@ -142,10 +133,10 @@ func runInit(conf *configfile.Configuration, update bool) {
 		if !conf.SubDirectories {
 			dir = strings.ReplaceAll(dir, "/", "_")
 			dir = strings.ReplaceAll(dir, conf.Username+"_", "")
-			dir = filepath.Join(conf.BaseDirectory, dir)
 		}
+		dir = filepath.ToSlash(filepath.Join(conf.BaseDirectory, filepath.FromSlash(dir)))
 
-		entry.Debugf("Adding repository: %s", dir)
+		logger.Debugf("Adding repository: %s", dir)
 		conf.Repositories.Append(configfile.Repository{
 			URL:       repo.CloneURL,
 			Branch:    repo.DefaultBranch,
@@ -154,11 +145,9 @@ func runInit(conf *configfile.Configuration, update bool) {
 		})
 	}
 
-	entry.Debug("Installing git alias commands")
 	if err := addGitAliases(); err != nil {
 		logger.Warnf("failed to set up git alias commands: %v", err)
 	}
 
-	entry.Debug("Saving")
 	conf.Save()
 }

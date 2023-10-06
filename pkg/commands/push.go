@@ -16,16 +16,22 @@ var pushCmd = &cobra.Command{
 	Use:   "push",
 	Short: "Push all repositories",
 	Run: func(cmd *cobra.Command, args []string) {
-		bar := util.NewProgressbar(100).Describe(util.CheckColors(color.BlueString, "Pushing..."))
-		repositoryOperationLoop(bar, runPush)
+		repositoryOperationLoop(runPush)
 	},
 }
 
-func runPush(wu pool.WorkUnit, conf *configfile.Configuration, repo configfile.Repository, status *statusList) {
-	logger := util.Logger()
-	entry := logger.WithField("command", "push")
+func runPush(wu pool.WorkUnit, bar *util.Progressbar, conf *configfile.Configuration, repo configfile.Repository, status *statusList) {
+	interrupt := util.NewInterrupt()
+	defer interrupt.Stop()
+
+	logger := loggerEntry.WithField("command", "push").WithField("repository", repo.Directory)
+
+	if bar != nil && conf != nil {
+		bar.Describe(util.CheckColors(color.BlueString, conf.GetProgressbarDescriptionForVerb("Pushing", repo)))
+	}
+
 	if wu.IsCancelled() {
-		entry.Warn("work unit has been prematurely canceled")
+		logger.Warn("work unit has been prematurely canceled")
 		return
 	}
 
@@ -34,27 +40,27 @@ func runPush(wu pool.WorkUnit, conf *configfile.Configuration, repo configfile.R
 		return
 	}
 
-	entry.Debugf("Repository %s: pushing to remote", repo.Directory)
+	logger.Debug("Pushing to remote")
 	switch err := repository.Push(&git.PushOptions{}); {
 
 	case errors.Is(err, git.ErrNonFastForwardUpdate):
-		entry.Debugf("Repository %s: non-fast-forward", repo.Directory)
+		logger.Debug("Repository is non-fast-forward")
 		status.append(repo.Directory, util.CheckColors(color.RedString, "non-fast-forward update"))
 		return
 
 	case
 		errors.Is(err, transport.ErrAuthenticationRequired),
 		errors.Is(err, transport.ErrAuthorizationFailed):
-		entry.Debugf("Repository %s: unauthorized", repo.Directory)
+		logger.Debug("Unauthorized")
 
 		status.append(repo.Directory, util.CheckColors(color.RedString, "unauthorized"))
 		return
 
 	case errors.Is(err, git.NoErrAlreadyUpToDate): // ignore
-		entry.Debugf("Repository %s: already up-to-date", repo.Directory)
+		logger.Debug("Repository is already up-to-date")
 
 	case err != nil:
-		entry.Debugf("Repository %s: failure: %v", repo.Directory, err)
+		logger.Debugf("Failure: %v", err)
 		status.appendError(repo.Directory, err)
 		return
 
