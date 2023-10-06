@@ -91,7 +91,7 @@ func Import(format string) {
 	util.FatalIfError(err)
 
 	var conf Configuration
-	enc.Decoder(bytes.NewReader(raw)).Decode(&conf)
+	util.FatalIfError(enc.Decoder(bytes.NewReader(raw)).Decode(&conf))
 
 	conf.Save()
 }
