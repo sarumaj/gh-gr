@@ -42,7 +42,7 @@ var rootCmd = func() *cobra.Command {
 	flags.BoolVarP(&configFlags.Verbose, "verbose", "v", false, "Print verbose logs")
 	flags.DurationVarP(&configFlags.Timeout, "timeout", "t", 10*time.Minute, "Set timeout for long running jobs")
 
-	cmd.AddCommand(initCmd, pullCmd, pushCmd, removeCmd, statusCmd, updateCmd, versionCmd, viewCmd)
+	cmd.AddCommand(exportCmd, initCmd, importCmd, pullCmd, pushCmd, removeCmd, statusCmd, updateCmd, versionCmd, viewCmd)
 
 	return cmd
 }()
