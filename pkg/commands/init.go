@@ -23,6 +23,9 @@ var initCmd = func() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			runInit(configFlags.Copy(), false)
 		},
+		PostRun: func(cmd *cobra.Command, args []string) {
+			updateConfigFlags()
+		},
 	}
 
 	host, _ := auth.DefaultHost()

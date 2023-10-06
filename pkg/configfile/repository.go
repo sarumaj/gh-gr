@@ -1,13 +1,17 @@
 package configfile
 
-import "reflect"
+import (
+	"encoding/xml"
+	"reflect"
+)
 
 // Repository holds a repository URL and its local directory equivalent.
 type Repository struct {
-	URL       string `yaml:"url"`
-	Directory string `yaml:"directory"`
-	Branch    string `yaml:"branch"`
-	ParentURL string `yaml:"parentUrl,omitempty"`
+	XMLName   xml.Name `xml:"repository" toml:"-" json:"-" yaml:"-"`
+	URL       string   `xml:"url" toml:"url" json:"url" yaml:"url"`
+	Directory string   `xml:"directory,attr" toml:"directory" json:"directory" yaml:"directory"`
+	Branch    string   `xml:"branch,attr" toml:"branch" json:"branch" yaml:"branch"`
+	ParentURL string   `xml:"parentUrl,omitempty" toml:"parentUrl,omitempty" json:"parentUrl,omitempty" yaml:"parentUrl,omitempty"`
 }
 
 type Repositories []Repository

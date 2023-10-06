@@ -8,6 +8,7 @@ require (
 	github.com/cli/go-gh/v2 v2.3.0
 	github.com/fatih/color v1.15.0
 	github.com/go-git/go-git/v5 v5.9.0
+	github.com/pelletier/go-toml/v2 v2.1.0
 	github.com/rhysd/go-github-selfupdate v1.2.3
 	github.com/schollz/progressbar/v3 v3.13.1
 	github.com/sirupsen/logrus v1.9.3
