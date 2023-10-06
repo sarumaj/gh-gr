@@ -258,15 +258,16 @@ func runLocalStatus() error {
 	return nil
 }
 
-func updateRepoConfig(conf *configfile.Configuration, repository *git.Repository) error {
+func updateRepoConfig(conf *configfile.Configuration, host string, repository *git.Repository) error {
 	repoConf, err := repository.Config()
 	if err != nil {
 		return err
 	}
 
 	section := repoConf.Raw.Section("user")
-	section.SetOption("name", conf.Fullname)
-	section.SetOption("email", conf.Email)
+	profilesMap := conf.Profiles.ToMap()
+	section.SetOption("name", profilesMap[host].Fullname)
+	section.SetOption("email", profilesMap[host].Email)
 
 	if err := repoConf.Validate(); err != nil {
 		return err

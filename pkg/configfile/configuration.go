@@ -3,7 +3,6 @@ package configfile
 import (
 	"bufio"
 	"bytes"
-	"encoding/xml"
 	"fmt"
 	"io"
 	"net/url"
@@ -13,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	auth "github.com/cli/go-gh/v2/pkg/auth"
+	"github.com/cli/go-gh/v2/pkg/auth"
 	config "github.com/cli/go-gh/v2/pkg/config"
 	prompter "github.com/cli/go-gh/v2/pkg/prompter"
 	term "github.com/cli/go-gh/v2/pkg/term"
@@ -39,12 +38,8 @@ var loggerEntry = util.Logger.WithFields(logrus.Fields{"mod": "configfile"})
 
 // Configuration holds gr configuration data
 type Configuration struct {
-	XMLName        xml.Name      `json:"-" yaml:"-"`
-	Username       string        `json:"username" yaml:"username"`
-	Fullname       string        `json:"fullname" yaml:"fullname"`
-	Email          string        `json:"email,omitempty" yaml:"email,omitempty"`
 	BaseDirectory  string        `json:"baseDirectory" yaml:"baseDirectory"`
-	BaseURL        string        `json:"baseURL" yaml:"baseURL"`
+	Profiles       Profiles      `json:"profiles" yaml:"profiles"`
 	Concurrency    uint          `json:"concurrency" yaml:"concurrency"`
 	SubDirectories bool          `json:"subDirectories" yaml:"subDirectories"`
 	Verbose        bool          `json:"verbose" yaml:"verbose"`
@@ -54,73 +49,33 @@ type Configuration struct {
 	Repositories   Repositories  `json:"repositories" yaml:"repositories"`
 }
 
-func ConfigurationExists() bool {
-	c, err := config.Read()
-	if err != nil {
-		return false
-	}
-
-	raw, err := c.Get([]string{configKey})
-	return err == nil && len(raw) > 0
-}
-
-func Load() *Configuration {
-	c, err := config.Read()
-	util.FatalIfError(err)
-
-	content, err := c.Get([]string{configKey})
-	util.FatalIfError(err)
-
-	var conf Configuration
-	bar := newBinaryProgressbar().Describe(util.CheckColors(color.BlueString, "Loading..."))
-	util.FatalIfError(yaml.NewDecoder(io.TeeReader(strings.NewReader(content), bar)).Decode(&conf))
-	_ = bar.Clear()
-
-	return &conf
-}
-
-func Import(format string) {
-	enc, ok := supportedEncoders[format]
-	if !ok {
-		supportedEncoders := strings.Join(GetListOfSupportedFormats(true), ", ")
-		fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, ConfigInvalidFormat, format, supportedEncoders))
-		return
-	}
-
-	raw, err := io.ReadAll(os.Stdin)
-	util.FatalIfError(err)
-
-	var conf Configuration
-	util.FatalIfError(enc.Decoder(bytes.NewReader(raw)).Decode(&conf))
-
-	conf.Save()
-}
-
 func (conf Configuration) Authenticate(targetURL *string) {
-	logger := loggerEntry
-	logger.Debugf("Authenticating URL: %v", targetURL)
+	loggerEntry.Debugf("Authenticating URL: %v", targetURL)
 	if targetURL == nil || *targetURL == "" || !urlRegex.MatchString(*targetURL) {
 		return
 	}
 
-	parsed, err := url.Parse(urlRegex.ReplaceAllString(
-		*targetURL,
-		fmt.Sprintf("${Schema}%s:%s@${Hostpath}", conf.Username, conf.GetToken()),
-	))
-	if err != nil {
-		return
-	}
+	for host, token := range GetTokens() {
+		if util.GetHostnameFromPath(*targetURL) == host {
+			parsed, err := url.Parse(urlRegex.ReplaceAllString(
+				*targetURL,
+				fmt.Sprintf("${Schema}%s:%s@${Hostpath}", conf.Profiles.ToMap()[host].Username, token),
+			))
+			if err != nil {
+				return
+			}
 
-	*targetURL = parsed.String()
+			loggerEntry.Debugf("Authenticated: %s", *targetURL)
+			*targetURL = parsed.String()
+			return
+		}
+	}
 }
 
-func (conf Configuration) Copy() *Configuration {
+func (conf *Configuration) Copy() *Configuration {
 	n := &Configuration{
-		Username:       conf.Username,
-		Fullname:       conf.Fullname,
-		Email:          conf.Email,
 		BaseDirectory:  conf.BaseDirectory,
-		BaseURL:        conf.BaseURL,
+		Profiles:       make(Profiles, len(conf.Profiles)),
 		Concurrency:    conf.Concurrency,
 		SubDirectories: conf.SubDirectories,
 		Verbose:        conf.Verbose,
@@ -132,6 +87,7 @@ func (conf Configuration) Copy() *Configuration {
 
 	_ = copy(n.Excluded, conf.Excluded)
 	_ = copy(n.Included, conf.Included)
+	_ = copy(n.Profiles, conf.Profiles)
 	_ = copy(n.Repositories, conf.Repositories)
 
 	return n
@@ -188,17 +144,6 @@ func (conf *Configuration) GetProgressbarDescriptionForVerb(verb string, repo Re
 	result := description + strings.Repeat(".", maxLength-len(description))
 
 	return result
-}
-
-func (conf Configuration) GetToken() string {
-	logger := loggerEntry
-
-	host := util.GetHostnameFromPath(conf.BaseURL)
-	logger.Debugf("Retrieving token for host: %s", host)
-
-	token, _ := auth.TokenForHost(host)
-	logger.Debugf("Retrieved token: %t", len(token) > 0)
-	return token
 }
 
 func (conf Configuration) Remove(purge bool) {
@@ -275,4 +220,73 @@ func newBinaryProgressbar() *util.Progressbar {
 		util.ClearOnFinish(),
 		util.ShowCount(),
 	)
+}
+
+func ConfigurationExists() bool {
+	c, err := config.Read()
+	if err != nil {
+		return false
+	}
+
+	raw, err := c.Get([]string{configKey})
+
+	return err == nil && len(raw) > 0
+}
+
+func GetHosts() []string {
+	hosts := auth.KnownHosts()
+	if len(hosts) == 0 {
+		host, _ := auth.DefaultHost()
+		hosts = append(hosts, host)
+	}
+
+	return hosts
+}
+
+func GetTokens() map[string]string {
+	tokens := make(map[string]string)
+
+	for _, host := range GetHosts() {
+		host = util.GetHostnameFromPath(host)
+		loggerEntry.Debugf("Retrieving token for host: %s", host)
+
+		token, _ := auth.TokenForHost(host)
+		loggerEntry.Debugf("Retrieved token: %t", len(token) > 0)
+
+		tokens[host] = token
+	}
+
+	return tokens
+}
+
+func Load() *Configuration {
+	c, err := config.Read()
+	util.FatalIfError(err)
+
+	content, err := c.Get([]string{configKey})
+	util.FatalIfError(err)
+
+	var conf Configuration
+	bar := newBinaryProgressbar().Describe(util.CheckColors(color.BlueString, "Loading..."))
+	util.FatalIfError(yaml.NewDecoder(io.TeeReader(strings.NewReader(content), bar)).Decode(&conf))
+	_ = bar.Clear()
+
+	return &conf
+}
+
+func Import(format string) {
+	enc, ok := supportedEncoders[format]
+	if !ok {
+		supportedEncoders := strings.Join(GetListOfSupportedFormats(true), ", ")
+		fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, ConfigInvalidFormat, format, supportedEncoders))
+		return
+	}
+
+	raw, err := io.ReadAll(os.Stdin)
+	util.FatalIfError(err)
+
+	var conf Configuration
+	util.FatalIfError(enc.Decoder(bytes.NewReader(raw)).Decode(&conf))
+
+	conf.Save()
 }

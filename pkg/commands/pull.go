@@ -138,7 +138,8 @@ func runPull(wu pool.WorkUnit, bar *util.Progressbar, conf *configfile.Configura
 	}
 
 	logger.Debug("Updating repository config")
-	if err := updateRepoConfig(conf, repository); err != nil {
+	host := util.GetHostnameFromPath(repo.URL)
+	if err := updateRepoConfig(conf, host, repository); err != nil {
 		status.appendError(repo.Directory, err)
 		return
 	}
