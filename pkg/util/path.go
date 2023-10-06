@@ -2,7 +2,9 @@ package util
 
 import (
 	"os"
+	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 var hostRegex = regexp.MustCompile(`(?:[^:]+://|[^/]*//)?(?P<Hostname>[^/:]+).*`)
@@ -23,4 +25,21 @@ func PathExists(path string) bool {
 
 	FatalIfError(err)
 	return false
+}
+
+func PathSanitize(paths ...*string) {
+	for _, path := range paths {
+		if path == nil {
+			continue
+		}
+
+		*path = filepath.Clean(*path)
+
+		if volume := filepath.VolumeName(*path); volume == "C:" || volume == "c:" {
+			*path = strings.Replace(*path, volume, "", 1)
+		}
+
+		*path = filepath.ToSlash(*path)
+		*path = strings.TrimSuffix(*path, "/")
+	}
 }

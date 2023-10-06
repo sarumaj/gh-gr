@@ -25,3 +25,24 @@ func TestGetHostnameFromPath(t *testing.T) {
 		})
 	}
 }
+
+func TestPathSanitize(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		args string
+		want string
+	}{
+		{"test#1", "C:\\Users\\admin\\github", "/Users/admin/github"},
+		{"test#2", "\\home\\dir\\github\\", "/home/dir/github"},
+		{"test#3", "home\\dir\\github\\", "home/dir/github"},
+		{"test#4", "D:\\Users\\admin\\github", "D:/Users/admin/github"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.args
+			PathSanitize(&got)
+			if got != tt.want {
+				t.Errorf(`PathSanitize(&%q) failed: got: %q, want: %q`, tt.args, got, tt.want)
+			}
+		})
+	}
+}

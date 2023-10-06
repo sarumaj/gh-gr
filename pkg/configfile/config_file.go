@@ -179,7 +179,8 @@ func (conf Configuration) Display(format string, export bool) {
 
 func (conf *Configuration) GetProgressbarDescriptionForVerb(verb string, repo Repository) string {
 	trim := func(in string) string {
-		return strings.TrimPrefix(filepath.ToSlash(in), conf.BaseDirectory+"/")
+		util.PathSanitize(&in, &conf.BaseDirectory)
+		return strings.TrimPrefix(in, conf.BaseDirectory+"/")
 	}
 
 	maxLength := len(fmt.Sprintf("%s %s", verb, trim(conf.Repositories.LongestName())))

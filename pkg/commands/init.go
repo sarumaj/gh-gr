@@ -137,7 +137,8 @@ func runInit(conf *configfile.Configuration, update bool) {
 			dir = strings.ReplaceAll(dir, "/", "_")
 			dir = strings.ReplaceAll(dir, conf.Username+"_", "")
 		}
-		dir = filepath.ToSlash(filepath.Join(conf.BaseDirectory, filepath.FromSlash(dir)))
+		dir = filepath.Join(conf.BaseDirectory, filepath.FromSlash(dir))
+		util.PathSanitize(&dir)
 
 		logger.Debugf("Adding repository: %s", dir)
 		conf.Repositories.Append(configfile.Repository{

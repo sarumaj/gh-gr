@@ -123,7 +123,9 @@ func getUpdater() (updater *selfupdate.Updater, err error) {
 }
 
 func isRepoDir(path string, repos []configfile.Repository) bool {
+	util.PathSanitize(&path)
 	for _, r := range repos {
+		util.PathSanitize(&r.Directory)
 		if strings.HasPrefix(r.Directory+"/", path+"/") {
 			return true
 		}
@@ -228,6 +230,7 @@ func updateConfigFlags() {
 
 func runLocalStatus() error {
 	conf := configfile.Load()
+	util.PathSanitize(&conf.BaseDirectory)
 
 	files, err := filepath.Glob(conf.BaseDirectory + "/*")
 	if err != nil {
