@@ -39,19 +39,19 @@ var loggerEntry = util.Logger.WithFields(logrus.Fields{"mod": "configfile"})
 
 // Configuration holds gr configuration data
 type Configuration struct {
-	XMLName        xml.Name      `xml:"configuration" toml:"-" json:"-" yaml:"-"`
-	Username       string        `xml:"username" toml:"username" json:"username" yaml:"username"`
-	Fullname       string        `xml:"fullname" toml:"fullname" json:"fullname" yaml:"fullname"`
-	Email          string        `xml:"email,omitempty" toml:"email,omitempty" json:"email,omitempty" yaml:"email,omitempty"`
-	BaseDirectory  string        `xml:"baseDirectory,attr" toml:"baseDirectory" json:"baseDirectory" yaml:"baseDirectory"`
-	BaseURL        string        `xml:"baseUrl,attr" toml:"baseURL" json:"baseURL" yaml:"baseURL"`
-	Concurrency    uint          `xml:"concurrency,attr" toml:"concurrency" json:"concurrency" yaml:"concurrency"`
-	SubDirectories bool          `xml:"subDirectories,attr" toml:"subDirectories" json:"subDirectories" yaml:"subDirectories"`
-	Verbose        bool          `xml:"verbose,attr" toml:"verbose" json:"verbose" yaml:"verbose"`
-	Timeout        time.Duration `xml:"timeout,attr" toml:"timeout" json:"timeout" yaml:"timeout"`
-	Excluded       []string      `xml:"excluded,omitempty" toml:"exluded,omitempty" json:"exluded,omitempty" yaml:"exluded,omitempty"`
-	Included       []string      `xml:"included,omitempty" toml:"included,omitempty" json:"included,omitempty" yaml:"included,omitempty"`
-	Repositories   Repositories  `xml:"repositories" toml:"repositories,multiline" json:"repositories" yaml:"repositories"`
+	XMLName        xml.Name      `json:"-" yaml:"-"`
+	Username       string        `json:"username" yaml:"username"`
+	Fullname       string        `json:"fullname" yaml:"fullname"`
+	Email          string        `json:"email,omitempty" yaml:"email,omitempty"`
+	BaseDirectory  string        `json:"baseDirectory" yaml:"baseDirectory"`
+	BaseURL        string        `json:"baseURL" yaml:"baseURL"`
+	Concurrency    uint          `json:"concurrency" yaml:"concurrency"`
+	SubDirectories bool          `json:"subDirectories" yaml:"subDirectories"`
+	Verbose        bool          `json:"verbose" yaml:"verbose"`
+	Timeout        time.Duration `json:"timeout" yaml:"timeout"`
+	Excluded       []string      `json:"exluded,omitempty" yaml:"exluded,omitempty"`
+	Included       []string      `json:"included,omitempty" yaml:"included,omitempty"`
+	Repositories   Repositories  `json:"repositories" yaml:"repositories"`
 }
 
 func ConfigurationExists() bool {

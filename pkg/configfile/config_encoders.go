@@ -2,11 +2,9 @@ package configfile
 
 import (
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	"io"
 
-	toml "github.com/pelletier/go-toml/v2"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -27,23 +25,6 @@ var supportedEncoders = map[string]encoderPair{
 			return e
 		},
 		Decoder: func(r io.Reader) decoder { return json.NewDecoder(r) },
-	},
-	"toml": {
-		Encoder: func(w io.Writer) encoder {
-			e := toml.NewEncoder(w)
-			e.SetIndentTables(true)
-			return e
-		},
-		Decoder: func(r io.Reader) decoder { return toml.NewDecoder(r) },
-	},
-	"xml": {
-		Encoder: func(w io.Writer) encoder {
-			_, _ = w.Write([]byte(xml.Header))
-			e := xml.NewEncoder(w)
-			e.Indent("", "\t")
-			return e
-		},
-		Decoder: func(r io.Reader) decoder { return xml.NewDecoder(r) },
 	},
 	"yaml": {
 		Encoder: func(w io.Writer) encoder { return yaml.NewEncoder(w) },
