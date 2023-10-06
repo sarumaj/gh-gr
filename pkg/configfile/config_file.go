@@ -125,22 +125,14 @@ func (conf Configuration) Copy() *Configuration {
 		SubDirectories: conf.SubDirectories,
 		Verbose:        conf.Verbose,
 		Timeout:        conf.Timeout,
+		Included:       make([]string, len(conf.Included)),
+		Excluded:       make([]string, len(conf.Excluded)),
+		Repositories:   make(Repositories, len(conf.Repositories)),
 	}
 
-	if conf.Excluded != nil {
-		n.Excluded = make([]string, 0)
-		_ = copy(n.Excluded, conf.Excluded)
-	}
-
-	if conf.Included != nil {
-		n.Included = make([]string, 0)
-		_ = copy(n.Included, conf.Included)
-	}
-
-	if conf.Repositories != nil {
-		n.Repositories = make(Repositories, 0)
-		_ = copy(n.Repositories, conf.Repositories)
-	}
+	_ = copy(n.Excluded, conf.Excluded)
+	_ = copy(n.Included, conf.Included)
+	_ = copy(n.Repositories, conf.Repositories)
 
 	return n
 }
