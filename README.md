@@ -60,10 +60,10 @@ First, create the configuration:
 gh gr init -d SOMEDIR -c 10
 ```
 
-or, if you are using GitHub Enterprise:
+or, if you are willing to exclude some repositories, you can use regular expressions:
 
 ```
-gh gr init -c 10 -d SOMEDIR -e "repo1" -e "SOMEORG/repo-.*" -s
+gh gr init -c 10 -d SOMEDIR -e ".*repo1" -e "SOMEORG/repo-.*" -s
 ```
 
 Run `gh gr init --help` or `gh gr help init` to retrieve more information about the init command.
