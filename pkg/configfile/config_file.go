@@ -3,6 +3,7 @@ package configfile
 import (
 	"bufio"
 	"bytes"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"net/url"
@@ -25,7 +26,9 @@ import (
 const configKey = "gr.conf"
 
 const (
-	ConfigNotFound       = "No configuration found. Make sure to run 'init' to create initial configuration."
+	ConfigInvalidFormat = "Invalid format %q. Supported formats are: [%s]."
+	ConfigNotFound      = "No configuration found. Make sure to run 'init' to create initial configuration " +
+		"or run 'import' to import configuration from stdin."
 	ConfigShouldNotExist = "Configuration already exists. " +
 		"Please run 'update' if you want to update your settings. " +
 		"Alternatively, run 'remove' if you want to setup from scratch once again."
@@ -36,18 +39,19 @@ var loggerEntry = util.Logger.WithFields(logrus.Fields{"mod": "configfile"})
 
 // Configuration holds gr configuration data
 type Configuration struct {
-	Username       string        `yaml:"username"`
-	Fullname       string        `yaml:"fullname"`
-	Email          string        `yaml:"email,omitempty"`
-	BaseDirectory  string        `yaml:"baseDirectory"`
-	BaseURL        string        `yaml:"baseURL"`
-	Concurrency    uint          `yaml:"concurrency"`
-	SubDirectories bool          `yaml:"subDirectories"`
-	Verbose        bool          `yaml:"verbose"`
-	Timeout        time.Duration `yaml:"timeout"`
-	Excluded       []string      `yaml:"exluded,omitempty"`
-	Included       []string      `yaml:"included,omitempty"`
-	Repositories   Repositories  `yaml:"repositories"`
+	XMLName        xml.Name      `xml:"configuration" toml:"-" json:"-" yaml:"-"`
+	Username       string        `xml:"username" toml:"username" json:"username" yaml:"username"`
+	Fullname       string        `xml:"fullname" toml:"fullname" json:"fullname" yaml:"fullname"`
+	Email          string        `xml:"email,omitempty" toml:"email,omitempty" json:"email,omitempty" yaml:"email,omitempty"`
+	BaseDirectory  string        `xml:"baseDirectory,attr" toml:"baseDirectory" json:"baseDirectory" yaml:"baseDirectory"`
+	BaseURL        string        `xml:"baseUrl,attr" toml:"baseURL" json:"baseURL" yaml:"baseURL"`
+	Concurrency    uint          `xml:"concurrency,attr" toml:"concurrency" json:"concurrency" yaml:"concurrency"`
+	SubDirectories bool          `xml:"subDirectories,attr" toml:"subDirectories" json:"subDirectories" yaml:"subDirectories"`
+	Verbose        bool          `xml:"verbose,attr" toml:"verbose" json:"verbose" yaml:"verbose"`
+	Timeout        time.Duration `xml:"timeout,attr" toml:"timeout" json:"timeout" yaml:"timeout"`
+	Excluded       []string      `xml:"excluded,omitempty" toml:"exluded,omitempty" json:"exluded,omitempty" yaml:"exluded,omitempty"`
+	Included       []string      `xml:"included,omitempty" toml:"included,omitempty" json:"included,omitempty" yaml:"included,omitempty"`
+	Repositories   Repositories  `xml:"repositories" toml:"repositories,multiline" json:"repositories" yaml:"repositories"`
 }
 
 func ConfigurationExists() bool {
@@ -73,6 +77,23 @@ func Load() *Configuration {
 	_ = bar.Clear()
 
 	return &conf
+}
+
+func Import(format string) {
+	enc, ok := supportedEncoders[format]
+	if !ok {
+		supportedEncoders := strings.Join(GetListOfSupportedFormats(true), ", ")
+		fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, ConfigInvalidFormat, format, supportedEncoders))
+		return
+	}
+
+	raw, err := io.ReadAll(os.Stdin)
+	util.FatalIfError(err)
+
+	var conf Configuration
+	enc.Decoder(bytes.NewReader(raw)).Decode(&conf)
+
+	conf.Save()
 }
 
 func (conf Configuration) Authenticate(targetURL *string) {
@@ -124,15 +145,23 @@ func (conf Configuration) Copy() *Configuration {
 	return n
 }
 
-func (conf Configuration) Display() {
+func (conf Configuration) Display(format string, export bool) {
 	reader, writer := io.Pipe()
+
+	enc, ok := supportedEncoders[format]
+	if !ok {
+		supportedEncoders := strings.Join(GetListOfSupportedFormats(true), ", ")
+		fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, ConfigInvalidFormat, format, supportedEncoders))
+		return
+	}
 
 	go func() {
 		defer writer.Close()
-		util.FatalIfError(yaml.NewEncoder(writer).Encode(conf))
+		util.FatalIfError(enc.Encoder(writer).Encode(conf))
 	}()
 
-	interactive := term.IsTerminal(os.Stdout) &&
+	interactive := !export &&
+		term.IsTerminal(os.Stdout) &&
 		term.IsTerminal(os.Stdin) &&
 		util.UseColors()
 
@@ -144,14 +173,16 @@ func (conf Configuration) Display() {
 
 			var in string
 			fmt.Fscanln(os.Stdin, &in)
-			fmt.Fprint(os.Stdout, "\033[1A\r") // move one line up and use carriage return to move to the beginning of line
+
+			// move one line up and use carriage return to move to the beginning of line
+			fmt.Fprint(os.Stdout, "\033[1A"+strings.Repeat(" ", len("(more):")+len(in))+"\r")
+
 			if strings.HasPrefix(strings.ToLower(in), "q") {
 				fmt.Fprintln(os.Stdout)
 				break
 			}
 		}
 	}
-
 }
 
 func (conf *Configuration) GetProgressbarDescriptionForVerb(verb string, repo Repository) string {
