@@ -21,6 +21,8 @@ var initCmd = func() *cobra.Command {
 		Use:   "init",
 		Short: "Initialize repository mirror",
 		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println(configFlags)
+			fmt.Println(configFlags.Copy())
 			runInit(configFlags.Copy(), false)
 		},
 		PostRun: func(cmd *cobra.Command, args []string) {
