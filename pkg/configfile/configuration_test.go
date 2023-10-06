@@ -18,23 +18,29 @@ pager:
 http_unix_socket:
 browser:
 gr.conf: |
-    username: user
-    fullname: user
-    email: 12345678-user@users.noreply.github.com
     baseDirectory: github
-    baseURL: github.com
+    profiles:
+    - host: github.com
+      username: user
+      fullname: user
+      email: 12345678-user@users.noreply.github.com
     concurrency: 16
     subDirectories: true
     verbose: false
     repositories:
-    - url: https://github.com/user/repository.git
+    - URL: https://github.com/user/repository.git
       directory: github/user/repository
       branch: main
 `
 
 func TestConfigurationAuthenticate(t *testing.T) {
-	conf := &Configuration{Username: "user"}
+	conf := &Configuration{
+		Profiles: Profiles{{Username: "user", Host: "example.com"}},
+	}
 	guard := monkey.Patch(auth.TokenForHost, func(string) (string, string) { return "token", "" })
+	defer guard.Unpatch()
+
+	guard = monkey.Patch(auth.KnownHosts, func() []string { return []string{"example.com"} })
 	defer guard.Unpatch()
 
 	for _, tt := range []struct {

@@ -6,10 +6,10 @@ import (
 
 // Repository holds a repository URL and its local directory equivalent.
 type Repository struct {
-	URL       string `json:"url" yaml:"url"`
+	URL       string `json:"URL" yaml:"URL"`
 	Directory string `json:"directory" yaml:"directory"`
 	Branch    string `json:"branch" yaml:"branch"`
-	ParentURL string `json:"parentUrl,omitempty" yaml:"parentUrl,omitempty"`
+	ParentURL string `json:"parentURL,omitempty" yaml:"parentURL,omitempty"`
 }
 
 type Repositories []Repository
