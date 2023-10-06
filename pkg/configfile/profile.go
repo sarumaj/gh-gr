@@ -10,7 +10,7 @@ type Profile struct {
 type Profiles []Profile
 
 func (p Profiles) ToMap() map[string]Profile {
-	m := make(map[string]Profile, len(p))
+	m := make(map[string]Profile)
 	for _, profile := range p {
 		m[profile.Host] = profile
 	}
