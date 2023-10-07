@@ -8,7 +8,7 @@ import (
 	monkey "bou.ke/monkey"
 	auth "github.com/cli/go-gh/v2/pkg/auth"
 	config "github.com/cli/go-gh/v2/pkg/config"
-	"github.com/sarumaj/gh-gr/pkg/util"
+	util "github.com/sarumaj/gh-gr/pkg/util"
 )
 
 const testConfiguration = `

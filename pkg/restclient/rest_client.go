@@ -4,10 +4,10 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/cli/go-gh/v2/pkg/api"
-	"github.com/sarumaj/gh-gr/pkg/configfile"
-	"github.com/sarumaj/gh-gr/pkg/restclient/resources"
-	"github.com/sarumaj/gh-gr/pkg/util"
+	api "github.com/cli/go-gh/v2/pkg/api"
+	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
+	resources "github.com/sarumaj/gh-gr/pkg/restclient/resources"
+	util "github.com/sarumaj/gh-gr/pkg/util"
 )
 
 var loggerEntry = util.Logger.WithField("mod", "restclient")

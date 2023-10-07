@@ -10,8 +10,8 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/sarumaj/gh-gr/pkg/util"
-	"gopkg.in/go-playground/pool.v3"
+	util "github.com/sarumaj/gh-gr/pkg/util"
+	pool "gopkg.in/go-playground/pool.v3"
 )
 
 var linkRegex = regexp.MustCompile(`<(?P<Link>[^>]+)>;\s*rel="(?P<Type>[^"]+)"`)
