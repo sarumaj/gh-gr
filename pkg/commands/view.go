@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	color "github.com/fatih/color"
@@ -19,8 +18,7 @@ var viewCmd = func() *cobra.Command {
 		Short: "Display current configuration",
 		Run: func(cmd *cobra.Command, args []string) {
 			if !configfile.ConfigurationExists() {
-				fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, configfile.ConfigNotFound))
-				return
+				util.PrintlnAndExit(util.CheckColors(color.RedString, configfile.ConfigNotFound))
 			}
 
 			logger := loggerEntry.WithField("command", "view")

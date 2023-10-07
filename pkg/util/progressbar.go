@@ -4,16 +4,13 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"os"
 
-	term "github.com/cli/go-gh/v2/pkg/term"
 	progressbar "github.com/schollz/progressbar/v3"
 )
 
 type Progressbar struct {
 	*progressbar.ProgressBar
-	w               io.Writer
-	msgOnCompletion string
+	w io.Writer
 }
 
 type ProgressbarOption = progressbar.Option
@@ -68,33 +65,25 @@ func (p *Progressbar) Inc() *Progressbar {
 	return p
 }
 
-func (p *Progressbar) Print() {
-	fmt.Fprint(p.w, p.msgOnCompletion)
-}
-
-func (p *Progressbar) SetMessageOnCompletion(msg string) *Progressbar {
-	p.msgOnCompletion = msg
-	return p
-}
-
 func NewProgressbar(m int, options ...ProgressbarOption) *Progressbar {
-	p := &Progressbar{w: os.Stdout}
+	p := &Progressbar{w: Stdout()}
 
 	if options == nil {
 		options = []ProgressbarOption{
-			EnableColorCodes(UseColors()),
+			EnableColorCodes(ColorsEnabled()),
 			SetWidth(20),
 			ShowCount(),
 			ShowElapsedTimeOnFinish(),
 			ClearOnFinish(),
-			OnCompletion(p.Print),
 		}
 	}
 
-	if interactive := term.IsTerminal(os.Stdout); !interactive || flag.Lookup("test.v") != nil {
+	if interactive := IsTerminal(true, false, false); !interactive || flag.Lookup("test.v") != nil {
 		p.w = io.Discard
-	} else if interactive {
+
+	} else {
 		options = append(options, UseANSICodes(true))
+
 	}
 
 	options = append(options, progressbar.OptionSetWriter(p.w))

@@ -16,11 +16,11 @@ const (
 
 // Version holds the application version.
 // It gets filled automatically at build time.
-var version string
+var internalVersion string
 
 // BuildDate holds the date and time at which the application was build.
 // It gets filled automatically at build time.
-var buildDate string
+var internalBuildDate string
 
 var versionCmd = func() *cobra.Command {
 	var update bool
@@ -47,7 +47,7 @@ var versionCmd = func() *cobra.Command {
 }()
 
 func printVersion() {
-	current, err := semver.ParseTolerant(version)
+	current, err := semver.ParseTolerant(internalVersion)
 	util.FatalIfError(err)
 
 	updater, err := getUpdater()
@@ -63,15 +63,15 @@ func printVersion() {
 		vSuffix = "(newer version available: " + latest.Version.String() + ")"
 	}
 
-	fmt.Println(util.CheckColors(color.BlueString, "gr version: %s %s", version, vSuffix))
-	fmt.Println(util.CheckColors(color.BlueString, "Built at: %s", buildDate))
+	_, _ = fmt.Fprintln(util.Stdout(), util.CheckColors(color.BlueString, "gr version: %s %s", internalVersion, vSuffix))
+	_, _ = fmt.Fprintln(util.Stdout(), util.CheckColors(color.BlueString, "Built at: %s", internalBuildDate))
 }
 
 func selfUpdate() {
 	interrupt := util.NewInterrupt()
 	defer interrupt.Stop()
 
-	current, err := semver.ParseTolerant(version)
+	current, err := semver.ParseTolerant(internalVersion)
 	util.FatalIfError(err)
 
 	updater, err := getUpdater()
@@ -81,8 +81,8 @@ func selfUpdate() {
 	util.FatalIfError(err)
 
 	if latest.Version.LTE(current) {
-		fmt.Println(util.CheckColors(color.BlueString, "You are already using the latest version: %s", version))
+		_, _ = fmt.Fprintln(util.Stdout(), util.CheckColors(color.BlueString, "You are already using the latest version: %s", internalVersion))
 	} else {
-		fmt.Println(util.CheckColors(color.GreenString, "Successfully updated to version: %s", latest.Version))
+		_, _ = fmt.Fprintln(util.Stdout(), util.CheckColors(color.GreenString, "Successfully updated to version: %s", latest.Version))
 	}
 }

@@ -1,6 +1,9 @@
 package util
 
-import "testing"
+import (
+	"runtime"
+	"testing"
+)
 
 func TestGetHostnameFromPath(t *testing.T) {
 	for _, tt := range []struct {
@@ -27,6 +30,10 @@ func TestGetHostnameFromPath(t *testing.T) {
 }
 
 func TestPathSanitize(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skipf("Test should run only on windows")
+	}
+
 	for _, tt := range []struct {
 		name string
 		args string

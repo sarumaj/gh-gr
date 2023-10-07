@@ -38,10 +38,11 @@ func NewInterrupt() *interrupt {
 			select {
 
 			case <-interrupt:
-				fmt.Fprintln(os.Stderr, CheckColors(color.RedString, CheckColors(color.RedString, "\nCurrent execution cannot be interrupted!")))
+				_, _ = fmt.Fprintln(Stderr(), CheckColors(color.RedString, CheckColors(color.RedString, "Current execution cannot be interrupted!")))
 
 			case <-quit:
 				return
+
 			}
 		}
 	}(i.signal, i.quit)

@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	color "github.com/fatih/color"
@@ -18,11 +17,11 @@ var importCmd = func() *cobra.Command {
 		Use:   "import",
 		Short: "Import configuration from stdin",
 		Run: func(cmd *cobra.Command, args []string) {
-			logger := loggerEntry.WithField("command", "import")
 			if configfile.ConfigurationExists() {
-				fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, configfile.ConfigShouldNotExist))
-				return
+				util.PrintlnAndExit(util.CheckColors(color.RedString, configfile.ConfigShouldNotExist))
 			}
+
+			logger := loggerEntry.WithField("command", "import")
 
 			logger.Debugf("Import format: %s", formatOption)
 			configfile.Import(formatOption)

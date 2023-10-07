@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"fmt"
-	"os"
 	"time"
 
 	color "github.com/fatih/color"
@@ -34,7 +32,7 @@ var rootCmd = func() *cobra.Command {
 
 			util.Logger.Debug("Running in verbose mode")
 		},
-		Version: version,
+		Version: internalVersion,
 	}
 
 	flags := cmd.PersistentFlags()
@@ -50,7 +48,7 @@ var rootCmd = func() *cobra.Command {
 type repositoryOperation func(pool.WorkUnit, *util.Progressbar, *configfile.Configuration, configfile.Repository, *statusList)
 
 func repositoryWorkUnit(fn repositoryOperation, bar *util.Progressbar, conf *configfile.Configuration, repo configfile.Repository, status *statusList) pool.WorkFunc {
-	return func(wu pool.WorkUnit) (interface{}, error) {
+	return func(wu pool.WorkUnit) (any, error) {
 		fn(wu, bar, conf, repo, status)
 		return nil, nil
 	}
@@ -63,8 +61,7 @@ func repositoryOperationLoop(fn repositoryOperation) {
 	exists := configfile.ConfigurationExists()
 	logger.Debugf("Config exists: %t", exists)
 	if !exists {
-		fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, configfile.ConfigNotFound))
-		return
+		util.PrintlnAndExit(util.CheckColors(color.RedString, configfile.ConfigNotFound))
 	}
 
 	conf := configfile.Load()
@@ -111,9 +108,9 @@ func repositoryOperationLoop(fn repositoryOperation) {
 }
 
 // Execute executes the root command.
-func Execute(Version, BuildDate string) {
-	version, buildDate = Version, BuildDate
-	util.Logger.Debugf("Version: %s, build date: %s", version, buildDate)
+func Execute(version, buildDate string) {
+	internalVersion, internalBuildDate = version, buildDate
+	util.Logger.Debugf("Version: %s, build date: %s", internalVersion, internalBuildDate)
 
 	util.FatalIfError(rootCmd.Execute())
 }

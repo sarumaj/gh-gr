@@ -49,7 +49,7 @@ func (statuslist *statusList) print() {
 		return (*statuslist)[i].Name < (*statuslist)[j].Name
 	})
 
-	printer := util.TablePrinter()
+	printer := util.NewTablePrinter()
 	for _, s := range *statuslist {
 		_ = printer.AddField(s.Name)
 		for _, state := range strings.Split(s.State, "\t") {
@@ -58,9 +58,9 @@ func (statuslist *statusList) print() {
 		_ = printer.EndRow()
 	}
 
-	util.FatalIfError(printer.AddField(fmt.Sprintf("Total number: %d\n", len(*statuslist))).
+	printer.AddField(fmt.Sprintf("Total number: %d\n", len(*statuslist))).
 		EndRow().
-		Render())
+		Render()
 }
 
 func addGitAliases() error {
