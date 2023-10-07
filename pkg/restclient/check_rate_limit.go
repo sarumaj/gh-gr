@@ -1,22 +1,22 @@
 package restclient
 
 import (
-	"errors"
 	"fmt"
+	"os"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/sarumaj/gh-gr/pkg/restclient/resources"
+	"github.com/sarumaj/gh-gr/pkg/util"
 )
 
-func CheckRateLimit(r *resources.RateLimit) error {
+const RateLimitExceeded = "GitHub REST API quotas have been exhausted. Please, wait until %s (%s remaining...)"
+
+func CheckRateLimit(r *resources.RateLimit) {
 	if r.Resources.Core.Remaining == 0 {
 		resetTime := time.Unix(r.Resources.Core.Reset, 0)
-		msg := fmt.Sprintf(
-			"GitHub REST API quotas have been exhausted. Please, wait until %s (%s remaining...)",
-			resetTime, time.Until(resetTime),
-		)
-		return errors.New(msg)
-	}
+		fmt.Fprintln(util.Stderr(), util.CheckColors(color.RedString, RateLimitExceeded, resetTime, time.Until(resetTime)))
 
-	return nil
+		os.Exit(1)
+	}
 }

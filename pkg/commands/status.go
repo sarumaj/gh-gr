@@ -6,7 +6,7 @@ import (
 	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 	cobra "github.com/spf13/cobra"
-	"gopkg.in/go-playground/pool.v3"
+	pool "gopkg.in/go-playground/pool.v3"
 )
 
 var statusCmd = &cobra.Command{

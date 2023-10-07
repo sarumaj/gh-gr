@@ -3,7 +3,6 @@ package commands
 import (
 	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -38,9 +37,6 @@ var initCmd = func() *cobra.Command {
 }()
 
 func runInit(conf *configfile.Configuration, update bool) {
-	interrupt := util.NewInterrupt()
-	defer interrupt.Stop()
-
 	var logger *logrus.Entry
 	if update {
 		logger = loggerEntry.WithField("command", "update")
@@ -54,12 +50,10 @@ func runInit(conf *configfile.Configuration, update bool) {
 	switch {
 
 	case exists && !update:
-		fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, configfile.ConfigShouldNotExist))
-		return
+		util.PrintlnAndExit(util.CheckColors(color.RedString, configfile.ConfigShouldNotExist))
 
 	case !exists && update:
-		fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, configfile.ConfigNotFound))
-		return
+		util.PrintlnAndExit(util.CheckColors(color.RedString, configfile.ConfigNotFound))
 
 	}
 
@@ -67,13 +61,15 @@ func runInit(conf *configfile.Configuration, update bool) {
 		conf = configfile.Load()
 
 	} else if conf == nil {
-		fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, configfile.ConfigNotFound))
-		return
+		util.PrintlnAndExit(util.CheckColors(color.RedString, configfile.ConfigNotFound))
 
 	}
 
 	tokens := configfile.GetTokens()
 	logger.Debugf("Retrieved tokens: %d", len(tokens))
+
+	interrupt := util.NewInterrupt()
+	defer interrupt.Stop()
 
 	for host, token := range tokens {
 		client, err := restclient.NewRESTClient(conf, restclient.ClientOptions{
@@ -89,7 +85,7 @@ func runInit(conf *configfile.Configuration, update bool) {
 
 		rate, err := client.GetRateLimit(ctx)
 		util.FatalIfError(err)
-		util.FatalIfError(restclient.CheckRateLimit(rate))
+		restclient.CheckRateLimit(rate)
 
 		user, err := client.GetUser(ctx)
 		util.FatalIfError(err)

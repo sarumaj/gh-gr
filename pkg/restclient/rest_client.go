@@ -10,6 +10,8 @@ import (
 	"github.com/sarumaj/gh-gr/pkg/util"
 )
 
+var loggerEntry = util.Logger.WithField("mod", "restclient")
+
 type ClientOptions = api.ClientOptions
 
 type RESTClient struct {
@@ -54,11 +56,7 @@ func (c RESTClient) GetUserOrgs(ctx context.Context) ([]resources.Organization, 
 }
 
 func NewRESTClient(conf *configfile.Configuration, options ClientOptions) (*RESTClient, error) {
-	logger := util.Logger.WithField("restclient", true)
-
-	options.Host = util.GetHostnameFromPath(options.Host)
-
-	logger.Debugf("Creating client with options: %+v", options)
+	loggerEntry.Debugf("Creating client with options: %+v", options)
 
 	client, err := api.NewRESTClient(options)
 	if err != nil {

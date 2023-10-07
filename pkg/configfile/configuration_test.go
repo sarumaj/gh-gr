@@ -1,6 +1,7 @@
 package configfile
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -37,7 +38,11 @@ func TestConfigurationAuthenticate(t *testing.T) {
 	conf := &Configuration{
 		Profiles: Profiles{{Username: "user", Host: "example.com"}},
 	}
-	guard := monkey.Patch(auth.TokenForHost, func(string) (string, string) { return "token", "" })
+
+	guard := monkey.Patch(util.PrintlnAndExit, fmt.Printf)
+	defer guard.Unpatch()
+
+	guard = monkey.Patch(auth.TokenForHost, func(string) (string, string) { return "token", "" })
 	defer guard.Unpatch()
 
 	guard = monkey.Patch(auth.KnownHosts, func() []string { return []string{"example.com"} })

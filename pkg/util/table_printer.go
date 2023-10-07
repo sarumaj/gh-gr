@@ -1,16 +1,9 @@
 package util
 
 import (
-	"fmt"
-	"os"
-	"sync"
-
 	tableprinter "github.com/cli/go-gh/v2/pkg/tableprinter"
-	term "github.com/cli/go-gh/v2/pkg/term"
 	color "github.com/fatih/color"
 )
-
-var printer = sync.Pool{New: newTablePrinter}
 
 type tablePrinter struct {
 	isStdErr bool
@@ -29,7 +22,7 @@ func (t *tablePrinter) current() tableprinter.TablePrinter {
 func (t *tablePrinter) AddField(field string, colors ...color.Attribute) *tablePrinter {
 	current := t.current()
 
-	if len(colors) > 0 && UseColors() {
+	if len(colors) > 0 && ColorsEnabled() {
 		current.AddField(
 			field,
 			tableprinter.WithColor(func(s string) string {
@@ -51,9 +44,9 @@ func (t *tablePrinter) EndRow() *tablePrinter {
 	return t
 }
 
-func (t *tablePrinter) Render() error {
+func (t *tablePrinter) Render() {
 	current := t.current()
-	return current.Render()
+	FatalIfError(current.Render())
 }
 
 func (t *tablePrinter) SetOutputToStdErr(isStdErr bool) *tablePrinter {
@@ -61,34 +54,14 @@ func (t *tablePrinter) SetOutputToStdErr(isStdErr bool) *tablePrinter {
 	return t
 }
 
-func CheckColors(fn func(string, ...any) string, format string, a ...any) string {
-	if UseColors() {
-		return fn(format, a...)
-	}
-
-	return fmt.Sprintf(format, a...)
-}
-
-func newTablePrinter() any {
-	console := term.FromEnv()
-
-	width, _, _ := console.Size()
+func NewTablePrinter() *tablePrinter {
+	c := Console()
+	width, _, _ := c.Size()
 	width = max(width, 40)
 
-	isTTy := console.IsTerminalOutput()
+	isTTy := c.IsTerminalOutput()
 	return &tablePrinter{
-		stdOut: tableprinter.New(os.Stdout, isTTy, width),
-		stdErr: tableprinter.New(os.Stderr, isTTy, width),
+		stdOut: tableprinter.New(Stdout(), isTTy, width),
+		stdErr: tableprinter.New(Stderr(), isTTy, width),
 	}
 }
-
-func UseColors() bool {
-	console := term.FromEnv()
-
-	isTTY := console.IsTerminalOutput()
-	colorsOn := console.IsColorEnabled()
-
-	return isTTY && colorsOn
-}
-
-func TablePrinter() *tablePrinter { return printer.Get().(*tablePrinter) }

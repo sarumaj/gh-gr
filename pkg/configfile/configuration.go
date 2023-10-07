@@ -12,21 +12,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cli/go-gh/v2/pkg/auth"
 	config "github.com/cli/go-gh/v2/pkg/config"
 	prompter "github.com/cli/go-gh/v2/pkg/prompter"
-	term "github.com/cli/go-gh/v2/pkg/term"
 	color "github.com/fatih/color"
 	util "github.com/sarumaj/gh-gr/pkg/util"
-	"github.com/sirupsen/logrus"
+	logrus "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
 
 const configKey = "gr.conf"
 
 const (
-	ConfigInvalidFormat = "Invalid format %q. Supported formats are: [%s]."
-	ConfigNotFound      = "No configuration found. Make sure to run 'init' to create initial configuration " +
+	AuthenticationFailed = "Authentication for %q failed. Make sure to configure GitHub CLI for %q."
+	ConfigInvalidFormat  = "Invalid format %q. Supported formats are: [%s]."
+	ConfigNotFound       = "No configuration found. Make sure to run 'init' to create initial configuration " +
 		"or run 'import' to import configuration from stdin."
 	ConfigShouldNotExist = "Configuration already exists. " +
 		"Please run 'update' if you want to update your settings. " +
@@ -35,6 +34,8 @@ const (
 
 var urlRegex = regexp.MustCompile(`(?P<Schema>[^:]+://)(?P<Creds>[^@]+@)?(?P<Hostpath>.+)`)
 var loggerEntry = util.Logger.WithFields(logrus.Fields{"mod": "configfile"})
+
+var prompt = prompter.New(util.Stdin(), util.Stdout(), util.Stderr())
 
 // Configuration holds gr configuration data
 type Configuration struct {
@@ -55,11 +56,15 @@ func (conf Configuration) Authenticate(targetURL *string) {
 		return
 	}
 
-	for host, token := range GetTokens() {
-		if util.GetHostnameFromPath(*targetURL) == host {
+	hostname := util.GetHostnameFromPath(*targetURL)
+	profiles := conf.Profiles.ToMap()
+	tokens := GetTokens()
+
+	for host, token := range tokens {
+		if hostname == host {
 			parsed, err := url.Parse(urlRegex.ReplaceAllString(
 				*targetURL,
-				fmt.Sprintf("${Schema}%s:%s@${Hostpath}", conf.Profiles.ToMap()[host].Username, token),
+				fmt.Sprintf("${Schema}%s:%s@${Hostpath}", profiles[host].Username, token),
 			))
 			if err != nil {
 				return
@@ -67,9 +72,12 @@ func (conf Configuration) Authenticate(targetURL *string) {
 
 			loggerEntry.Debugf("Authenticated: %s", *targetURL)
 			*targetURL = parsed.String()
+
 			return
 		}
 	}
+
+	util.PrintlnAndExit(util.CheckColors(color.RedString, AuthenticationFailed, *targetURL, hostname))
 }
 
 func (conf *Configuration) Copy() *Configuration {
@@ -99,8 +107,7 @@ func (conf Configuration) Display(format string, export bool) {
 	enc, ok := supportedEncoders[format]
 	if !ok {
 		supportedEncoders := strings.Join(GetListOfSupportedFormats(true), ", ")
-		fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, ConfigInvalidFormat, format, supportedEncoders))
-		return
+		util.PrintlnAndExit(util.CheckColors(color.RedString, ConfigInvalidFormat, format, supportedEncoders))
 	}
 
 	go func() {
@@ -108,25 +115,22 @@ func (conf Configuration) Display(format string, export bool) {
 		util.FatalIfError(enc.Encoder(writer).Encode(conf))
 	}()
 
-	interactive := !export &&
-		term.IsTerminal(os.Stdout) &&
-		term.IsTerminal(os.Stdin) &&
-		util.UseColors()
+	interactive := !export && util.Console().IsTerminalOutput()
 
 	for iter, noLines, scanner := 0, 10, bufio.NewScanner(reader); scanner.Scan(); iter++ {
-		fmt.Fprintln(os.Stdout, scanner.Text())
+		fmt.Fprintln(util.Stdout(), scanner.Text())
 
 		if interactive && iter > 0 && iter%noLines == 0 {
-			fmt.Fprint(os.Stdout, color.BlueString("(more):"))
+			fmt.Fprint(util.Stdout(), color.BlueString("(more):"))
 
 			var in string
-			fmt.Fscanln(os.Stdin, &in)
+			fmt.Fscanln(util.Stdin(), &in)
 
 			// move one line up and use carriage return to move to the beginning of line
-			fmt.Fprint(os.Stdout, "\033[1A"+strings.Repeat(" ", len("(more):")+len(in))+"\r")
+			fmt.Fprint(util.Stdout(), "\033[1A"+strings.Repeat(" ", len("(more):")+len(in))+"\r")
 
 			if strings.HasPrefix(strings.ToLower(in), "q") {
-				fmt.Fprintln(os.Stdout)
+				fmt.Fprintln(util.Stdout())
 				break
 			}
 		}
@@ -153,21 +157,20 @@ func (conf Configuration) Remove(purge bool) {
 	util.FatalIfError(c.Remove([]string{configKey}))
 	util.FatalIfError(config.Write(c))
 
-	fmt.Println(util.CheckColors(color.GreenString, "Configuration removed."))
+	_, _ = fmt.Fprintln(util.Stdout(), util.CheckColors(color.GreenString, "Configuration removed."))
 
 	if !purge {
 		return
 	}
 
-	if term.IsTerminal(os.Stdout) && term.IsTerminal(os.Stderr) {
-		confirm, err := prompter.New(os.Stdin, os.Stdout, os.Stderr).
-			Confirm(
-				util.CheckColors(
-					color.RedString,
-					"DANGER!!! ",
-				)+"You will delete all local repositories! Are you sure?",
-				false,
-			)
+	if util.IsTerminal(true, true, true) {
+		confirm, err := prompt.Confirm(
+			util.CheckColors(
+				color.RedString,
+				"DANGER!!! ",
+			)+"You will delete all local repositories! Are you sure?",
+			false,
+		)
 		util.FatalIfError(err)
 
 		if !confirm {
@@ -178,21 +181,26 @@ func (conf Configuration) Remove(purge bool) {
 	bar := util.NewProgressbar(len(conf.Repositories))
 	subDirectories := make(map[string]bool)
 	for _, repo := range conf.Repositories {
-		bar.Describe(util.CheckColors(color.RedString, conf.GetProgressbarDescriptionForVerb("Removing", repo)))
-		subDirectories[filepath.Dir(repo.Directory)] = true
+		_ = bar.Describe(util.CheckColors(color.RedString, conf.GetProgressbarDescriptionForVerb("Removing", repo)))
 		util.FatalIfError(os.RemoveAll(repo.Directory))
-		bar.Inc()
+		_ = bar.Inc()
+
+		if conf.SubDirectories {
+			subDirectories[filepath.Dir(repo.Directory)] = true
+		}
 	}
 
 	if conf.BaseDirectory != "." {
 		util.FatalIfError(os.RemoveAll(conf.BaseDirectory))
+
 	} else if conf.SubDirectories {
 		for folder := range subDirectories {
 			util.FatalIfError(os.Remove(folder))
 		}
+
 	}
 
-	fmt.Println(util.CheckColors(color.GreenString, "Successfully removed repositories from local filesystem."))
+	_, _ = fmt.Fprintln(util.Stdout(), util.CheckColors(color.GreenString, "Successfully removed repositories from local filesystem."))
 }
 
 func (conf Configuration) Save() {
@@ -207,19 +215,7 @@ func (conf Configuration) Save() {
 	c.Set([]string{configKey}, buffer.String())
 	util.FatalIfError(config.Write(c))
 
-	fmt.Println(util.CheckColors(color.GreenString, "Configuration saved. You can now pull your repositories."))
-}
-
-func newBinaryProgressbar() *util.Progressbar {
-	return util.NewProgressbar(
-		-1,
-		util.EnableColorCodes(util.UseColors()),
-		util.SetWidth(10),
-		util.ShowBytes(true),
-		util.SetRenderBlankState(true),
-		util.ClearOnFinish(),
-		util.ShowCount(),
-	)
+	_, _ = fmt.Fprintln(util.Stdout(), util.CheckColors(color.GreenString, "Configuration saved. You can now pull your repositories."))
 }
 
 func ConfigurationExists() bool {
@@ -231,32 +227,6 @@ func ConfigurationExists() bool {
 	raw, err := c.Get([]string{configKey})
 
 	return err == nil && len(raw) > 0
-}
-
-func GetHosts() []string {
-	hosts := auth.KnownHosts()
-	if len(hosts) == 0 {
-		host, _ := auth.DefaultHost()
-		hosts = append(hosts, host)
-	}
-
-	return hosts
-}
-
-func GetTokens() map[string]string {
-	tokens := make(map[string]string)
-
-	for _, host := range GetHosts() {
-		host = util.GetHostnameFromPath(host)
-		loggerEntry.Debugf("Retrieving token for host: %s", host)
-
-		token, _ := auth.TokenForHost(host)
-		loggerEntry.Debugf("Retrieved token: %t", len(token) > 0)
-
-		tokens[host] = token
-	}
-
-	return tokens
 }
 
 func Load() *Configuration {
@@ -278,11 +248,11 @@ func Import(format string) {
 	enc, ok := supportedEncoders[format]
 	if !ok {
 		supportedEncoders := strings.Join(GetListOfSupportedFormats(true), ", ")
-		fmt.Fprintln(os.Stderr, util.CheckColors(color.RedString, ConfigInvalidFormat, format, supportedEncoders))
-		return
+		util.PrintlnAndExit(util.CheckColors(color.RedString, ConfigInvalidFormat, format, supportedEncoders))
 	}
 
-	raw, err := io.ReadAll(os.Stdin)
+	bar := newBinaryProgressbar().Describe(util.CheckColors(color.BlueString, "Importing..."))
+	raw, err := io.ReadAll(io.TeeReader(util.Stdin(), bar))
 	util.FatalIfError(err)
 
 	var conf Configuration
