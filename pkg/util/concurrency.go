@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"syscall"
 
-	"github.com/fatih/color"
+	color "github.com/fatih/color"
 )
 
 type interrupt struct {
