@@ -61,10 +61,10 @@ func (conf Configuration) Authenticate(targetURL *string) {
 	tokens := GetTokens()
 
 	for host, token := range tokens {
-		if hostname == host {
+		if profile, ok := profiles[host]; ok && hostname == host {
 			parsed, err := url.Parse(urlRegex.ReplaceAllString(
 				*targetURL,
-				fmt.Sprintf("${Schema}%s:%s@${Hostpath}", profiles[host].Username, token),
+				fmt.Sprintf("${Schema}%s:%s@${Hostpath}", profile.Username, token),
 			))
 			if err != nil {
 				return
@@ -103,6 +103,7 @@ func (conf *Configuration) Copy() *Configuration {
 
 func (conf Configuration) Display(format string, export bool) {
 	reader, writer := io.Pipe()
+	defer writer.Close()
 
 	enc, ok := supportedEncoders[format]
 	if !ok {
@@ -115,7 +116,7 @@ func (conf Configuration) Display(format string, export bool) {
 		util.FatalIfError(enc.Encoder(writer).Encode(conf))
 	}()
 
-	interactive := !export && util.Console().IsTerminalOutput()
+	interactive := !export && util.IsTerminal(true, false, true)
 
 	for iter, noLines, scanner := 0, 10, bufio.NewScanner(reader); scanner.Scan(); iter++ {
 		fmt.Fprintln(util.Stdout(), scanner.Text())
