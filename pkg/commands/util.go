@@ -266,8 +266,13 @@ func updateRepoConfig(conf *configfile.Configuration, host string, repository *g
 
 	section := repoConf.Raw.Section("user")
 	profilesMap := conf.Profiles.ToMap()
-	section.SetOption("name", profilesMap[host].Fullname)
-	section.SetOption("email", profilesMap[host].Email)
+	profile, ok := profilesMap[host]
+	if !ok {
+		return fmt.Errorf("no profile for host: %q", host)
+	}
+	
+	section.SetOption("name", profile.Fullname)
+	section.SetOption("email", profile.Email)
 
 	if err := repoConf.Validate(); err != nil {
 		return err

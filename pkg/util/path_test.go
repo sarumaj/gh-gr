@@ -19,6 +19,7 @@ func TestGetHostnameFromPath(t *testing.T) {
 		{"test#6", "http://example.com:443", "example.com"},
 		{"test#7", "http://example.com:443", "example.com"},
 		{"test#8", "http://example.com:443/endpoint", "example.com"},
+		{"test#9", "https://username:token@example.com/organization/repository.git", "example.com"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			got := GetHostnameFromPath(tt.args)
