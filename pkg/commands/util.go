@@ -270,7 +270,7 @@ func updateRepoConfig(conf *configfile.Configuration, host string, repository *g
 	if !ok {
 		return fmt.Errorf("no profile for host: %q", host)
 	}
-	
+
 	section.SetOption("name", profile.Fullname)
 	section.SetOption("email", profile.Email)
 
