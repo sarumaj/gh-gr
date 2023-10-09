@@ -6,7 +6,6 @@ import (
 	color "github.com/fatih/color"
 	git "github.com/go-git/go-git/v5"
 	gitconfig "github.com/go-git/go-git/v5/config"
-	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 	cobra "github.com/spf13/cobra"
 	pool "gopkg.in/go-playground/pool.v3"
@@ -20,15 +19,16 @@ var pullCmd = &cobra.Command{
 	},
 }
 
-func runPull(wu pool.WorkUnit, bar *util.Progressbar, conf *configfile.Configuration, repo configfile.Repository, status *statusList) {
-	interrupt := util.NewInterrupt()
-	defer interrupt.Stop()
+func runPull(wu pool.WorkUnit, args repositoryOperationArguments) {
+	bar := args.bar
+	conf := args.conf
+	repo := args.repo
+	status := args.status
+
+	defer util.PreventInterrupt()()
+	changeProgressbarText(bar, conf, "Pulling", repo)
 
 	logger := loggerEntry.WithField("command", "pull").WithField("repository", repo.Directory)
-
-	if bar != nil && conf != nil {
-		bar.Describe(util.CheckColors(color.BlueString, conf.GetProgressbarDescriptionForVerb("Pulling", repo)))
-	}
 
 	if wu.IsCancelled() {
 		logger.Warn("work unit has been prematurely canceled")
@@ -43,8 +43,7 @@ func runPull(wu pool.WorkUnit, bar *util.Progressbar, conf *configfile.Configura
 	var workTree *git.Worktree
 	var err error
 
-	goBack := util.MoveToPath(conf.AbsoluteDirectoryPath)
-	defer goBack()
+	defer util.MoveToPath(conf.AbsoluteDirectoryPath)()
 
 	if util.PathExists(repo.Directory) {
 		logger.Debug("Local repository exists")

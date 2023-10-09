@@ -27,6 +27,10 @@ type status struct {
 type statusList []status
 
 func (statuslist *statusList) appendError(repoName string, err error) {
+	if err == nil {
+		return
+	}
+
 	*statuslist = append(*statuslist, status{
 		Name:  repoName,
 		State: util.CheckColors(color.RedString, err.Error()),
@@ -107,6 +111,12 @@ func addGitAliases() error {
 	}
 
 	return nil
+}
+
+func changeProgressbarText(bar *util.Progressbar, conf *configfile.Configuration, verb string, repo configfile.Repository) {
+	if bar != nil && conf != nil {
+		bar.Describe(util.CheckColors(color.BlueString, conf.GetProgressbarDescriptionForVerb(verb, repo)))
+	}
 }
 
 func getUpdater() (updater *selfupdate.Updater, err error) {

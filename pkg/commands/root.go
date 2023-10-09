@@ -45,11 +45,18 @@ var rootCmd = func() *cobra.Command {
 	return cmd
 }()
 
-type repositoryOperation func(pool.WorkUnit, *util.Progressbar, *configfile.Configuration, configfile.Repository, *statusList)
+type repositoryOperation func(pool.WorkUnit, repositoryOperationArguments)
 
-func repositoryWorkUnit(fn repositoryOperation, bar *util.Progressbar, conf *configfile.Configuration, repo configfile.Repository, status *statusList) pool.WorkFunc {
+type repositoryOperationArguments struct {
+	bar    *util.Progressbar
+	conf   *configfile.Configuration
+	repo   configfile.Repository
+	status *statusList
+}
+
+func repositoryWorkUnit(fn repositoryOperation, args repositoryOperationArguments) pool.WorkFunc {
 	return func(wu pool.WorkUnit) (any, error) {
-		fn(wu, bar, conf, repo, status)
+		fn(wu, args)
 		return nil, nil
 	}
 }
@@ -76,7 +83,7 @@ func repositoryOperationLoop(fn repositoryOperation) {
 	var status statusList
 	go func(finished chan<- bool) {
 		for _, repo := range conf.Repositories {
-			batch.Queue(repositoryWorkUnit(fn, bar, conf, repo, &status))
+			batch.Queue(repositoryWorkUnit(fn, repositoryOperationArguments{bar, conf, repo, &status}))
 		}
 
 		batch.QueueComplete()

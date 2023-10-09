@@ -55,12 +55,10 @@ func runInit(conf *configfile.Configuration, update bool) {
 	case !exists && update:
 		util.PrintlnAndExit(util.CheckColors(color.RedString, configfile.ConfigNotFound))
 
-	}
-
-	if exists && conf == nil {
+	case exists && conf == nil:
 		conf = configfile.Load()
 
-	} else if conf == nil {
+	case conf == nil:
 		util.PrintlnAndExit(util.CheckColors(color.RedString, configfile.ConfigNotFound))
 
 	}
@@ -69,17 +67,18 @@ func runInit(conf *configfile.Configuration, update bool) {
 	if filepath.IsAbs(conf.BaseDirectory) {
 		conf.AbsoluteDirectoryPath = filepath.Dir(conf.BaseDirectory)
 		conf.BaseDirectory = filepath.Base(conf.BaseDirectory)
+
 	} else {
 		abs, err := filepath.Abs(conf.BaseDirectory)
 		util.FatalIfError(err)
 		conf.AbsoluteDirectoryPath = filepath.Dir(abs)
+
 	}
 
 	tokens := configfile.GetTokens()
 	logger.Debugf("Retrieved tokens: %d", len(tokens))
 
-	interrupt := util.NewInterrupt()
-	defer interrupt.Stop()
+	defer util.PreventInterrupt()()
 
 	for host, token := range tokens {
 		client, err := restclient.NewRESTClient(conf, restclient.ClientOptions{
