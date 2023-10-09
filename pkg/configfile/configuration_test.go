@@ -20,6 +20,7 @@ http_unix_socket:
 browser:
 gr.conf: |
     baseDirectory: github
+    directoryPath: /
     profiles:
     - host: github.com
       username: user
@@ -39,7 +40,7 @@ func TestConfigurationAuthenticate(t *testing.T) {
 		Profiles: Profiles{{Username: "user", Host: "example.com"}},
 	}
 
-	guard := monkey.Patch(util.PrintlnAndExit, fmt.Printf)
+	guard := monkey.Patch(util.PrintlnAndExit, func(format string, a ...any) { _, _ = fmt.Printf(format, a...) })
 	defer guard.Unpatch()
 
 	guard = monkey.Patch(auth.TokenForHost, func(string) (string, string) { return "token", "" })

@@ -14,7 +14,7 @@ jobs:
         go: [1.21]
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
-    name: build and release gh-gr
+    name: Build and release gh-gr
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -34,6 +34,8 @@ jobs:
         run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
       - name: Run linters
         run: gofmt -s -d ./ && golangci-lint run -v
+      - name: Run tests
+        run: go test -v ./...
       - name: Precompile binaries and upload assets
         uses: cli/gh-extension-precompile@v1
         with:
