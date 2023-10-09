@@ -181,8 +181,7 @@ func (conf Configuration) Remove(purge bool) {
 		}
 	}
 
-	goBack := util.MoveToPath(conf.AbsoluteDirectoryPath)
-	defer goBack()
+	defer util.MoveToPath(conf.AbsoluteDirectoryPath)()
 
 	bar := util.NewProgressbar(len(conf.Repositories))
 	subDirectories := make(map[string]bool)

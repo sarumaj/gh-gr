@@ -49,3 +49,7 @@ func NewInterrupt() *interrupt {
 
 	return i
 }
+
+func PreventInterrupt() func() {
+	return NewInterrupt().Stop
+}

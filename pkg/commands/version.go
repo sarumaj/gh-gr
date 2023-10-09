@@ -68,8 +68,7 @@ func printVersion() {
 }
 
 func selfUpdate() {
-	interrupt := util.NewInterrupt()
-	defer interrupt.Stop()
+	defer util.PreventInterrupt()()
 
 	current, err := semver.ParseTolerant(internalVersion)
 	util.FatalIfError(err)

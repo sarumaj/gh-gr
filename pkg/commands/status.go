@@ -3,7 +3,6 @@ package commands
 import (
 	color "github.com/fatih/color"
 	git "github.com/go-git/go-git/v5"
-	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 	cobra "github.com/spf13/cobra"
 	pool "gopkg.in/go-playground/pool.v3"
@@ -18,23 +17,23 @@ var statusCmd = &cobra.Command{
 	},
 }
 
-func runStatus(wu pool.WorkUnit, bar *util.Progressbar, conf *configfile.Configuration, repo configfile.Repository, status *statusList) {
-	interrupt := util.NewInterrupt()
-	defer interrupt.Stop()
+func runStatus(wu pool.WorkUnit, args repositoryOperationArguments) {
+	bar := args.bar
+	conf := args.conf
+	repo := args.repo
+	status := args.status
+
+	defer util.PreventInterrupt()()
+	changeProgressbarText(bar, conf, "Checking", repo)
 
 	logger := loggerEntry.WithField("command", "status").WithField("repository", repo.Directory)
-
-	if bar != nil && conf != nil {
-		bar.Describe(util.CheckColors(color.BlueString, conf.GetProgressbarDescriptionForVerb("Checking", repo)))
-	}
 
 	if wu.IsCancelled() {
 		logger.Warn("work unit has been prematurely canceled")
 		return
 	}
 
-	goBack := util.MoveToPath(conf.AbsoluteDirectoryPath)
-	defer goBack()
+	defer util.MoveToPath(conf.AbsoluteDirectoryPath)()
 
 	var ret string
 	if !util.PathExists(repo.Directory) {
