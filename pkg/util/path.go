@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-var hostRegex = regexp.MustCompile(`(?:[^:]+://|[^/]*//)?(?P<Hostname>[^/:]+).*`)
+var hostRegex = regexp.MustCompile(`(?:[^:]+://|[^/]*//)?(?:[^@]+@)?(?P<Hostname>[^/:]+).*`)
 
 func GetHostnameFromPath(path string) string {
 	return hostRegex.ReplaceAllString(path, "$Hostname")
