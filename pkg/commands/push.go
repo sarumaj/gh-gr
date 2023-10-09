@@ -15,7 +15,7 @@ import (
 var pushCmd = &cobra.Command{
 	Use:   "push",
 	Short: "Push all repositories",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(*cobra.Command, []string) {
 		repositoryOperationLoop(runPush)
 	},
 }
@@ -34,6 +34,9 @@ func runPush(wu pool.WorkUnit, bar *util.Progressbar, conf *configfile.Configura
 		logger.Warn("work unit has been prematurely canceled")
 		return
 	}
+
+	goBack := util.MoveToPath(conf.AbsoluteDirectoryPath)
+	defer goBack()
 
 	repository, err := openRepository(repo, status)
 	if err != nil {

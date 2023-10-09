@@ -39,15 +39,16 @@ var prompt = prompter.New(util.Stdin(), util.Stdout(), util.Stderr())
 
 // Configuration holds gr configuration data
 type Configuration struct {
-	BaseDirectory  string        `json:"baseDirectory" yaml:"baseDirectory"`
-	Profiles       Profiles      `json:"profiles" yaml:"profiles"`
-	Concurrency    uint          `json:"concurrency" yaml:"concurrency"`
-	SubDirectories bool          `json:"subDirectories" yaml:"subDirectories"`
-	Verbose        bool          `json:"verbose" yaml:"verbose"`
-	Timeout        time.Duration `json:"timeout" yaml:"timeout"`
-	Excluded       []string      `json:"exluded,omitempty" yaml:"exluded,omitempty"`
-	Included       []string      `json:"included,omitempty" yaml:"included,omitempty"`
-	Repositories   Repositories  `json:"repositories" yaml:"repositories"`
+	BaseDirectory         string        `json:"baseDirectory" yaml:"baseDirectory"`
+	AbsoluteDirectoryPath string        `json:"directoryPath" yaml:"directoryPath"`
+	Profiles              Profiles      `json:"profiles" yaml:"profiles"`
+	Concurrency           uint          `json:"concurrency" yaml:"concurrency"`
+	SubDirectories        bool          `json:"subDirectories" yaml:"subDirectories"`
+	Verbose               bool          `json:"verbose" yaml:"verbose"`
+	Timeout               time.Duration `json:"timeout" yaml:"timeout"`
+	Excluded              []string      `json:"exluded,omitempty" yaml:"exluded,omitempty"`
+	Included              []string      `json:"included,omitempty" yaml:"included,omitempty"`
+	Repositories          Repositories  `json:"repositories" yaml:"repositories"`
 }
 
 func (conf Configuration) Authenticate(targetURL *string) {
@@ -82,15 +83,16 @@ func (conf Configuration) Authenticate(targetURL *string) {
 
 func (conf *Configuration) Copy() *Configuration {
 	n := &Configuration{
-		BaseDirectory:  conf.BaseDirectory,
-		Profiles:       make(Profiles, len(conf.Profiles)),
-		Concurrency:    conf.Concurrency,
-		SubDirectories: conf.SubDirectories,
-		Verbose:        conf.Verbose,
-		Timeout:        conf.Timeout,
-		Included:       make([]string, len(conf.Included)),
-		Excluded:       make([]string, len(conf.Excluded)),
-		Repositories:   make(Repositories, len(conf.Repositories)),
+		BaseDirectory:         conf.BaseDirectory,
+		AbsoluteDirectoryPath: conf.AbsoluteDirectoryPath,
+		Profiles:              make(Profiles, len(conf.Profiles)),
+		Concurrency:           conf.Concurrency,
+		SubDirectories:        conf.SubDirectories,
+		Verbose:               conf.Verbose,
+		Timeout:               conf.Timeout,
+		Included:              make([]string, len(conf.Included)),
+		Excluded:              make([]string, len(conf.Excluded)),
+		Repositories:          make(Repositories, len(conf.Repositories)),
 	}
 
 	_ = copy(n.Excluded, conf.Excluded)
@@ -178,6 +180,9 @@ func (conf Configuration) Remove(purge bool) {
 			return
 		}
 	}
+
+	goBack := util.MoveToPath(conf.AbsoluteDirectoryPath)
+	defer goBack()
 
 	bar := util.NewProgressbar(len(conf.Repositories))
 	subDirectories := make(map[string]bool)

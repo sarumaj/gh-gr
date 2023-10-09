@@ -18,17 +18,17 @@ var initCmd = func() *cobra.Command {
 	initCmd := &cobra.Command{
 		Use:   "init",
 		Short: "Initialize repository mirror",
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(*cobra.Command, []string) {
 			// call copy to initialize all empty config fields
 			runInit(configFlags.Copy(), false)
 		},
-		PostRun: func(cmd *cobra.Command, args []string) {
+		PostRun: func(*cobra.Command, []string) {
 			updateConfigFlags()
 		},
 	}
 
 	flags := initCmd.Flags()
-	flags.StringVarP(&configFlags.BaseDirectory, "dir", "d", ".", "Directory in which repositories will be stored")
+	flags.StringVarP(&configFlags.BaseDirectory, "dir", "d", ".", "Directory in which repositories will be stored (either absolute or relative)")
 	flags.BoolVarP(&configFlags.SubDirectories, "subdirs", "s", false, "Enable creation of separate subdirectories for each org/user")
 	flags.StringArrayVarP(&configFlags.Excluded, "exclude", "e", []string{}, "Regular expressions of repositories to exclude")
 	flags.StringArrayVarP(&configFlags.Included, "include", "i", []string{}, "Regular expressions of repositories to include (bind stronger than exclusion list)")
@@ -63,6 +63,16 @@ func runInit(conf *configfile.Configuration, update bool) {
 	} else if conf == nil {
 		util.PrintlnAndExit(util.CheckColors(color.RedString, configfile.ConfigNotFound))
 
+	}
+
+	util.PathSanitize(&conf.BaseDirectory)
+	if filepath.IsAbs(conf.BaseDirectory) {
+		conf.AbsoluteDirectoryPath = filepath.Dir(conf.BaseDirectory)
+		conf.BaseDirectory = filepath.Base(conf.BaseDirectory)
+	} else {
+		abs, err := filepath.Abs(conf.BaseDirectory)
+		util.FatalIfError(err)
+		conf.AbsoluteDirectoryPath = filepath.Dir(abs)
 	}
 
 	tokens := configfile.GetTokens()

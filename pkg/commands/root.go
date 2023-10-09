@@ -18,10 +18,10 @@ var rootCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "gr",
 		Short: "gr is a gh cli extension allowing management of multiple repositories at once",
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, _ []string) {
 			util.FatalIfError(cmd.Help())
 		},
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		PersistentPreRun: func(*cobra.Command, []string) {
 			if configfile.ConfigurationExists() {
 				configFlags = configfile.Load()
 			}
