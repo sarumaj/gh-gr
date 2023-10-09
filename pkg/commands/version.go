@@ -28,7 +28,7 @@ var versionCmd = func() *cobra.Command {
 	versionCmd := &cobra.Command{
 		Use:   "version",
 		Short: "Display version information",
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(*cobra.Command, []string) {
 			logger := loggerEntry.WithField("command", "version")
 			logger.Debugf("Update: %t", update)
 

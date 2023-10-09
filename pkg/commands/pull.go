@@ -15,7 +15,7 @@ import (
 var pullCmd = &cobra.Command{
 	Use:   "pull",
 	Short: "Pull all repositories",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(*cobra.Command, []string) {
 		repositoryOperationLoop(runPull)
 	},
 }
@@ -42,6 +42,9 @@ func runPull(wu pool.WorkUnit, bar *util.Progressbar, conf *configfile.Configura
 	var repository *git.Repository
 	var workTree *git.Worktree
 	var err error
+
+	goBack := util.MoveToPath(conf.AbsoluteDirectoryPath)
+	defer goBack()
 
 	if util.PathExists(repo.Directory) {
 		logger.Debug("Local repository exists")

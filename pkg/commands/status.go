@@ -12,7 +12,7 @@ import (
 var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show status for all repositories",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(*cobra.Command, []string) {
 		repositoryOperationLoop(runStatus)
 		util.FatalIfError(runLocalStatus())
 	},
@@ -32,6 +32,9 @@ func runStatus(wu pool.WorkUnit, bar *util.Progressbar, conf *configfile.Configu
 		logger.Warn("work unit has been prematurely canceled")
 		return
 	}
+
+	goBack := util.MoveToPath(conf.AbsoluteDirectoryPath)
+	defer goBack()
 
 	var ret string
 	if !util.PathExists(repo.Directory) {

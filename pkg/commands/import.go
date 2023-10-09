@@ -16,7 +16,7 @@ var importCmd = func() *cobra.Command {
 	importCmd := &cobra.Command{
 		Use:   "import",
 		Short: "Import configuration from stdin",
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(*cobra.Command, []string) {
 			if configfile.ConfigurationExists() {
 				util.PrintlnAndExit(util.CheckColors(color.RedString, configfile.ConfigShouldNotExist))
 			}
@@ -26,7 +26,7 @@ var importCmd = func() *cobra.Command {
 			logger.Debugf("Import format: %s", formatOption)
 			configfile.Import(formatOption)
 		},
-		PostRun: func(cmd *cobra.Command, args []string) {
+		PostRun: func(*cobra.Command, []string) {
 			updateConfigFlags()
 		},
 	}

@@ -13,7 +13,7 @@ var removeCmd = func() *cobra.Command {
 	removeCmd := &cobra.Command{
 		Use:   "remove",
 		Short: "Remove current configuration",
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(*cobra.Command, []string) {
 			if !configfile.ConfigurationExists() {
 				util.PrintlnAndExit(util.CheckColors(color.RedString, configfile.ConfigNotFound))
 			}

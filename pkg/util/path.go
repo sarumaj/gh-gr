@@ -13,6 +13,15 @@ func GetHostnameFromPath(path string) string {
 	return hostRegex.ReplaceAllString(path, "$Hostname")
 }
 
+func MoveToPath(path string) (back func()) {
+	current, err := os.Getwd()
+	FatalIfError(err)
+
+	FatalIfError(os.Chdir(path))
+
+	return func() { FatalIfError(os.Chdir(current)) }
+}
+
 func PathExists(path string) bool {
 	_, err := os.Stat(path)
 	if err == nil {
