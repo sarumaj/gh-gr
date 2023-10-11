@@ -2,6 +2,7 @@ package restclient
 
 import (
 	"context"
+	"io"
 	"net/http"
 
 	api "github.com/cli/go-gh/v2/pkg/api"
@@ -18,6 +19,35 @@ type RESTClient struct {
 	*api.RESTClient
 	*configfile.Configuration
 	*util.Progressbar
+}
+
+func (c RESTClient) DoWithContext(ctx context.Context, method string, path string, body io.Reader, response any) error {
+	// reserved for future implementations
+	return c.RESTClient.DoWithContext(ctx, method, path, body, response)
+}
+
+func (c RESTClient) GetAllUserRepos(ctx context.Context) ([]resources.Repository, error) {
+	repos, err := c.GetUserRepos(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	orgs, err := c.GetUserOrgs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, org := range orgs {
+		orgRepos, err := c.GetOrgRepos(ctx, org.Login)
+		if err != nil {
+			return nil, err
+		}
+
+		repos = append(repos, orgRepos...)
+
+	}
+
+	return repos, nil
 }
 
 func (c RESTClient) GetOrg(ctx context.Context, name string) (org *resources.Organization, err error) {
@@ -55,6 +85,11 @@ func (c RESTClient) GetUserOrgs(ctx context.Context) ([]resources.Organization, 
 	return getPaged[resources.Organization](c, userOrgsEp, ctx)
 }
 
+func (c RESTClient) RequestWithContext(ctx context.Context, method string, path string, body io.Reader) (*http.Response, error) {
+	// reserved for future implementations
+	return c.RESTClient.RequestWithContext(ctx, method, path, body)
+}
+
 func NewRESTClient(conf *configfile.Configuration, options ClientOptions) (*RESTClient, error) {
 	loggerEntry.Debugf("Creating client with options: %+v", options)
 
@@ -63,9 +98,17 @@ func NewRESTClient(conf *configfile.Configuration, options ClientOptions) (*REST
 		return nil, err
 	}
 
-	return &RESTClient{
+	wrapClient := &RESTClient{
 		RESTClient:    client,
 		Configuration: conf,
 		Progressbar:   util.NewProgressbar(-1),
-	}, nil
+	}
+
+	rate, err := wrapClient.GetRateLimit(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	defer CheckRateLimitAndExit(rate)
+	return wrapClient, nil
 }

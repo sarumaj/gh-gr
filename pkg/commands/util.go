@@ -1,71 +1,23 @@
 package commands
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 
-	auth "github.com/cli/go-gh/v2/pkg/auth"
 	color "github.com/fatih/color"
 	git "github.com/go-git/go-git/v5"
 	gitconfig "github.com/go-git/go-git/v5/config"
-	selfupdate "github.com/rhysd/go-github-selfupdate/selfupdate"
 	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
 	extras "github.com/sarumaj/gh-gr/pkg/extras"
+	restclient "github.com/sarumaj/gh-gr/pkg/restclient"
 	util "github.com/sarumaj/gh-gr/pkg/util"
+	logrus "github.com/sirupsen/logrus"
 )
-
-type status struct {
-	Name  string
-	State string
-}
-
-type statusList []status
-
-func (statuslist *statusList) appendError(repoName string, err error) {
-	if err == nil {
-		return
-	}
-
-	*statuslist = append(*statuslist, status{
-		Name:  repoName,
-		State: util.CheckColors(color.RedString, err.Error()),
-	})
-}
-
-func (statuslist *statusList) append(repoName, state string) {
-	*statuslist = append(*statuslist, status{
-		Name:  repoName,
-		State: state,
-	})
-}
-
-func (statuslist *statusList) print() {
-	if len(*statuslist) == 0 {
-		return
-	}
-
-	sort.Slice(*statuslist, func(i, j int) bool {
-		return (*statuslist)[i].Name < (*statuslist)[j].Name
-	})
-
-	printer := util.NewTablePrinter()
-	for _, s := range *statuslist {
-		_ = printer.AddField(s.Name)
-		for _, state := range strings.Split(s.State, "\t") {
-			_ = printer.AddField(state)
-		}
-		_ = printer.EndRow()
-	}
-
-	printer.AddField(fmt.Sprintf("Total number: %d\n", len(*statuslist))).
-		EndRow().
-		Render()
-}
 
 func addGitAliases() error {
 	var ga []struct {
@@ -119,17 +71,74 @@ func changeProgressbarText(bar *util.Progressbar, conf *configfile.Configuration
 	}
 }
 
-func getUpdater() (updater *selfupdate.Updater, err error) {
-	token, _ := auth.TokenForHost(remoteHost)
-	if token != "" {
-		updater = selfupdate.DefaultUpdater()
-		return
+func initializeOrUpdateConfig(conf *configfile.Configuration, update bool) {
+	var logger *logrus.Entry
+	if update {
+		logger = loggerEntry.WithField("command", "update")
+	} else {
+		logger = loggerEntry.WithField("command", "init")
 	}
 
-	return selfupdate.NewUpdater(selfupdate.Config{
-		Validator: &selfupdate.SHA2Validator{},
-		APIToken:  token,
-	})
+	exists := configfile.ConfigurationExists()
+	logger.Debugf("Exists: %t, update: %t, conf: %t", exists, update, conf != nil)
+
+	switch {
+
+	case exists && !update:
+		util.PrintlnAndExit(util.CheckColors(color.RedString, configfile.ConfigShouldNotExist))
+
+	case !exists && update:
+		util.PrintlnAndExit(util.CheckColors(color.RedString, configfile.ConfigNotFound))
+
+	case exists && conf == nil:
+		conf = configfile.Load()
+
+	case conf == nil:
+		util.PrintlnAndExit(util.CheckColors(color.RedString, configfile.ConfigNotFound))
+
+	}
+
+	conf.SanitizeDirectory()
+
+	tokens := configfile.GetTokens()
+	logger.Debugf("Retrieved tokens: %d", len(tokens))
+
+	defer util.PreventInterrupt()()
+
+	for host, token := range tokens {
+		client, err := restclient.NewRESTClient(conf, restclient.ClientOptions{
+			AuthToken:   token,
+			Log:         logger.WriterLevel(logrus.DebugLevel),
+			LogColorize: true,
+			Host:        host,
+		})
+		util.FatalIfError(err)
+
+		ctx, cancel := context.WithTimeout(context.Background(), conf.Timeout)
+		defer cancel()
+
+		user, err := client.GetUser(ctx)
+		util.FatalIfError(err)
+
+		profile := configfile.NewProfile(user, host)
+		conf.Profiles.Append(profile)
+		logger.Debugf("Username: %s, name: %s, email: %s", profile.Username, profile.Fullname, profile.Email)
+
+		repos, err := client.GetAllUserRepos(ctx)
+		util.FatalIfError(err)
+		logger.Debugf("Retrieved %d user repositories", len(repos))
+
+		conf.FilterRepositories(&repos)
+		logger.Debugf("Applied filters: %d repositories remaining", len(repos))
+
+		conf.AppendRepositories(user, repos...)
+
+		if err := addGitAliases(); err != nil {
+			logger.Debugf("failed to set up git alias commands: %v", err)
+		}
+	}
+
+	conf.Save()
 }
 
 func isRepoDir(path string, repos []configfile.Repository) bool {
@@ -144,87 +153,21 @@ func isRepoDir(path string, repos []configfile.Repository) bool {
 	return false
 }
 
-func openRepository(repo configfile.Repository, status *statusList) (*git.Repository, error) {
+func openRepository(repo configfile.Repository, status *operationStatus) (*git.Repository, error) {
 	switch repository, err := git.PlainOpen(repo.Directory); {
 
 	// If we get ErrRepositoryNotExists here, it means the repo is broken
 	case errors.Is(err, git.ErrRepositoryNotExists):
-		status.append(repo.Directory, util.CheckColors(color.RedString, "broken"))
+		status.appendErrorRow(repo.Directory, fmt.Errorf("broken"))
 		return nil, err
 
 	case err != nil:
-		status.appendError(repo.Directory, err)
+		status.appendErrorRow(repo.Directory, err)
 		return nil, err
 
 	default:
 		return repository, nil
 	}
-}
-
-func pullSubmodule(submodule *git.Submodule) error {
-	status, err := submodule.Status()
-	if err != nil {
-		return fmt.Errorf("submodule: %w", err)
-	}
-
-	repository, err := submodule.Repository()
-	if err != nil {
-		return fmt.Errorf("submodule %s: %w", status.Path, err)
-	}
-
-	worktree, err := repository.Worktree()
-	if err != nil {
-		return fmt.Errorf("submodule %s: %w", status.Path, err)
-	}
-
-	if status.Branch == "" {
-		remote, err := repository.Remote(git.DefaultRemoteName)
-		if err != nil {
-			return fmt.Errorf("submodule %s: %w", status.Path, err)
-		}
-
-		remoteRefs, err := remote.List(&git.ListOptions{})
-		if err != nil {
-			return fmt.Errorf("submodule %s: %w", status.Path, err)
-		}
-
-		for _, v := range remoteRefs {
-			if v.Name() == "HEAD" && v.Target() != "" {
-				branchRef := v.Target()
-				err := repository.Fetch(&git.FetchOptions{
-					RefSpecs: []gitconfig.RefSpec{"refs/*:refs/*"},
-				})
-				if err != nil && !errors.Is(err, git.NoErrAlreadyUpToDate) {
-					return fmt.Errorf("submodule %s: %w", status.Path, err)
-				}
-
-				err = repository.CreateBranch(&gitconfig.Branch{
-					Name:   branchRef.Short(),
-					Remote: git.DefaultRemoteName,
-					Merge:  branchRef,
-				})
-				if err != nil && !errors.Is(err, git.ErrBranchExists) {
-					return fmt.Errorf("submodule %s: %w", status.Path, err)
-				}
-
-				err = worktree.Checkout(&git.CheckoutOptions{
-					Branch: branchRef,
-				})
-				if err != nil {
-					return fmt.Errorf("submodule %s: %w", status.Path, err)
-				}
-			}
-		}
-	}
-
-	err = worktree.Pull(&git.PullOptions{})
-
-	if err != nil && !errors.Is(err, git.NoErrAlreadyUpToDate) {
-		// Ignore NoErrAlreadyUpToDate
-		return fmt.Errorf("submodule %s: %w", status.Path, err)
-	}
-
-	return nil
 }
 
 func updateConfigFlags() {
@@ -236,61 +179,4 @@ func updateConfigFlags() {
 	if conf != nil {
 		configFlags = conf
 	}
-}
-
-func runLocalStatus() error {
-	conf := configfile.Load()
-	util.PathSanitize(&conf.BaseDirectory)
-
-	files, err := filepath.Glob(conf.BaseDirectory + "/*")
-	if err != nil {
-		return err
-	}
-
-	if conf.SubDirectories {
-		parents, err := filepath.Glob(conf.BaseDirectory + "/*/*")
-		if err != nil {
-			return err
-		}
-
-		files = append(files, parents...)
-	}
-
-	var status statusList
-	for _, f := range files {
-		if !isRepoDir(f, conf.Repositories) {
-			status.append(f, color.RedString("untracked"))
-		}
-	}
-
-	status.print()
-
-	return nil
-}
-
-func updateRepoConfig(conf *configfile.Configuration, host string, repository *git.Repository) error {
-	repoConf, err := repository.Config()
-	if err != nil {
-		return err
-	}
-
-	section := repoConf.Raw.Section("user")
-	profilesMap := conf.Profiles.ToMap()
-	profile, ok := profilesMap[host]
-	if !ok {
-		return fmt.Errorf("no profile for host: %q", host)
-	}
-
-	section.SetOption("name", profile.Fullname)
-	section.SetOption("email", profile.Email)
-
-	if err := repoConf.Validate(); err != nil {
-		return err
-	}
-
-	if err := repository.Storer.SetConfig(repoConf); err != nil {
-		return err
-	}
-
-	return nil
 }

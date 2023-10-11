@@ -9,12 +9,14 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
 	config "github.com/cli/go-gh/v2/pkg/config"
 	prompter "github.com/cli/go-gh/v2/pkg/prompter"
 	color "github.com/fatih/color"
+	"github.com/sarumaj/gh-gr/pkg/restclient/resources"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 	logrus "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
@@ -48,7 +50,37 @@ type Configuration struct {
 	Timeout               time.Duration `json:"timeout" yaml:"timeout"`
 	Excluded              []string      `json:"exluded,omitempty" yaml:"exluded,omitempty"`
 	Included              []string      `json:"included,omitempty" yaml:"included,omitempty"`
+	Total                 int64         `json:"total" yaml:"total"`
 	Repositories          Repositories  `json:"repositories" yaml:"repositories"`
+}
+
+func (conf *Configuration) AppendRepositories(user *resources.User, repos ...resources.Repository) {
+	for _, repo := range repos {
+		dir := repo.FullName
+		if !conf.SubDirectories {
+			dir = strings.ReplaceAll(dir, "/", "_")
+			dir = strings.Replace(dir, user.Login+"_", "", 1)
+		}
+
+		dir = filepath.Join(conf.BaseDirectory, filepath.FromSlash(dir))
+		util.PathSanitize(&dir)
+
+		loggerEntry.Debugf("Appending %s", dir)
+
+		conf.Repositories.Append(Repository{
+			URL:       repo.CloneURL,
+			Branch:    repo.DefaultBranch,
+			ParentURL: repo.Parent.CloneURL,
+			Directory: dir,
+		})
+	}
+
+	sort.Slice(conf.Repositories, func(i, j int) bool {
+		return conf.Repositories[i].Directory < conf.Repositories[j].Directory
+	})
+
+	conf.Total = int64(len(conf.Repositories))
+	loggerEntry.Debugf("Configured %d repositories", conf.Total)
 }
 
 func (conf Configuration) Authenticate(targetURL *string) {
@@ -68,7 +100,8 @@ func (conf Configuration) Authenticate(targetURL *string) {
 				fmt.Sprintf("${Schema}%s:%s@${Hostpath}", profile.Username, token),
 			))
 			if err != nil {
-				return
+				loggerEntry.Debugf("Failed to authenticate: %s, %v", *targetURL, err)
+				continue
 			}
 
 			loggerEntry.Debugf("Authenticated: %s", *targetURL)
@@ -93,6 +126,7 @@ func (conf *Configuration) Copy() *Configuration {
 		Included:              make([]string, len(conf.Included)),
 		Excluded:              make([]string, len(conf.Excluded)),
 		Repositories:          make(Repositories, len(conf.Repositories)),
+		Total:                 conf.Total,
 	}
 
 	_ = copy(n.Excluded, conf.Excluded)
@@ -136,6 +170,30 @@ func (conf Configuration) Display(format string, export bool) {
 				fmt.Fprintln(util.Stdout())
 				break
 			}
+		}
+	}
+}
+
+func (conf *Configuration) FilterRepositories(repositories *[]resources.Repository) {
+	for index, total := 0, len(*repositories); index < total; index++ {
+		switch repo := (*repositories)[index]; {
+
+		case
+			// not explicitly included
+			len(conf.Included) > 0 && !util.RegexList(conf.Included).Match(repo.FullName),
+
+			// explicitly excluded and not included
+			util.RegexList(conf.Excluded).Match(repo.FullName) && !util.RegexList(conf.Included).Match(repo.FullName):
+
+			loggerEntry.Debugf("Skipping %s", repo.FullName)
+
+			// removing one repository from list, so decrease the total number
+			total = len(*repositories) - 1
+			// remove the repository at index
+			*repositories = append((*repositories)[:index], (*repositories)[index+1:]...)[:total:total]
+			// move index back to point at the next repository which now occupies the position of the removed one
+			index -= 1
+
 		}
 	}
 }
@@ -206,6 +264,20 @@ func (conf Configuration) Remove(purge bool) {
 	}
 
 	_, _ = fmt.Fprintln(util.Stdout(), util.CheckColors(color.GreenString, "Successfully removed repositories from local filesystem."))
+}
+
+func (conf *Configuration) SanitizeDirectory() {
+	util.PathSanitize(&conf.BaseDirectory)
+	if filepath.IsAbs(conf.BaseDirectory) {
+		conf.AbsoluteDirectoryPath = filepath.Dir(conf.BaseDirectory)
+		conf.BaseDirectory = filepath.Base(conf.BaseDirectory)
+
+	} else {
+		abs, err := filepath.Abs(conf.BaseDirectory)
+		util.FatalIfError(err)
+		conf.AbsoluteDirectoryPath = filepath.Dir(abs)
+
+	}
 }
 
 func (conf Configuration) Save() {
