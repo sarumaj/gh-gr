@@ -6,6 +6,7 @@ Cristian
 Debugf
 exluded
 fatih
+fslock
 Fullname
 Henzel
 Hostpath

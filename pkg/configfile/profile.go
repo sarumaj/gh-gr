@@ -2,6 +2,7 @@ package configfile
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/sarumaj/gh-gr/pkg/restclient/resources"
 	"github.com/sarumaj/gh-gr/pkg/util"
@@ -36,7 +37,19 @@ func NewProfile(user *resources.User, host string) *Profile {
 type Profiles []Profile
 
 func (p *Profiles) Append(profile *Profile) {
-	*p = append(*p, *profile)
+	if profile != nil && !p.Has(*profile) {
+		*p = append(*p, *profile)
+	}
+}
+
+func (p Profiles) Has(profile Profile) bool {
+	for _, own := range p {
+		if reflect.DeepEqual(own, profile) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (p Profiles) ToMap() map[string]Profile {

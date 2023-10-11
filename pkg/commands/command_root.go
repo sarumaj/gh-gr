@@ -11,6 +11,7 @@ import (
 
 var configFlags = &configfile.Configuration{}
 var loggerEntry = util.Logger.WithFields(logrus.Fields{"mod": "commands"})
+var processLock = configfile.NewProcessLock()
 
 var rootCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
@@ -29,6 +30,10 @@ var rootCmd = func() *cobra.Command {
 			}
 
 			util.Logger.Debug("Running in verbose mode")
+			processLock.Lock(configFlags.Timeout)
+		},
+		PersistentPostRun: func(*cobra.Command, []string) {
+			processLock.Unlock()
 		},
 		Version: internalVersion,
 	}

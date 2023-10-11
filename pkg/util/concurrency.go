@@ -6,32 +6,28 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"sync"
 	"syscall"
 
 	color "github.com/fatih/color"
 )
 
+var interruptInstance = &interrupt{
+	signal: make(chan os.Signal, 1),
+	quit:   make(chan bool, 1),
+}
+
 type interrupt struct {
+	sync.Mutex
 	signal chan os.Signal
 	quit   chan bool
 }
 
-func (i *interrupt) Stop() {
-	i.quit <- true
-	signal.Stop(i.signal)
-}
-
-func GetIdealConcurrency() uint {
-	return uint(math.Max(float64(runtime.NumCPU()*2), 4))
-}
-
-func NewInterrupt() *interrupt {
-	i := &interrupt{
-		signal: make(chan os.Signal, 1),
-		quit:   make(chan bool, 1),
+func (i *interrupt) Fire() {
+	for !i.TryLock() {
 	}
 
-	signal.Notify(i.signal, os.Interrupt, syscall.SIGTERM)
+	defer signal.Notify(i.signal, os.Interrupt, syscall.SIGTERM)
 
 	go func(interrupt <-chan os.Signal, quit <-chan bool) {
 		for {
@@ -46,10 +42,20 @@ func NewInterrupt() *interrupt {
 			}
 		}
 	}(i.signal, i.quit)
+}
 
-	return i
+func (i *interrupt) Stop() {
+	defer i.Unlock()
+
+	i.quit <- true
+	signal.Stop(i.signal)
+}
+
+func GetIdealConcurrency() uint {
+	return uint(math.Max(float64(runtime.NumCPU()*2), 4))
 }
 
 func PreventInterrupt() func() {
-	return NewInterrupt().Stop
+	interruptInstance.Fire()
+	return interruptInstance.Stop
 }
