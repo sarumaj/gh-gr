@@ -8,6 +8,6 @@ var updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Update configuration",
 	Run: func(*cobra.Command, []string) {
-		runInit(nil, true)
+		initializeOrUpdateConfig(nil, true)
 	},
 }

@@ -10,7 +10,7 @@ import (
 
 const RateLimitExceeded = "GitHub REST API quotas have been exhausted. Please, wait until %s (%s remaining...)"
 
-func CheckRateLimit(r *resources.RateLimit) {
+func CheckRateLimitAndExit(r *resources.RateLimit) {
 	if r.Resources.Core.Remaining > 0 {
 		return
 	}

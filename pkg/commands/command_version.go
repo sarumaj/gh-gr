@@ -4,7 +4,9 @@ import (
 	"fmt"
 
 	semver "github.com/blang/semver"
+	auth "github.com/cli/go-gh/v2/pkg/auth"
 	color "github.com/fatih/color"
+	selfupdate "github.com/rhysd/go-github-selfupdate/selfupdate"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 	cobra "github.com/spf13/cobra"
 )
@@ -45,6 +47,19 @@ var versionCmd = func() *cobra.Command {
 
 	return versionCmd
 }()
+
+func getUpdater() (updater *selfupdate.Updater, err error) {
+	token, _ := auth.TokenForHost(remoteHost)
+	if token != "" {
+		updater = selfupdate.DefaultUpdater()
+		return
+	}
+
+	return selfupdate.NewUpdater(selfupdate.Config{
+		Validator: &selfupdate.SHA2Validator{},
+		APIToken:  token,
+	})
+}
 
 func printVersion() {
 	current, err := semver.ParseTolerant(internalVersion)
