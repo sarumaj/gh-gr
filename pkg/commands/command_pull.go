@@ -87,7 +87,7 @@ func pullOperation(wu pool.WorkUnit, args operationContext) {
 	repo := unwrapOperationContext[configfile.Repository](args, "repo")
 	status := unwrapOperationContext[*operationStatus](args, "status")
 
-	defer util.PreventInterrupt()()
+	defer util.PreventInterrupt().Stop()
 	changeProgressbarText(bar, conf, "Pulling", repo)
 
 	logger := loggerEntry.WithField("command", "pull").WithField("repository", repo.Directory)
@@ -96,7 +96,7 @@ func pullOperation(wu pool.WorkUnit, args operationContext) {
 	conf.Authenticate(&repo.ParentURL)
 	logger.Debugf("Authenticated: URL: %t, ParentURL: %t", repo.URL != "", repo.ParentURL != "")
 
-	defer util.MoveToPath(conf.AbsoluteDirectoryPath)()
+	defer util.Chdir(conf.AbsoluteDirectoryPath).Popd()
 
 	var repository *git.Repository
 	var workTree *git.Worktree

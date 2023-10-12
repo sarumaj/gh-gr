@@ -55,7 +55,7 @@ func GetIdealConcurrency() uint {
 	return uint(math.Max(float64(runtime.NumCPU()*2), 4))
 }
 
-func PreventInterrupt() func() {
-	interruptInstance.Fire()
-	return interruptInstance.Stop
+func PreventInterrupt() interface{ Stop() } {
+	defer interruptInstance.Fire()
+	return interruptInstance
 }

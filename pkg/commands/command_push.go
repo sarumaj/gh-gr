@@ -26,12 +26,12 @@ func pushOperation(wu pool.WorkUnit, args operationContext) {
 	repo := unwrapOperationContext[configfile.Repository](args, "repo")
 	status := unwrapOperationContext[*operationStatus](args, "status")
 
-	defer util.PreventInterrupt()()
+	defer util.PreventInterrupt().Stop()
 	changeProgressbarText(bar, conf, "Pushing", repo)
 
 	logger := loggerEntry.WithField("command", "push").WithField("repository", repo.Directory)
 
-	defer util.MoveToPath(conf.AbsoluteDirectoryPath)()
+	defer util.Chdir(conf.AbsoluteDirectoryPath).Popd()
 
 	logger.Debug("Pushing to remote")
 	if err := pushRepository(repo, status); err != nil {
