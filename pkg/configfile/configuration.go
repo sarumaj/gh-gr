@@ -16,10 +16,10 @@ import (
 	config "github.com/cli/go-gh/v2/pkg/config"
 	prompter "github.com/cli/go-gh/v2/pkg/prompter"
 	color "github.com/fatih/color"
-	"github.com/sarumaj/gh-gr/pkg/restclient/resources"
+	resources "github.com/sarumaj/gh-gr/pkg/restclient/resources"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 	logrus "github.com/sirupsen/logrus"
-	yaml "gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v3"
 )
 
 const configKey = "gr.conf"
@@ -46,7 +46,6 @@ type Configuration struct {
 	Profiles              Profiles      `json:"profiles" yaml:"profiles"`
 	Concurrency           uint          `json:"concurrency" yaml:"concurrency"`
 	SubDirectories        bool          `json:"subDirectories" yaml:"subDirectories"`
-	Verbose               bool          `json:"verbose" yaml:"verbose"`
 	Timeout               time.Duration `json:"timeout" yaml:"timeout"`
 	Excluded              []string      `json:"exluded,omitempty" yaml:"exluded,omitempty"`
 	Included              []string      `json:"included,omitempty" yaml:"included,omitempty"`
@@ -121,7 +120,6 @@ func (conf *Configuration) Copy() *Configuration {
 		Profiles:              make(Profiles, len(conf.Profiles)),
 		Concurrency:           conf.Concurrency,
 		SubDirectories:        conf.SubDirectories,
-		Verbose:               conf.Verbose,
 		Timeout:               conf.Timeout,
 		Included:              make([]string, len(conf.Included)),
 		Excluded:              make([]string, len(conf.Excluded)),
@@ -139,7 +137,6 @@ func (conf *Configuration) Copy() *Configuration {
 
 func (conf Configuration) Display(format string, export bool) {
 	reader, writer := io.Pipe()
-	defer writer.Close()
 
 	enc, ok := supportedEncoders[format]
 	if !ok {
@@ -292,7 +289,7 @@ func (conf Configuration) Save() {
 	c.Set([]string{configKey}, buffer.String())
 	util.FatalIfError(config.Write(c))
 
-	_, _ = fmt.Fprintln(util.Stdout(), util.CheckColors(color.GreenString, "Configuration saved. You can now pull your repositories."))
+	_, _ = fmt.Fprintln(util.Stdout(), util.CheckColors(color.GreenString, "Configuration saved. You can now pull %d repositories.", conf.Total))
 }
 
 func ConfigurationExists() bool {

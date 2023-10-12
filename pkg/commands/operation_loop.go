@@ -74,7 +74,7 @@ func operationLoop(fn func(pool.WorkUnit, operationContext)) {
 
 	_ = bar.ChangeMax(len(conf.Repositories))
 	for range batch.Results() {
-		bar.Inc()
+		_ = bar.Inc()
 	}
 
 	logger.Debug("Collected workers")

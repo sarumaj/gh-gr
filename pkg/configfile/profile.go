@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/sarumaj/gh-gr/pkg/restclient/resources"
-	"github.com/sarumaj/gh-gr/pkg/util"
+	resources "github.com/sarumaj/gh-gr/pkg/restclient/resources"
+	util "github.com/sarumaj/gh-gr/pkg/util"
 )
 
 type Profile struct {

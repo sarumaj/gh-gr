@@ -1,43 +1,51 @@
 package configfile
 
 import (
-	"encoding/binary"
 	"os"
 	"path/filepath"
-	"time"
 
 	config "github.com/cli/go-gh/v2/pkg/config"
-	fslock "github.com/juju/fslock"
+	"github.com/go-git/go-git/v5/utils/binary"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 )
 
 const pidFile = "gr.pid"
 
-var pidFilePath = filepath.Join(config.ConfigDir(), pidFile)
+const ProcessAlreadyRunning = "gr is already running (pid: %d). Either kill the process or wait for it to terminate."
 
-type ProcessLock struct{ lock *fslock.Lock }
+type ProcessLockFile struct{ *os.File }
 
-func (p ProcessLock) Lock(timeout time.Duration) {
-	if timeout > 0 {
-		util.FatalIfError(p.lock.LockWithTimeout(timeout))
-		return
+func (p ProcessLockFile) Unlock() {
+	path := p.File.Name()
+	util.FatalIfError(p.File.Close())
+	util.FatalIfError(os.Remove(path))
+}
+
+func AquireProcessIDLock(kill bool) ProcessLockFile {
+	configDir := config.ConfigDir()
+	pidFilePath := filepath.Join(configDir, pidFile)
+
+	if util.PathExists(pidFilePath) {
+		f, err := os.Open(pidFilePath)
+		util.FatalIfError(err)
+
+		pid, err := binary.ReadVariableWidthInt(f)
+		util.FatalIfError(err)
+
+		_ = f.Close()
+		if kill {
+			util.FatalIfError(os.Remove(pidFilePath))
+			if proc, err := os.FindProcess(int(pid)); err == nil {
+				_ = proc.Kill()
+			}
+		} else {
+			util.PrintlnAndExit(ProcessAlreadyRunning, pid)
+		}
 	}
 
-	util.FatalIfError(p.lock.Lock())
-}
-
-func (p ProcessLock) Unlock() {
-	util.FatalIfError(p.lock.Unlock())
-	_ = os.Remove(pidFilePath)
-}
-
-func NewProcessLock() *ProcessLock {
-	f, err := os.OpenFile(pidFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
+	f, err := os.OpenFile(filepath.Join(configDir, pidFile), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
 	util.FatalIfError(err)
+	util.FatalIfError(binary.WriteVariableWidthInt(f, int64(os.Getpid())))
 
-	err = binary.Write(f, binary.LittleEndian, uint32(os.Getpid()))
-	_ = f.Close()
-	util.FatalIfError(err)
-
-	return &ProcessLock{fslock.New(pidFilePath)}
+	return ProcessLockFile{f}
 }
