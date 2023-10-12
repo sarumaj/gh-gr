@@ -12,8 +12,6 @@ var console = sync.Pool{New: func() any { return newConsoleTerminal() }}
 
 type consoleTerminal struct{ *term.Term }
 
-func Console() *consoleTerminal { return console.Get().(*consoleTerminal) }
-
 func (c *consoleTerminal) CheckColors(fn func(string, ...any) string, format string, a ...any) string {
 	if c.ColorsEnabled() {
 		return fn(format, a...)
@@ -62,6 +60,8 @@ func assertIsFileDesc(w any, fallback *os.File) *os.File {
 
 	return v
 }
+
+func Console() *consoleTerminal { return console.Get().(*consoleTerminal) }
 
 func newConsoleTerminal() *consoleTerminal {
 	t := term.FromEnv()
