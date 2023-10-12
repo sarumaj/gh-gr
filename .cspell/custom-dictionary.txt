@@ -22,6 +22,7 @@ selfupdate
 sirupsen
 SOMEDIR
 SOMEORG
+sizelimit
 statuslist
 stderrpath
 stdoutpath
