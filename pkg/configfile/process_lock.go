@@ -1,7 +1,6 @@
 package configfile
 
 import (
-	"bytes"
 	"encoding/binary"
 	"os"
 	"path/filepath"
@@ -33,9 +32,12 @@ func (p ProcessLock) Unlock() {
 }
 
 func NewProcessLock() *ProcessLock {
-	buffer := bytes.NewBuffer(nil)
-	util.FatalIfError(binary.Write(buffer, binary.LittleEndian, uint32(os.Getpid())))
-	util.FatalIfError(os.WriteFile(pidFilePath, buffer.Bytes(), os.ModePerm))
+	f, err := os.OpenFile(pidFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
+	util.FatalIfError(err)
+
+	err = binary.Write(f, binary.LittleEndian, uint32(os.Getpid()))
+	_ = f.Close()
+	util.FatalIfError(err)
 
 	return &ProcessLock{fslock.New(pidFilePath)}
 }
