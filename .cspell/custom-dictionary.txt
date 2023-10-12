@@ -11,6 +11,7 @@ Fullname
 Henzel
 Hostpath
 logrus
+MGTPE
 noreply
 Progressbar
 Querystring
@@ -20,9 +21,9 @@ sarumaj
 schollz
 selfupdate
 sirupsen
+sizelimit
 SOMEDIR
 SOMEORG
-sizelimit
 statuslist
 stderrpath
 stdoutpath

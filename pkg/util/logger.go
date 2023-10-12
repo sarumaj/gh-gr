@@ -45,7 +45,7 @@ func FatalIfError(err error) {
 	}
 
 	Logger.SetOutput(Stderr())
-	
+
 	Logger.WithField("stack", frames).Fatalln(err)
 }
 

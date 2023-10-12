@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	color "github.com/fatih/color"
 	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
-	util "github.com/sarumaj/gh-gr/pkg/util"
 	cobra "github.com/spf13/cobra"
 )
 
@@ -17,10 +15,6 @@ var importCmd = func() *cobra.Command {
 		Use:   "import",
 		Short: "Import configuration from stdin",
 		Run: func(*cobra.Command, []string) {
-			if configfile.ConfigurationExists() {
-				util.PrintlnAndExit(util.CheckColors(color.RedString, configfile.ConfigShouldNotExist))
-			}
-
 			logger := loggerEntry.WithField("command", "import")
 
 			logger.Debugf("Import format: %s", formatOption)

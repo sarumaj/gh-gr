@@ -21,7 +21,7 @@ func (p ProcessLockFile) Unlock() {
 	util.FatalIfError(os.Remove(path))
 }
 
-func AquireProcessIDLock(kill bool) ProcessLockFile {
+func AcquireProcessIDLock(kill bool) ProcessLockFile {
 	configDir := config.ConfigDir()
 	pidFilePath := filepath.Join(configDir, pidFile)
 

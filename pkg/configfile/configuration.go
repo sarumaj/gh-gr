@@ -335,9 +335,26 @@ func Import(format string) {
 		util.PrintlnAndExit(util.CheckColors(color.RedString, ConfigInvalidFormat, format, supportedEncoders))
 	}
 
+	stdin := util.Stdin()
 	bar := newBinaryProgressbar().Describe(util.CheckColors(color.BlueString, "Importing..."))
-	raw, err := io.ReadAll(io.TeeReader(util.Stdin(), bar))
+	raw, err := io.ReadAll(io.TeeReader(stdin, bar))
 	util.FatalIfError(err)
+	_ = stdin.Close()
+
+	if ConfigurationExists() && util.IsTerminal(true, true, true) {
+		confirm, err := prompt.Confirm(
+			util.CheckColors(
+				color.RedString,
+				"DANGER!!! ",
+			)+"You will overwrite existing configuration! Are you sure?",
+			false,
+		)
+		util.FatalIfError(err)
+
+		if !confirm {
+			return
+		}
+	}
 
 	var conf Configuration
 	util.FatalIfError(enc.Decoder(bytes.NewReader(raw)).Decode(&conf))
