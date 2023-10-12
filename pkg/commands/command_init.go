@@ -20,7 +20,7 @@ var initCmd = func() *cobra.Command {
 	flags := initCmd.Flags()
 	flags.StringVarP(&configFlags.BaseDirectory, "dir", "d", ".", "Directory in which repositories will be stored (either absolute or relative)")
 	flags.BoolVarP(&configFlags.SubDirectories, "subdirs", "s", false, "Enable creation of separate subdirectories for each org/user")
-	flags.Uint64VarP(&configFlags.SizeLimit, "limit", "l", 0, "Exclude repositories with size exceeded the limit (\"0\": no limit, e.g. limit of 53,687,091,200 corresponds with 50 MB)")
+	flags.Uint64VarP(&configFlags.SizeLimit, "limit", "l", 0, "Exclude repositories with size exceeded the limit (\"0\": no limit, e.g. limit of 52,428,800 corresponds with 50 MB)")
 	flags.StringArrayVarP(&configFlags.Excluded, "exclude", "e", []string{}, "Regular expressions of repositories to exclude")
 	flags.StringArrayVarP(&configFlags.Included, "include", "i", []string{}, "Regular expressions of repositories to include (bind stronger than exclusion list)")
 
