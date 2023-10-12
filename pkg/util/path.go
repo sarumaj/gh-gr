@@ -21,6 +21,21 @@ const (
 
 var hostRegex = regexp.MustCompile(`(?:[^:]+://|[^/]*//)?(?:[^@]+@)?(?P<Hostname>[^/:]+).*`)
 
+type popd string
+
+func (p popd) Popd() {
+	FatalIfError(os.Chdir(string(p)))
+}
+
+func Chdir(path string) interface{ Popd() } {
+	current, err := os.Getwd()
+	FatalIfError(err)
+
+	FatalIfError(os.Chdir(path))
+
+	return popd(current)
+}
+
 func IntToSizeBytes(s int, unit int64, precision int) string {
 	b := int64(s)
 	if b < unit {
@@ -42,15 +57,6 @@ func IntToSizeBytes(s int, unit int64, precision int) string {
 
 func GetHostnameFromPath(path string) string {
 	return hostRegex.ReplaceAllString(path, "$Hostname")
-}
-
-func MoveToPath(path string) (back func()) {
-	current, err := os.Getwd()
-	FatalIfError(err)
-
-	FatalIfError(os.Chdir(path))
-
-	return func() { FatalIfError(os.Chdir(current)) }
 }
 
 func PathExists(path string) bool {

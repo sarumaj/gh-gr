@@ -246,7 +246,7 @@ func (conf Configuration) Remove(purge bool) {
 		}
 	}
 
-	defer util.MoveToPath(conf.AbsoluteDirectoryPath)()
+	defer util.Chdir(conf.AbsoluteDirectoryPath).Popd()
 
 	bar := util.NewProgressbar(len(conf.Repositories))
 	subDirectories := make(map[string]bool)

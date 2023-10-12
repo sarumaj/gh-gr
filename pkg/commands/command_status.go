@@ -56,12 +56,12 @@ func statusOperation(wu pool.WorkUnit, args operationContext) {
 	repo := unwrapOperationContext[configfile.Repository](args, "repo")
 	status := unwrapOperationContext[*operationStatus](args, "status")
 
-	defer util.PreventInterrupt()()
+	defer util.PreventInterrupt().Stop()
 	changeProgressbarText(bar, conf, "Checking", repo)
 
 	logger := loggerEntry.WithField("command", "status").WithField("repository", repo.Directory)
 
-	defer util.MoveToPath(conf.AbsoluteDirectoryPath)()
+	defer util.Chdir(conf.AbsoluteDirectoryPath).Popd()
 
 	var ret []any
 	if !util.PathExists(repo.Directory) {

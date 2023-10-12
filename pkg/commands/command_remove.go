@@ -18,7 +18,7 @@ var removeCmd = func() *cobra.Command {
 				util.PrintlnAndExit(util.CheckColors(color.RedString, configfile.ConfigNotFound))
 			}
 
-			defer util.PreventInterrupt()()
+			defer util.PreventInterrupt().Stop()
 
 			logger := loggerEntry.WithField("command", "remove")
 			conf := configfile.Load()
