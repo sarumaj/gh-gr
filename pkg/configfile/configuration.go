@@ -46,6 +46,7 @@ type Configuration struct {
 	Profiles              Profiles      `json:"profiles" yaml:"profiles"`
 	Concurrency           uint          `json:"concurrency" yaml:"concurrency"`
 	SubDirectories        bool          `json:"subDirectories" yaml:"subDirectories"`
+	SizeLimit             uint64        `json:"sizeLimit" yaml:"sizeLimit"`
 	Timeout               time.Duration `json:"timeout" yaml:"timeout"`
 	Excluded              []string      `json:"exluded,omitempty" yaml:"exluded,omitempty"`
 	Included              []string      `json:"included,omitempty" yaml:"included,omitempty"`
@@ -67,10 +68,12 @@ func (conf *Configuration) AppendRepositories(user *resources.User, repos ...res
 		loggerEntry.Debugf("Appending %s", dir)
 
 		conf.Repositories.Append(Repository{
-			URL:       repo.CloneURL,
 			Branch:    repo.DefaultBranch,
-			ParentURL: repo.Parent.CloneURL,
 			Directory: dir,
+			ParentURL: repo.Parent.CloneURL,
+			Public:    !repo.Private,
+			Size:      util.IntToSizeBytes(repo.Size, 1024, 3),
+			URL:       repo.CloneURL,
 		})
 	}
 
@@ -120,6 +123,7 @@ func (conf *Configuration) Copy() *Configuration {
 		Profiles:              make(Profiles, len(conf.Profiles)),
 		Concurrency:           conf.Concurrency,
 		SubDirectories:        conf.SubDirectories,
+		SizeLimit:             conf.SizeLimit,
 		Timeout:               conf.Timeout,
 		Included:              make([]string, len(conf.Included)),
 		Excluded:              make([]string, len(conf.Excluded)),
@@ -180,7 +184,13 @@ func (conf *Configuration) FilterRepositories(repositories *[]resources.Reposito
 			len(conf.Included) > 0 && !util.RegexList(conf.Included).Match(repo.FullName),
 
 			// explicitly excluded and not included
-			util.RegexList(conf.Excluded).Match(repo.FullName) && !util.RegexList(conf.Included).Match(repo.FullName):
+			util.RegexList(conf.Excluded).Match(repo.FullName) && !util.RegexList(conf.Included).Match(repo.FullName),
+
+			// repository size exceeds size limit
+			conf.SizeLimit > 0 && uint64(repo.Size) > conf.SizeLimit,
+
+			// lacking pull and push permissions
+			!repo.Permissions.Pull || !repo.Permissions.Push:
 
 			loggerEntry.Debugf("Skipping %s", repo.FullName)
 

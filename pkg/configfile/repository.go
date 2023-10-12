@@ -10,6 +10,8 @@ type Repository struct {
 	Directory string `json:"directory" yaml:"directory"`
 	Branch    string `json:"branch" yaml:"branch"`
 	ParentURL string `json:"parentURL,omitempty" yaml:"parentURL,omitempty"`
+	Public    bool   `json:"public,omitempty" yaml:"public,omitempty"`
+	Size      string `json:"size" yaml:"size"`
 }
 
 type Repositories []Repository
