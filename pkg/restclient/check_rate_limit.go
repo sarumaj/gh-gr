@@ -15,6 +15,7 @@ func CheckRateLimitAndExit(r *resources.RateLimit) {
 		return
 	}
 
+	c := util.Console()
 	resetTime := time.Unix(r.Resources.Core.Reset, 0)
-	util.PrintlnAndExit(util.CheckColors(color.RedString, RateLimitExceeded, resetTime, time.Until(resetTime)))
+	util.PrintlnAndExit(c.CheckColors(color.RedString, RateLimitExceeded, resetTime, time.Until(resetTime)))
 }

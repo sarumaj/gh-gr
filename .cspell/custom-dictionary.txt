@@ -8,6 +8,7 @@ exluded
 fatih
 fslock
 Fullname
+ghconf
 Henzel
 Hostpath
 logrus

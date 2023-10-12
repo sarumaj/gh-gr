@@ -16,7 +16,8 @@ func operationLoop(fn func(pool.WorkUnit, operationContext)) {
 	exists := configfile.ConfigurationExists()
 	logger.Debugf("Config exists: %t", exists)
 	if !exists {
-		util.PrintlnAndExit(util.CheckColors(color.RedString, configfile.ConfigNotFound))
+		c := util.Console()
+		util.PrintlnAndExit(c.CheckColors(color.RedString, configfile.ConfigNotFound))
 	}
 
 	conf := configfile.Load()

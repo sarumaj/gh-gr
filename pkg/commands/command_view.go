@@ -18,7 +18,8 @@ var viewCmd = func() *cobra.Command {
 		Short: "Display current configuration",
 		Run: func(*cobra.Command, []string) {
 			if !configfile.ConfigurationExists() {
-				util.PrintlnAndExit(util.CheckColors(color.RedString, configfile.ConfigNotFound))
+				c := util.Console()
+				util.PrintlnAndExit(c.CheckColors(color.RedString, configfile.ConfigNotFound))
 			}
 
 			logger := loggerEntry.WithField("command", "view")

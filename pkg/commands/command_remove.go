@@ -15,7 +15,8 @@ var removeCmd = func() *cobra.Command {
 		Short: "Remove current configuration",
 		Run: func(*cobra.Command, []string) {
 			if !configfile.ConfigurationExists() {
-				util.PrintlnAndExit(util.CheckColors(color.RedString, configfile.ConfigNotFound))
+				c := util.Console()
+				util.PrintlnAndExit(c.CheckColors(color.RedString, configfile.ConfigNotFound))
 			}
 
 			defer util.PreventInterrupt().Stop()

@@ -66,11 +66,12 @@ func (p *Progressbar) Inc() *Progressbar {
 }
 
 func NewProgressbar(m int, options ...ProgressbarOption) *Progressbar {
-	p := &Progressbar{w: Stdout()}
+	c := Console()
+	p := &Progressbar{w: c.Stdout()}
 
 	if options == nil {
 		options = []ProgressbarOption{
-			EnableColorCodes(ColorsEnabled()),
+			EnableColorCodes(c.ColorsEnabled()),
 			SetWidth(20),
 			ShowCount(),
 			ShowElapsedTimeOnFinish(),
@@ -78,7 +79,7 @@ func NewProgressbar(m int, options ...ProgressbarOption) *Progressbar {
 		}
 	}
 
-	if interactive := IsTerminal(true, false, false); !interactive || flag.Lookup("test.v") != nil {
+	if interactive := c.IsTerminal(true, false, false); !interactive || flag.Lookup("test.v") != nil {
 		p.w = io.Discard
 
 	} else {

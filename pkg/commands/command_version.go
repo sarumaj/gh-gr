@@ -78,8 +78,9 @@ func printVersion() {
 		vSuffix = "(newer version available: " + latest.Version.String() + ")"
 	}
 
-	_, _ = fmt.Fprintln(util.Stdout(), util.CheckColors(color.BlueString, "gr version: %s %s", internalVersion, vSuffix))
-	_, _ = fmt.Fprintln(util.Stdout(), util.CheckColors(color.BlueString, "Built at: %s", internalBuildDate))
+	c := util.Console()
+	_, _ = fmt.Fprintln(c.Stdout(), c.CheckColors(color.BlueString, "gr version: %s %s", internalVersion, vSuffix))
+	_, _ = fmt.Fprintln(c.Stdout(), c.CheckColors(color.BlueString, "Built at: %s", internalBuildDate))
 }
 
 func selfUpdate() {
@@ -94,9 +95,10 @@ func selfUpdate() {
 	latest, err := updater.UpdateSelf(current, remoteRepositoryName)
 	util.FatalIfError(err)
 
+	c := util.Console()
 	if latest.Version.LTE(current) {
-		_, _ = fmt.Fprintln(util.Stdout(), util.CheckColors(color.BlueString, "You are already using the latest version: %s", internalVersion))
+		_, _ = fmt.Fprintln(c.Stdout(), c.CheckColors(color.BlueString, "You are already using the latest version: %s", internalVersion))
 	} else {
-		_, _ = fmt.Fprintln(util.Stdout(), util.CheckColors(color.GreenString, "Successfully updated to version: %s", latest.Version))
+		_, _ = fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "Successfully updated to version: %s", latest.Version))
 	}
 }

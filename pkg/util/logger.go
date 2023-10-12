@@ -12,7 +12,8 @@ import (
 var Logger = func() *logrus.Logger {
 	l := logrus.New()
 	l.SetLevel(logrus.WarnLevel)
-	l.SetOutput(Stdout())
+	c := Console()
+	l.SetOutput(c.Stdout())
 	l.SetFormatter(&logrus.JSONFormatter{
 		PrettyPrint: true,
 	})
@@ -44,12 +45,14 @@ func FatalIfError(err error) {
 		}
 	}
 
-	Logger.SetOutput(Stderr())
+	c := Console()
+	Logger.SetOutput(c.Stderr())
 
 	Logger.WithField("stack", frames).Fatalln(err)
 }
 
 func PrintlnAndExit(format string, a ...any) {
-	n, _ := fmt.Fprintln(Stderr(), fmt.Sprintf(format, a...))
+	c := Console()
+	n, _ := fmt.Fprintln(c.Stderr(), fmt.Sprintf(format, a...))
 	os.Exit(max(n, 1))
 }
