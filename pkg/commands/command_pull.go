@@ -6,7 +6,7 @@ import (
 
 	git "github.com/go-git/go-git/v5"
 	gitconfig "github.com/go-git/go-git/v5/config"
-	"github.com/sarumaj/gh-gr/pkg/configfile"
+	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 	cobra "github.com/spf13/cobra"
 	pool "gopkg.in/go-playground/pool.v3"

@@ -15,7 +15,10 @@ const pidFile = "gr.pid"
 
 var pidFilePath = filepath.Join(config.ConfigDir(), pidFile)
 
-type ProcessLock struct{ lock *fslock.Lock }
+type ProcessLock struct {
+	lock *fslock.Lock
+	file *os.File
+}
 
 func (p ProcessLock) Lock(timeout time.Duration) {
 	if timeout > 0 {
@@ -27,17 +30,20 @@ func (p ProcessLock) Lock(timeout time.Duration) {
 }
 
 func (p ProcessLock) Unlock() {
+	_ = p.file.Close()
 	util.FatalIfError(p.lock.Unlock())
 	_ = os.Remove(pidFilePath)
 }
 
 func NewProcessLock() *ProcessLock {
-	f, err := os.OpenFile(pidFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
+	f, err := os.OpenFile(pidFilePath, os.O_CREATE|os.O_TRUNC|os.O_RDWR, os.ModePerm)
 	util.FatalIfError(err)
 
 	err = binary.Write(f, binary.LittleEndian, uint32(os.Getpid()))
-	_ = f.Close()
 	util.FatalIfError(err)
 
-	return &ProcessLock{fslock.New(pidFilePath)}
+	return &ProcessLock{
+		lock: fslock.New(pidFilePath),
+		file: f, // prevent garbage collection
+	}
 }

@@ -16,10 +16,10 @@ import (
 	config "github.com/cli/go-gh/v2/pkg/config"
 	prompter "github.com/cli/go-gh/v2/pkg/prompter"
 	color "github.com/fatih/color"
-	"github.com/sarumaj/gh-gr/pkg/restclient/resources"
+	resources "github.com/sarumaj/gh-gr/pkg/restclient/resources"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 	logrus "github.com/sirupsen/logrus"
-	yaml "gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v3"
 )
 
 const configKey = "gr.conf"
@@ -41,6 +41,7 @@ var prompt = prompter.New(util.Stdin(), util.Stdout(), util.Stderr())
 
 // Configuration holds gr configuration data
 type Configuration struct {
+	*yaml.Node
 	BaseDirectory         string        `json:"baseDirectory" yaml:"baseDirectory"`
 	AbsoluteDirectoryPath string        `json:"directoryPath" yaml:"directoryPath"`
 	Profiles              Profiles      `json:"profiles" yaml:"profiles"`
