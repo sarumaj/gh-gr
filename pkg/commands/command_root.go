@@ -33,7 +33,7 @@ var rootCmd = func() *cobra.Command {
 			}
 
 			util.Logger.Debug("Running in verbose mode")
-			lock = configfile.AquireProcessIDLock(kill)
+			lock = configfile.AcquireProcessIDLock(kill)
 		},
 		PersistentPostRun: func(*cobra.Command, []string) {
 			lock.Unlock()
