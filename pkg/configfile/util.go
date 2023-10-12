@@ -32,9 +32,10 @@ func GetTokens() map[string]string {
 }
 
 func newBinaryProgressbar() *util.Progressbar {
+	c := util.Console()
 	return util.NewProgressbar(
 		-1,
-		util.EnableColorCodes(util.ColorsEnabled()),
+		util.EnableColorCodes(c.ColorsEnabled()),
 		util.SetWidth(10),
 		util.ShowBytes(true),
 		util.SetRenderBlankState(true),

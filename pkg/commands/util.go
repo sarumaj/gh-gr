@@ -67,7 +67,8 @@ func addGitAliases() error {
 
 func changeProgressbarText(bar *util.Progressbar, conf *configfile.Configuration, verb string, repo configfile.Repository) {
 	if bar != nil && conf != nil {
-		bar.Describe(util.CheckColors(color.BlueString, conf.GetProgressbarDescriptionForVerb(verb, repo)))
+		c := util.Console()
+		bar.Describe(c.CheckColors(color.BlueString, conf.GetProgressbarDescriptionForVerb(verb, repo)))
 	}
 }
 
@@ -82,19 +83,20 @@ func initializeOrUpdateConfig(conf *configfile.Configuration, update bool) {
 	exists := configfile.ConfigurationExists()
 	logger.Debugf("Exists: %t, update: %t, conf: %t", exists, update, conf != nil)
 
+	c := util.Console()
 	switch {
 
 	case exists && !update:
-		util.PrintlnAndExit(util.CheckColors(color.RedString, configfile.ConfigShouldNotExist))
+		util.PrintlnAndExit(c.CheckColors(color.RedString, configfile.ConfigShouldNotExist))
 
 	case !exists && update:
-		util.PrintlnAndExit(util.CheckColors(color.RedString, configfile.ConfigNotFound))
+		util.PrintlnAndExit(c.CheckColors(color.RedString, configfile.ConfigNotFound))
 
 	case exists && conf == nil:
 		conf = configfile.Load()
 
 	case conf == nil:
-		util.PrintlnAndExit(util.CheckColors(color.RedString, configfile.ConfigNotFound))
+		util.PrintlnAndExit(c.CheckColors(color.RedString, configfile.ConfigNotFound))
 
 	}
 

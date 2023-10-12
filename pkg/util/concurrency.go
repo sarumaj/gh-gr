@@ -30,11 +30,11 @@ func (i *interrupt) Fire() {
 	defer signal.Notify(i.signal, os.Interrupt, syscall.SIGTERM)
 
 	go func(interrupt <-chan os.Signal, quit <-chan bool) {
-		for {
+		for c := Console(); ; {
 			select {
 
 			case <-interrupt:
-				_, _ = fmt.Fprintln(Stderr(), CheckColors(color.RedString, CheckColors(color.RedString, "Current execution cannot be interrupted!")))
+				_, _ = fmt.Fprintln(c.Stderr(), c.CheckColors(color.RedString, c.CheckColors(color.RedString, "Current execution cannot be interrupted!")))
 
 			case <-quit:
 				return

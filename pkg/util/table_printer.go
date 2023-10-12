@@ -27,7 +27,8 @@ func (t *TablePrinter) AddField(field string, colors ...color.Attribute) *TableP
 		t.records = append(t.records, nil)
 	}
 
-	if len(colors) > 0 && ColorsEnabled() {
+	c := Console()
+	if len(colors) > 0 && c.ColorsEnabled() {
 		t.records[len(t.records)-1] = append(t.records[len(t.records)-1], color.New(colors...).Sprint(field))
 	} else {
 		t.records[len(t.records)-1] = append(t.records[len(t.records)-1], field)
@@ -79,8 +80,8 @@ func NewTablePrinter() *TablePrinter {
 
 	isTTy := c.IsTerminalOutput()
 	return &TablePrinter{
-		stdOut:  tableprinter.New(Stdout(), isTTy, width),
-		stdErr:  tableprinter.New(Stderr(), isTTy, width),
+		stdOut:  tableprinter.New(c.Stdout(), isTTy, width),
+		stdErr:  tableprinter.New(c.Stderr(), isTTy, width),
 		records: make([][]string, 1),
 	}
 }

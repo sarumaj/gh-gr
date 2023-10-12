@@ -37,7 +37,7 @@ const (
 var urlRegex = regexp.MustCompile(`(?P<Schema>[^:]+://)(?P<Creds>[^@]+@)?(?P<Hostpath>.+)`)
 var loggerEntry = util.Logger.WithFields(logrus.Fields{"mod": "configfile"})
 
-var prompt = prompter.New(util.Stdin(), util.Stdout(), util.Stderr())
+var prompt = func() *prompter.Prompter { c := util.Console(); return prompter.New(c.Stdin(), c.Stdout(), c.Stderr()) }()
 
 // Configuration holds gr configuration data
 type Configuration struct {
@@ -113,7 +113,7 @@ func (conf Configuration) Authenticate(targetURL *string) {
 		}
 	}
 
-	util.PrintlnAndExit(util.CheckColors(color.RedString, AuthenticationFailed, *targetURL, hostname))
+	util.PrintlnAndExit(util.Console().CheckColors(color.RedString, AuthenticationFailed, *targetURL, hostname))
 }
 
 func (conf *Configuration) Copy() *Configuration {
@@ -141,11 +141,12 @@ func (conf *Configuration) Copy() *Configuration {
 
 func (conf Configuration) Display(format string, export bool) {
 	reader, writer := io.Pipe()
+	c := util.Console()
 
 	enc, ok := supportedEncoders[format]
 	if !ok {
 		supportedEncoders := strings.Join(GetListOfSupportedFormats(true), ", ")
-		util.PrintlnAndExit(util.CheckColors(color.RedString, ConfigInvalidFormat, format, supportedEncoders))
+		util.PrintlnAndExit(c.CheckColors(color.RedString, ConfigInvalidFormat, format, supportedEncoders))
 	}
 
 	go func() {
@@ -153,22 +154,22 @@ func (conf Configuration) Display(format string, export bool) {
 		util.FatalIfError(enc.Encoder(writer).Encode(conf))
 	}()
 
-	interactive := !export && util.IsTerminal(true, false, true)
+	interactive := !export && c.IsTerminal(true, false, true)
 
 	for iter, noLines, scanner := 0, 10, bufio.NewScanner(reader); scanner.Scan(); iter++ {
-		fmt.Fprintln(util.Stdout(), scanner.Text())
+		fmt.Fprintln(c.Stdout(), scanner.Text())
 
 		if interactive && iter > 0 && iter%noLines == 0 {
-			fmt.Fprint(util.Stdout(), color.BlueString("(more):"))
+			fmt.Fprint(c.Stdout(), color.BlueString("(more):"))
 
 			var in string
-			fmt.Fscanln(util.Stdin(), &in)
+			fmt.Fscanln(c.Stdin(), &in)
 
 			// move one line up and use carriage return to move to the beginning of line
-			fmt.Fprint(util.Stdout(), "\033[1A"+strings.Repeat(" ", len("(more):")+len(in))+"\r")
+			fmt.Fprint(c.Stdout(), "\033[1A"+strings.Repeat(" ", len("(more):")+len(in))+"\r")
 
 			if strings.HasPrefix(strings.ToLower(in), "q") {
-				fmt.Fprintln(util.Stdout())
+				fmt.Fprintln(c.Stdout())
 				break
 			}
 		}
@@ -219,21 +220,22 @@ func (conf *Configuration) GetProgressbarDescriptionForVerb(verb string, repo Re
 }
 
 func (conf Configuration) Remove(purge bool) {
-	c, err := config.Read()
+	ghconf, err := config.Read()
 	util.FatalIfError(err)
 
-	util.FatalIfError(c.Remove([]string{configKey}))
-	util.FatalIfError(config.Write(c))
+	util.FatalIfError(ghconf.Remove([]string{configKey}))
+	util.FatalIfError(config.Write(ghconf))
 
-	_, _ = fmt.Fprintln(util.Stdout(), util.CheckColors(color.GreenString, "Configuration removed."))
+	c := util.Console()
+	_, _ = fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "Configuration removed."))
 
 	if !purge {
 		return
 	}
 
-	if util.IsTerminal(true, true, true) {
+	if c.IsTerminal(true, true, true) {
 		confirm, err := prompt.Confirm(
-			util.CheckColors(
+			util.Console().CheckColors(
 				color.RedString,
 				"DANGER!!! ",
 			)+"You will delete all local repositories! Are you sure?",
@@ -251,7 +253,7 @@ func (conf Configuration) Remove(purge bool) {
 	bar := util.NewProgressbar(len(conf.Repositories))
 	subDirectories := make(map[string]bool)
 	for _, repo := range conf.Repositories {
-		_ = bar.Describe(util.CheckColors(color.RedString, conf.GetProgressbarDescriptionForVerb("Removing", repo)))
+		_ = bar.Describe(c.CheckColors(color.RedString, conf.GetProgressbarDescriptionForVerb("Removing", repo)))
 		util.FatalIfError(os.RemoveAll(repo.Directory))
 		_ = bar.Inc()
 
@@ -270,11 +272,10 @@ func (conf Configuration) Remove(purge bool) {
 
 	}
 
-	_, _ = fmt.Fprintln(util.Stdout(), util.CheckColors(color.GreenString, "Successfully removed repositories from local filesystem."))
+	_, _ = fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "Successfully removed repositories from local filesystem."))
 }
 
 func (conf *Configuration) SanitizeDirectory() {
-	util.PathSanitize(&conf.BaseDirectory)
 	if filepath.IsAbs(conf.BaseDirectory) {
 		conf.AbsoluteDirectoryPath = filepath.Dir(conf.BaseDirectory)
 		conf.BaseDirectory = filepath.Base(conf.BaseDirectory)
@@ -285,21 +286,24 @@ func (conf *Configuration) SanitizeDirectory() {
 		conf.AbsoluteDirectoryPath = filepath.Dir(abs)
 
 	}
+
+	util.PathSanitize(&conf.BaseDirectory, &conf.AbsoluteDirectoryPath)
 }
 
 func (conf Configuration) Save() {
-	c, err := config.Read()
+	ghconf, err := config.Read()
 	util.FatalIfError(err)
 
+	c := util.Console()
 	buffer := bytes.NewBuffer(nil)
-	bar := newBinaryProgressbar().Describe(util.CheckColors(color.BlueString, "Saving..."))
+	bar := newBinaryProgressbar().Describe(c.CheckColors(color.BlueString, "Saving..."))
 	util.FatalIfError(yaml.NewEncoder(io.MultiWriter(buffer, bar)).Encode(conf))
 	_ = bar.Clear()
 
-	c.Set([]string{configKey}, buffer.String())
-	util.FatalIfError(config.Write(c))
+	ghconf.Set([]string{configKey}, buffer.String())
+	util.FatalIfError(config.Write(ghconf))
 
-	_, _ = fmt.Fprintln(util.Stdout(), util.CheckColors(color.GreenString, "Configuration saved. You can now pull %d repositories.", conf.Total))
+	_, _ = fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "Configuration saved. You can now pull %d repositories.", conf.Total))
 }
 
 func ConfigurationExists() bool {
@@ -314,14 +318,15 @@ func ConfigurationExists() bool {
 }
 
 func Load() *Configuration {
-	c, err := config.Read()
+	ghconf, err := config.Read()
 	util.FatalIfError(err)
 
-	content, err := c.Get([]string{configKey})
+	content, err := ghconf.Get([]string{configKey})
 	util.FatalIfError(err)
 
 	var conf Configuration
-	bar := newBinaryProgressbar().Describe(util.CheckColors(color.BlueString, "Loading..."))
+	c := util.Console()
+	bar := newBinaryProgressbar().Describe(c.CheckColors(color.BlueString, "Loading..."))
 	util.FatalIfError(yaml.NewDecoder(io.TeeReader(strings.NewReader(content), bar)).Decode(&conf))
 	_ = bar.Clear()
 
@@ -329,21 +334,22 @@ func Load() *Configuration {
 }
 
 func Import(format string) {
+	c := util.Console()
 	enc, ok := supportedEncoders[format]
 	if !ok {
 		supportedEncoders := strings.Join(GetListOfSupportedFormats(true), ", ")
-		util.PrintlnAndExit(util.CheckColors(color.RedString, ConfigInvalidFormat, format, supportedEncoders))
+		util.PrintlnAndExit(c.CheckColors(color.RedString, ConfigInvalidFormat, format, supportedEncoders))
 	}
 
-	stdin := util.Stdin()
-	bar := newBinaryProgressbar().Describe(util.CheckColors(color.BlueString, "Importing..."))
+	stdin := c.Stdin()
+	bar := newBinaryProgressbar().Describe(c.CheckColors(color.BlueString, "Importing..."))
 	raw, err := io.ReadAll(io.TeeReader(stdin, bar))
 	util.FatalIfError(err)
 	_ = stdin.Close()
 
-	if ConfigurationExists() && util.IsTerminal(true, true, true) {
+	if ConfigurationExists() && c.IsTerminal(true, true, true) {
 		confirm, err := prompt.Confirm(
-			util.CheckColors(
+			c.CheckColors(
 				color.RedString,
 				"DANGER!!! ",
 			)+"You will overwrite existing configuration! Are you sure?",
