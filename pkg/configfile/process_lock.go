@@ -29,11 +29,8 @@ func AcquireProcessIDLock() interface{ Unlock() } {
 	pidFilePath := filepath.Join(configDir, pidFile)
 
 	if util.PathExists(pidFilePath) {
-		raw, err := os.ReadFile(pidFilePath)
-		util.FatalIfError(err)
-
-		pid, err := strconv.Atoi(string(raw))
-		util.FatalIfError(err)
+		raw := util.FatalIfErrorOrReturn(os.ReadFile(pidFilePath))
+		pid := util.FatalIfErrorOrReturn(strconv.Atoi(string(raw)))
 
 		if proc, err := os.FindProcess(int(pid)); err == nil && !errors.Is(proc.Signal(syscall.Signal(0x0)), os.ErrProcessDone) {
 			util.PrintlnAndExit(ProcessAlreadyRunning, proc.Pid)
@@ -44,11 +41,8 @@ func AcquireProcessIDLock() interface{ Unlock() } {
 		}
 	}
 
-	f, err := os.OpenFile(pidFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
-	util.FatalIfError(err)
-
-	_, err = f.Write([]byte(fmt.Sprint(os.Getpid())))
-	util.FatalIfError(err)
+	f := util.FatalIfErrorOrReturn(os.Create(pidFilePath))
+	_ = util.FatalIfErrorOrReturn(f.Write([]byte(fmt.Sprint(os.Getpid()))))
 
 	return processLockFile{File: f}
 }
