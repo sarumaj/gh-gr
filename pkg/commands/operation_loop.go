@@ -49,6 +49,8 @@ func operationLoop(fn func(pool.WorkUnit, operationContext)) {
 		}
 	}
 
+	defer util.PreventInterrupt().Stop()
+
 	go func(finished chan<- bool) {
 		for _, repo := range conf.Repositories {
 			batch.Queue(worker(repo))

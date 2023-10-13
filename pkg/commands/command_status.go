@@ -57,7 +57,6 @@ func statusOperation(wu pool.WorkUnit, args operationContext) {
 	repo := unwrapOperationContext[configfile.Repository](args, "repo")
 	status := unwrapOperationContext[*operationStatus](args, "status")
 
-	defer util.PreventInterrupt().Stop()
 	changeProgressbarText(bar, conf, "Checking", repo)
 
 	logger := loggerEntry.WithField("command", "status").WithField("repository", repo.Directory)

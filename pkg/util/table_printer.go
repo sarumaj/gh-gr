@@ -2,6 +2,7 @@ package util
 
 import (
 	"slices"
+	"sync"
 
 	tableprinter "github.com/cli/go-gh/v2/pkg/tableprinter"
 	color "github.com/fatih/color"
@@ -9,6 +10,7 @@ import (
 )
 
 type TablePrinter struct {
+	sync.RWMutex
 	isStdErr bool
 	stdOut   tableprinter.TablePrinter
 	stdErr   tableprinter.TablePrinter
@@ -16,6 +18,9 @@ type TablePrinter struct {
 }
 
 func (t *TablePrinter) current() tableprinter.TablePrinter {
+	t.RLock()
+	defer t.RUnlock()
+
 	if t.isStdErr {
 		return t.stdErr
 	}
@@ -24,6 +29,9 @@ func (t *TablePrinter) current() tableprinter.TablePrinter {
 }
 
 func (t *TablePrinter) AddField(field string, colors ...color.Attribute) *TablePrinter {
+	t.Lock()
+	defer t.Unlock()
+
 	if len(t.records) == 0 {
 		t.records = append(t.records, nil)
 	}
@@ -39,6 +47,9 @@ func (t *TablePrinter) AddField(field string, colors ...color.Attribute) *TableP
 }
 
 func (t *TablePrinter) EndRow() *TablePrinter {
+	t.Lock()
+	defer t.Unlock()
+
 	t.records = append(t.records, nil)
 
 	return t
@@ -59,6 +70,9 @@ func (t *TablePrinter) Print() {
 }
 
 func (t *TablePrinter) Sort() *TablePrinter {
+	t.Lock()
+	defer t.Unlock()
+
 	slices.SortFunc(t.records, func(a, b []string) int {
 		switch {
 		case len(a)*len(b) > 0 && a[0] == b[0]:
@@ -79,6 +93,9 @@ func (t *TablePrinter) Sort() *TablePrinter {
 }
 
 func (t *TablePrinter) SetOutputToStdErr(isStdErr bool) *TablePrinter {
+	t.Lock()
+	defer t.Unlock()
+
 	t.isStdErr = isStdErr
 	return t
 }
