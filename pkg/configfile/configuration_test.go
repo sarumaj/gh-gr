@@ -1,6 +1,7 @@
 package configfile
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -102,8 +103,14 @@ func TestConfigurationLoad(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var capturedErr error
 			func() {
-				guard := monkey.Patch(util.FatalIfError, func(err error) {
+				guard := monkey.Patch(util.FatalIfError, func(err error, ignore ...error) {
 					if err != nil {
+						for _, e := range ignore {
+							if errors.Is(err, e) {
+								return
+							}
+						}
+
 						capturedErr = err
 					}
 				})
@@ -141,8 +148,14 @@ func TestConfigurationRemove(t *testing.T) {
 			var capturedErr error
 			var conf *Configuration
 			func(conf **Configuration) {
-				guard := monkey.Patch(util.FatalIfError, func(err error) {
+				guard := monkey.Patch(util.FatalIfError, func(err error, ignore ...error) {
 					if err != nil {
+						for _, e := range ignore {
+							if errors.Is(err, e) {
+								return
+							}
+						}
+
 						capturedErr = err
 					}
 				})
@@ -179,8 +192,14 @@ func TestConfigurationSave(t *testing.T) {
 			var capturedErr error
 			var conf *Configuration
 			func(conf **Configuration) {
-				guard := monkey.Patch(util.FatalIfError, func(err error) {
+				guard := monkey.Patch(util.FatalIfError, func(err error, ignore ...error) {
 					if err != nil {
+						for _, e := range ignore {
+							if errors.Is(err, e) {
+								return
+							}
+						}
+
 						capturedErr = err
 					}
 				})
