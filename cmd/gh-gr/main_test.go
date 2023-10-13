@@ -47,8 +47,10 @@ func TestExec(t *testing.T) {
 		t.Errorf(`safeexec.LookPath(%q) failed: %v`, target, err)
 	}
 
-	cmd = exec.Command(targetBinary, "--help")
+	cmd = exec.Command(targetBinary)
 	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Errorf("exec.Command(%q, \"--help\") failed: %v, output:\n%s", targetBinary, err, out)
+		t.Errorf("exec.Command(%q) failed: %v, output:\n%s", targetBinary, err, out)
+	} else {
+		t.Logf("Successful execution:\n%s", out)
 	}
 }
