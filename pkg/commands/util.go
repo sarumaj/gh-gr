@@ -16,6 +16,7 @@ import (
 	extras "github.com/sarumaj/gh-gr/pkg/extras"
 	restclient "github.com/sarumaj/gh-gr/pkg/restclient"
 	util "github.com/sarumaj/gh-gr/pkg/util"
+	supererrors "github.com/sarumaj/go-super/errors"
 	logrus "github.com/sirupsen/logrus"
 )
 
@@ -24,7 +25,7 @@ func addGitAliases() error {
 		Alias   string `json:"alias"`
 		Command string `json:"command"`
 	}
-	if err := json.Unmarshal(extras.AliasesJSON, &ga); err != nil {
+	if err := json.Unmarshal(extras.GitAliasesJSON, &ga); err != nil {
 		return err
 	}
 
@@ -114,20 +115,20 @@ func initializeOrUpdateConfig(conf *configfile.Configuration, update bool) {
 			LogColorize: true,
 			Host:        host,
 		})
-		util.FatalIfError(err)
+		supererrors.Except(err)
 
 		ctx, cancel := context.WithTimeout(context.Background(), conf.Timeout)
 		defer cancel()
 
 		user, err := client.GetUser(ctx)
-		util.FatalIfError(err)
+		supererrors.Except(err)
 
 		profile := configfile.NewProfile(user, host)
 		conf.Profiles.Append(profile)
 		logger.Debugf("Username: %s, name: %s, email: %s", profile.Username, profile.Fullname, profile.Email)
 
 		repos, err := client.GetAllUserRepos(ctx)
-		util.FatalIfError(err)
+		supererrors.Except(err)
 		logger.Debugf("Retrieved %d user repositories", len(repos))
 
 		conf.FilterRepositories(&repos)

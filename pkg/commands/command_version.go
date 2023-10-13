@@ -5,6 +5,7 @@ import (
 
 	color "github.com/fatih/color"
 	util "github.com/sarumaj/gh-gr/pkg/util"
+	supererrors "github.com/sarumaj/go-super/errors"
 	cobra "github.com/spf13/cobra"
 )
 
@@ -22,7 +23,7 @@ var versionCmd = &cobra.Command{
 	Run: func(*cobra.Command, []string) {
 		c := util.Console()
 
-		_ = util.FatalIfErrorOrReturn(fmt.Fprintln(c.Stdout(), c.CheckColors(color.BlueString, "gr version: %s", internalVersion)))
-		_ = util.FatalIfErrorOrReturn(fmt.Fprintln(c.Stdout(), c.CheckColors(color.BlueString, "Built at: %s", internalBuildDate)))
+		_ = supererrors.ExceptFn(supererrors.W(fmt.Fprintln(c.Stdout(), c.CheckColors(color.BlueString, "gr version: %s", internalVersion))))
+		_ = supererrors.ExceptFn(supererrors.W(fmt.Fprintln(c.Stdout(), c.CheckColors(color.BlueString, "Built at: %s", internalBuildDate))))
 	},
 }

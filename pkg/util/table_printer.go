@@ -1,10 +1,11 @@
 package util
 
 import (
-	"sort"
+	"slices"
 
 	tableprinter "github.com/cli/go-gh/v2/pkg/tableprinter"
 	color "github.com/fatih/color"
+	supererrors "github.com/sarumaj/go-super/errors"
 )
 
 type TablePrinter struct {
@@ -54,15 +55,24 @@ func (t *TablePrinter) Print() {
 		current.EndRow()
 	}
 
-	FatalIfError(current.Render())
+	supererrors.Except(current.Render())
 }
 
 func (t *TablePrinter) Sort() *TablePrinter {
-	sort.Slice(t.records, func(i, j int) bool {
-		return true &&
-			len(t.records[i]) > 0 &&
-			len(t.records[j]) > 0 &&
-			t.records[i][0] < t.records[j][0]
+	slices.SortFunc(t.records, func(a, b []string) int {
+		switch {
+		case len(a)*len(b) > 0 && a[0] == b[0]:
+			return 0
+
+		case len(a)*len(b) > 0 && a[0] > b[0]:
+			return 1
+
+		case len(a)*len(b) > 0 && a[0] < b[0]:
+			return -1
+
+		default:
+			return 0
+		}
 	})
 
 	return t

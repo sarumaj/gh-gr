@@ -9,15 +9,17 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
+	terminal "github.com/AlecAivazis/survey/v2/terminal"
 	config "github.com/cli/go-gh/v2/pkg/config"
 	prompter "github.com/cli/go-gh/v2/pkg/prompter"
 	color "github.com/fatih/color"
 	resources "github.com/sarumaj/gh-gr/pkg/restclient/resources"
 	util "github.com/sarumaj/gh-gr/pkg/util"
+	supererrors "github.com/sarumaj/go-super/errors"
 	logrus "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v3"
 )
@@ -77,8 +79,17 @@ func (conf *Configuration) AppendRepositories(user *resources.User, repos ...res
 		})
 	}
 
-	sort.Slice(conf.Repositories, func(i, j int) bool {
-		return conf.Repositories[i].Directory < conf.Repositories[j].Directory
+	slices.SortFunc(conf.Repositories, func(a, b Repository) int {
+		switch {
+		case a.Directory > b.Directory:
+			return 1
+
+		case a.Directory < b.Directory:
+			return -1
+
+		default:
+			return 0
+		}
 	})
 
 	conf.Total = int64(len(conf.Repositories))
@@ -149,24 +160,34 @@ func (conf Configuration) Display(format string, export bool) {
 		util.PrintlnAndExit(c.CheckColors(color.RedString, ConfigInvalidFormat, format, supportedEncoders))
 	}
 
+	if export { // prevent flood of logs into stdout
+		out := util.Logger.Out
+		util.Logger.SetOutput(io.Discard)
+		defer func(w io.Writer) { util.Logger.SetOutput(out) }(out)
+	}
+
 	go func() {
 		defer writer.Close()
-		util.FatalIfError(enc.Encoder(writer).Encode(conf))
+		supererrors.Except(enc.Encoder(writer).Encode(conf))
 	}()
 
 	interactive := !export && c.IsTerminal(true, false, true)
 
 	for iter, noLines, scanner := 0, 10, bufio.NewScanner(reader); scanner.Scan(); iter++ {
-		_ = util.FatalIfErrorOrReturn(fmt.Fprintln(c.Stdout(), scanner.Text()))
+		_ = supererrors.ExceptFn(supererrors.W(fmt.Fprintln(c.Stdout(), scanner.Text())))
 
 		if interactive && iter > 0 && iter%noLines == 0 {
-			_ = util.FatalIfErrorOrReturn(fmt.Fprint(c.Stdout(), color.BlueString("(more):")))
+			_ = supererrors.ExceptFn(supererrors.W(
+				fmt.Fprint(c.Stdout(), color.BlueString("(more):")),
+			))
 
 			var in string
 			_, err := fmt.Fscanln(c.Stdin(), &in)
 
 			// move one line up and use carriage return to move to the beginning of line
-			_ = util.FatalIfErrorOrReturn(fmt.Fprint(c.Stdout(), "\033[1A"+strings.Repeat(" ", len("(more):")+len(in))+"\r"))
+			_ = supererrors.ExceptFn(supererrors.W(
+				fmt.Fprint(c.Stdout(), "\033[1A"+strings.Repeat(" ", len("(more):")+len(in))+"\r"),
+			))
 
 			if err != nil {
 				continue
@@ -175,7 +196,7 @@ func (conf Configuration) Display(format string, export bool) {
 			switch strings.ToLower(in) {
 
 			case "exit", "quit", "q":
-				_ = util.FatalIfErrorOrReturn(fmt.Fprintln(c.Stdout()))
+				_ = supererrors.ExceptFn(supererrors.W(fmt.Fprintln(c.Stdout())))
 				return
 
 			}
@@ -189,10 +210,10 @@ func (conf *Configuration) FilterRepositories(repositories *[]resources.Reposito
 
 		case
 			// not explicitly included
-			len(conf.Included) > 0 && !util.RegexList(conf.Included).Match(repo.FullName),
+			len(conf.Included) > 0 && !util.RegexList(conf.Included).Match(repo.FullName, conf.Timeout),
 
-			// explicitly excluded and not included
-			util.RegexList(conf.Excluded).Match(repo.FullName) && !util.RegexList(conf.Included).Match(repo.FullName),
+			// explicitly excluded
+			len(conf.Excluded) > 0 && util.RegexList(conf.Excluded).Match(repo.FullName, conf.Timeout),
 
 			// repository size exceeds size limit
 			conf.SizeLimit > 0 && uint64(repo.Size) > conf.SizeLimit,
@@ -227,30 +248,36 @@ func (conf *Configuration) GetProgressbarDescriptionForVerb(verb string, repo Re
 }
 
 func (conf Configuration) Remove(purge bool) {
-	ghconf := util.FatalIfErrorOrReturn(config.Read())
+	ghconf := supererrors.ExceptFn(supererrors.W(config.Read()))
 
-	util.FatalIfError(ghconf.Remove([]string{configKey}))
-	util.FatalIfError(config.Write(ghconf))
+	supererrors.Except(ghconf.Remove([]string{configKey}))
+	supererrors.Except(config.Write(ghconf))
 
 	c := util.Console()
-	_ = util.FatalIfErrorOrReturn(fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "Configuration removed.")))
+	_ = supererrors.ExceptFn(supererrors.W(
+		fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "Configuration removed.")),
+	))
 
 	if !purge {
 		return
 	}
 
 	if c.IsTerminal(true, true, true) {
-		if !util.FatalIfErrorOrReturn(
+		if !supererrors.ExceptFn(supererrors.W(
 			prompt.Confirm(
-				util.Console().CheckColors(
+				c.CheckColors(
 					color.RedString,
 					"DANGER!!! ",
 				)+"You will delete all local repositories! Are you sure?",
 				false,
 			),
-		) {
+		), terminal.InterruptErr) {
 
 			return
+		}
+
+		if supererrors.LastErrorWas(terminal.InterruptErr) {
+			os.Exit(0)
 		}
 	}
 
@@ -260,7 +287,7 @@ func (conf Configuration) Remove(purge bool) {
 	subDirectories := make(map[string]bool)
 	for _, repo := range conf.Repositories {
 		_ = bar.Describe(c.CheckColors(color.RedString, conf.GetProgressbarDescriptionForVerb("Removing", repo)))
-		util.FatalIfError(os.RemoveAll(repo.Directory), os.ErrNotExist)
+		supererrors.Except(os.RemoveAll(repo.Directory), os.ErrNotExist)
 		_ = bar.Inc()
 
 		if conf.SubDirectories {
@@ -269,17 +296,17 @@ func (conf Configuration) Remove(purge bool) {
 	}
 
 	if conf.BaseDirectory != "." {
-		util.FatalIfError(os.RemoveAll(conf.BaseDirectory), os.ErrNotExist)
+		supererrors.Except(os.RemoveAll(conf.BaseDirectory), os.ErrNotExist)
 
 	} else if conf.SubDirectories {
 		for folder := range subDirectories {
-			util.FatalIfError(os.Remove(folder), os.ErrNotExist)
+			supererrors.Except(os.Remove(folder), os.ErrNotExist)
 		}
 
 	}
-	_ = util.FatalIfErrorOrReturn(
+	_ = supererrors.ExceptFn(supererrors.W(
 		fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "Successfully removed repositories from local filesystem.")),
-	)
+	))
 }
 
 func (conf *Configuration) SanitizeDirectory() {
@@ -288,7 +315,7 @@ func (conf *Configuration) SanitizeDirectory() {
 		conf.BaseDirectory = filepath.Base(conf.BaseDirectory)
 
 	} else {
-		conf.AbsoluteDirectoryPath = filepath.Dir(util.FatalIfErrorOrReturn(filepath.Abs(conf.BaseDirectory)))
+		conf.AbsoluteDirectoryPath = filepath.Dir(supererrors.ExceptFn(supererrors.W(filepath.Abs(conf.BaseDirectory))))
 
 	}
 
@@ -296,20 +323,20 @@ func (conf *Configuration) SanitizeDirectory() {
 }
 
 func (conf Configuration) Save() {
-	ghconf := util.FatalIfErrorOrReturn(config.Read())
+	ghconf := supererrors.ExceptFn(supererrors.W(config.Read()))
 
 	c := util.Console()
 	buffer := bytes.NewBuffer(nil)
 	bar := newBinaryProgressbar().Describe(c.CheckColors(color.BlueString, "Saving..."))
-	util.FatalIfError(yaml.NewEncoder(io.MultiWriter(buffer, bar)).Encode(conf))
+	supererrors.Except(yaml.NewEncoder(io.MultiWriter(buffer, bar)).Encode(conf))
 	_ = bar.Clear()
 
 	ghconf.Set([]string{configKey}, buffer.String())
-	util.FatalIfError(config.Write(ghconf))
+	supererrors.Except(config.Write(ghconf))
 
-	_ = util.FatalIfErrorOrReturn(
+	_ = supererrors.ExceptFn(supererrors.W(
 		fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "Configuration saved. You can now pull %d repositories.", conf.Total)),
-	)
+	))
 }
 
 func ConfigurationExists() bool {
@@ -324,13 +351,13 @@ func ConfigurationExists() bool {
 }
 
 func Load() *Configuration {
-	ghconf := util.FatalIfErrorOrReturn(config.Read())
-	content := util.FatalIfErrorOrReturn(ghconf.Get([]string{configKey}))
+	ghconf := supererrors.ExceptFn(supererrors.W(config.Read()))
+	content := supererrors.ExceptFn(supererrors.W(ghconf.Get([]string{configKey})))
 
 	var conf Configuration
 	c := util.Console()
 	bar := newBinaryProgressbar().Describe(c.CheckColors(color.BlueString, "Loading..."))
-	util.FatalIfError(yaml.NewDecoder(io.TeeReader(strings.NewReader(content), bar)).Decode(&conf))
+	supererrors.Except(yaml.NewDecoder(io.TeeReader(strings.NewReader(content), bar)).Decode(&conf))
 	_ = bar.Clear()
 
 	return &conf
@@ -338,35 +365,61 @@ func Load() *Configuration {
 
 func Import(format string) {
 	c := util.Console()
+
+	var reader io.Reader
+	if c.IsTerminal(true, true, true) {
+
+		var path string
+		if fileList := util.ListFilesByExtension("." + format); len(fileList) > 0 {
+			path = fileList[supererrors.ExceptFn(supererrors.W(
+				prompt.Select(
+					"Select file to import the configuration from:",
+					fileList[0],
+					fileList,
+				),
+			), terminal.InterruptErr)]
+
+		} else {
+			path = supererrors.ExceptFn(supererrors.W(prompt.Input("Provide path to configuration file:", "")))
+		}
+
+		if supererrors.LastErrorWas(terminal.InterruptErr) {
+			os.Exit(0)
+		}
+
+		if !supererrors.ExceptFn(supererrors.W(
+			prompt.Confirm(
+				c.CheckColors(
+					color.RedString,
+					"DANGER!!! ",
+				)+"You will overwrite the configuration! Are you sure?",
+				false,
+			),
+		), terminal.InterruptErr) {
+
+			return
+		}
+
+		if supererrors.LastErrorWas(terminal.InterruptErr) {
+			os.Exit(0)
+		}
+
+		reader = bufio.NewReader(supererrors.ExceptFn(supererrors.W(os.OpenFile(path, os.O_RDONLY, os.ModePerm))))
+	} else {
+		reader = bufio.NewReader(c.Stdin())
+	}
+
 	enc, ok := supportedEncoders[format]
 	if !ok {
 		supportedEncoders := strings.Join(GetListOfSupportedFormats(true), ", ")
 		util.PrintlnAndExit(c.CheckColors(color.RedString, ConfigInvalidFormat, format, supportedEncoders))
 	}
 
-	stdin := c.Stdin()
 	bar := newBinaryProgressbar().Describe(c.CheckColors(color.BlueString, "Importing..."))
-	raw, err := io.ReadAll(io.TeeReader(stdin, bar))
-	util.FatalIfError(err)
-	_ = stdin.Close()
-
-	if ConfigurationExists() && c.IsTerminal(true, true, true) {
-		if !util.FatalIfErrorOrReturn(
-			prompt.Confirm(
-				c.CheckColors(
-					color.RedString,
-					"DANGER!!! ",
-				)+"You will overwrite existing configuration! Are you sure?",
-				false,
-			),
-		) {
-
-			return
-		}
-	}
+	raw := supererrors.ExceptFn(supererrors.W(io.ReadAll(io.TeeReader(reader, bar))))
 
 	var conf Configuration
-	util.FatalIfError(enc.Decoder(bytes.NewReader(raw)).Decode(&conf))
+	supererrors.Except(enc.Decoder(bytes.NewReader(raw)).Decode(&conf))
 
 	conf.Save()
 }

@@ -2,10 +2,14 @@ package util
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
+
+	supererrors "github.com/sarumaj/go-super/errors"
 )
 
 const (
@@ -24,14 +28,13 @@ var hostRegex = regexp.MustCompile(`(?:[^:]+://|[^/]*//)?(?:[^@]+@)?(?P<Hostname
 type popd string
 
 func (p popd) Popd() {
-	FatalIfError(os.Chdir(string(p)))
+	supererrors.Except(os.Chdir(string(p)))
 }
 
 func Chdir(path string) interface{ Popd() } {
-	current, err := os.Getwd()
-	FatalIfError(err)
+	current := supererrors.ExceptFn(supererrors.W(os.Getwd()))
 
-	FatalIfError(os.Chdir(path))
+	supererrors.Except(os.Chdir(path))
 
 	return popd(current)
 }
@@ -59,6 +62,24 @@ func GetHostnameFromPath(path string) string {
 	return hostRegex.ReplaceAllString(path, "$Hostname")
 }
 
+func ListFilesByExtension(ext string) []string {
+	var fileList []string
+	filepath.Walk(".", func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+
+		if !info.IsDir() && filepath.Ext(path) == ext {
+			fileList = append(fileList, path)
+		}
+
+		return nil
+	})
+
+	slices.Sort(fileList)
+	return fileList
+}
+
 func PathExists(path string) bool {
 	_, err := os.Stat(path)
 	if err == nil {
@@ -69,7 +90,7 @@ func PathExists(path string) bool {
 		return false
 	}
 
-	FatalIfError(err, os.ErrNotExist)
+	supererrors.Except(err, os.ErrNotExist)
 	return false
 }
 

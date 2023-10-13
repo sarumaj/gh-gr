@@ -1,13 +1,15 @@
 module github.com/sarumaj/gh-gr
 
-go 1.21
+go 1.21.0
 
 require (
 	bou.ke/monkey v1.0.2
+	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/cli/go-gh/v2 v2.4.0
-	github.com/cli/safeexec v1.0.1
+	github.com/dlclark/regexp2 v1.10.0
 	github.com/fatih/color v1.15.0
 	github.com/go-git/go-git/v5 v5.9.0
+	github.com/sarumaj/go-super v1.0.0
 	github.com/schollz/progressbar/v3 v3.13.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.7.0
@@ -18,11 +20,11 @@ require (
 
 require (
 	dario.cat/mergo v1.0.0 // indirect
-	github.com/AlecAivazis/survey/v2 v2.3.7 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230923063757-afb1ddc0824c // indirect
 	github.com/acomagu/bufpipe v1.0.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
+	github.com/cli/safeexec v1.0.1 // indirect
 	github.com/cli/shurcooL-graphql v0.0.4 // indirect
 	github.com/cloudflare/circl v1.3.3 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
