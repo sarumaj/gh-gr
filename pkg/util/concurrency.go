@@ -7,34 +7,39 @@ import (
 	"os/signal"
 	"runtime"
 	"sync"
-	"syscall"
 
 	color "github.com/fatih/color"
 )
 
-var interruptInstance = &interrupt{
-	signal: make(chan os.Signal, 1),
-	quit:   make(chan bool, 1),
+var interruptBlocker = sync.Pool{
+	New: func() any {
+		return &blocker{
+			signal: make(chan os.Signal, 1),
+			quit:   make(chan bool, 1),
+		}
+	},
 }
 
-type interrupt struct {
+type blocker struct {
 	sync.Mutex
 	signal chan os.Signal
 	quit   chan bool
 }
 
-func (i *interrupt) Fire() {
+func (i *blocker) Fire() {
 	for !i.TryLock() {
 	}
 
-	defer signal.Notify(i.signal, os.Interrupt, syscall.SIGTERM)
+	defer signal.Notify(i.signal, os.Interrupt)
 
 	go func(interrupt <-chan os.Signal, quit <-chan bool) {
 		for c := Console(); ; {
 			select {
 
 			case <-interrupt:
-				_, _ = fmt.Fprintln(c.Stderr(), c.CheckColors(color.RedString, c.CheckColors(color.RedString, "Current execution cannot be interrupted!")))
+				_ = FatalIfErrorOrReturn(
+					fmt.Fprintln(c.Stderr(), c.CheckColors(color.RedString, c.CheckColors(color.RedString, "Current execution cannot be interrupted!"))),
+				)
 
 			case <-quit:
 				return
@@ -44,7 +49,7 @@ func (i *interrupt) Fire() {
 	}(i.signal, i.quit)
 }
 
-func (i *interrupt) Stop() {
+func (i *blocker) Stop() {
 	defer i.Unlock()
 
 	i.quit <- true
@@ -56,6 +61,7 @@ func GetIdealConcurrency() uint {
 }
 
 func PreventInterrupt() interface{ Stop() } {
-	defer interruptInstance.Fire()
-	return interruptInstance
+	i := interruptBlocker.Get().(*blocker)
+	defer i.Fire()
+	return i
 }

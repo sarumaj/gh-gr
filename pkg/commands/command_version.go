@@ -21,7 +21,8 @@ var versionCmd = &cobra.Command{
 	Short: "Display version information",
 	Run: func(*cobra.Command, []string) {
 		c := util.Console()
-		_, _ = fmt.Fprintln(c.Stdout(), c.CheckColors(color.BlueString, "gr version: %s", internalVersion))
-		_, _ = fmt.Fprintln(c.Stdout(), c.CheckColors(color.BlueString, "Built at: %s", internalBuildDate))
+
+		_ = util.FatalIfErrorOrReturn(fmt.Fprintln(c.Stdout(), c.CheckColors(color.BlueString, "gr version: %s", internalVersion)))
+		_ = util.FatalIfErrorOrReturn(fmt.Fprintln(c.Stdout(), c.CheckColors(color.BlueString, "Built at: %s", internalBuildDate)))
 	},
 }

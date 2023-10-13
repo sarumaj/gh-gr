@@ -41,20 +41,24 @@ func (c *consoleTerminal) IsTerminal(out, err, in bool) bool {
 }
 
 func (c *consoleTerminal) Stderr() *os.File {
-	return assertIsFileDesc(c.ErrOut(), os.Stderr)
+	return assertIsFileDescriptor(c.ErrOut(), os.Stderr)
 }
 
 func (c *consoleTerminal) Stdin() *os.File {
-	return assertIsFileDesc(c.In(), os.Stdin)
+	return assertIsFileDescriptor(c.In(), os.Stdin)
 }
 
 func (c *consoleTerminal) Stdout() *os.File {
-	return assertIsFileDesc(c.Out(), os.Stdout)
+	return assertIsFileDescriptor(c.Out(), os.Stdout)
 }
 
-func assertIsFileDesc(w any, fallback *os.File) *os.File {
+func assertIsFileDescriptor(w any, fallback *os.File) *os.File {
 	v, ok := w.(*os.File)
 	if !ok {
+		return fallback
+	}
+
+	if v == nil {
 		return fallback
 	}
 
