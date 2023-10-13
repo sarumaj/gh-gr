@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/fatih/color"
 	logrus "github.com/sirupsen/logrus"
 	tracerr "github.com/ztrue/tracerr"
 )
@@ -34,6 +35,7 @@ func FatalIfError(err error) {
 
 		case
 			strings.Contains(ctx, "FatalIfError()"),
+			strings.Contains(ctx, "FatalIfErrorOrReturn()"),
 			strings.Contains(ctx, "runtime.main()"),
 			strings.Contains(ctx, "runtime.goexit()"):
 
@@ -51,8 +53,13 @@ func FatalIfError(err error) {
 	Logger.WithField("stack", frames).Fatalln(err)
 }
 
+func FatalIfErrorOrReturn[T any](arg T, err error) T {
+	FatalIfError(err)
+	return arg
+}
+
 func PrintlnAndExit(format string, a ...any) {
 	c := Console()
-	n, _ := fmt.Fprintln(c.Stderr(), fmt.Sprintf(format, a...))
-	os.Exit(max(n, 1))
+	_ = FatalIfErrorOrReturn(fmt.Fprintln(c.Stderr(), c.CheckColors(color.RedString, format, a...)))
+	os.Exit(1)
 }

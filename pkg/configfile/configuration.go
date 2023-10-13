@@ -157,19 +157,19 @@ func (conf Configuration) Display(format string, export bool) {
 	interactive := !export && c.IsTerminal(true, false, true)
 
 	for iter, noLines, scanner := 0, 10, bufio.NewScanner(reader); scanner.Scan(); iter++ {
-		fmt.Fprintln(c.Stdout(), scanner.Text())
+		_ = util.FatalIfErrorOrReturn(fmt.Fprintln(c.Stdout(), scanner.Text()))
 
 		if interactive && iter > 0 && iter%noLines == 0 {
-			fmt.Fprint(c.Stdout(), color.BlueString("(more):"))
+			_ = util.FatalIfErrorOrReturn(fmt.Fprint(c.Stdout(), color.BlueString("(more):")))
 
 			var in string
-			fmt.Fscanln(c.Stdin(), &in)
+			_ = util.FatalIfErrorOrReturn(fmt.Fscanln(c.Stdin(), &in))
 
 			// move one line up and use carriage return to move to the beginning of line
-			fmt.Fprint(c.Stdout(), "\033[1A"+strings.Repeat(" ", len("(more):")+len(in))+"\r")
+			_ = util.FatalIfErrorOrReturn(fmt.Fprint(c.Stdout(), "\033[1A"+strings.Repeat(" ", len("(more):")+len(in))+"\r"))
 
 			if strings.HasPrefix(strings.ToLower(in), "q") {
-				fmt.Fprintln(c.Stdout())
+				_ = util.FatalIfErrorOrReturn(fmt.Fprintln(c.Stdout()))
 				break
 			}
 		}
@@ -220,30 +220,29 @@ func (conf *Configuration) GetProgressbarDescriptionForVerb(verb string, repo Re
 }
 
 func (conf Configuration) Remove(purge bool) {
-	ghconf, err := config.Read()
-	util.FatalIfError(err)
+	ghconf := util.FatalIfErrorOrReturn(config.Read())
 
 	util.FatalIfError(ghconf.Remove([]string{configKey}))
 	util.FatalIfError(config.Write(ghconf))
 
 	c := util.Console()
-	_, _ = fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "Configuration removed."))
+	_ = util.FatalIfErrorOrReturn(fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "Configuration removed.")))
 
 	if !purge {
 		return
 	}
 
 	if c.IsTerminal(true, true, true) {
-		confirm, err := prompt.Confirm(
-			util.Console().CheckColors(
-				color.RedString,
-				"DANGER!!! ",
-			)+"You will delete all local repositories! Are you sure?",
-			false,
-		)
-		util.FatalIfError(err)
+		if !util.FatalIfErrorOrReturn(
+			prompt.Confirm(
+				util.Console().CheckColors(
+					color.RedString,
+					"DANGER!!! ",
+				)+"You will delete all local repositories! Are you sure?",
+				false,
+			),
+		) {
 
-		if !confirm {
 			return
 		}
 	}
@@ -271,8 +270,9 @@ func (conf Configuration) Remove(purge bool) {
 		}
 
 	}
-
-	_, _ = fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "Successfully removed repositories from local filesystem."))
+	_ = util.FatalIfErrorOrReturn(
+		fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "Successfully removed repositories from local filesystem.")),
+	)
 }
 
 func (conf *Configuration) SanitizeDirectory() {
@@ -281,9 +281,7 @@ func (conf *Configuration) SanitizeDirectory() {
 		conf.BaseDirectory = filepath.Base(conf.BaseDirectory)
 
 	} else {
-		abs, err := filepath.Abs(conf.BaseDirectory)
-		util.FatalIfError(err)
-		conf.AbsoluteDirectoryPath = filepath.Dir(abs)
+		conf.AbsoluteDirectoryPath = filepath.Dir(util.FatalIfErrorOrReturn(filepath.Abs(conf.BaseDirectory)))
 
 	}
 
@@ -291,8 +289,7 @@ func (conf *Configuration) SanitizeDirectory() {
 }
 
 func (conf Configuration) Save() {
-	ghconf, err := config.Read()
-	util.FatalIfError(err)
+	ghconf := util.FatalIfErrorOrReturn(config.Read())
 
 	c := util.Console()
 	buffer := bytes.NewBuffer(nil)
@@ -303,7 +300,9 @@ func (conf Configuration) Save() {
 	ghconf.Set([]string{configKey}, buffer.String())
 	util.FatalIfError(config.Write(ghconf))
 
-	_, _ = fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "Configuration saved. You can now pull %d repositories.", conf.Total))
+	_ = util.FatalIfErrorOrReturn(
+		fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "Configuration saved. You can now pull %d repositories.", conf.Total)),
+	)
 }
 
 func ConfigurationExists() bool {
@@ -318,11 +317,8 @@ func ConfigurationExists() bool {
 }
 
 func Load() *Configuration {
-	ghconf, err := config.Read()
-	util.FatalIfError(err)
-
-	content, err := ghconf.Get([]string{configKey})
-	util.FatalIfError(err)
+	ghconf := util.FatalIfErrorOrReturn(config.Read())
+	content := util.FatalIfErrorOrReturn(ghconf.Get([]string{configKey}))
 
 	var conf Configuration
 	c := util.Console()
@@ -348,16 +344,16 @@ func Import(format string) {
 	_ = stdin.Close()
 
 	if ConfigurationExists() && c.IsTerminal(true, true, true) {
-		confirm, err := prompt.Confirm(
-			c.CheckColors(
-				color.RedString,
-				"DANGER!!! ",
-			)+"You will overwrite existing configuration! Are you sure?",
-			false,
-		)
-		util.FatalIfError(err)
+		if !util.FatalIfErrorOrReturn(
+			prompt.Confirm(
+				c.CheckColors(
+					color.RedString,
+					"DANGER!!! ",
+				)+"You will overwrite existing configuration! Are you sure?",
+				false,
+			),
+		) {
 
-		if !confirm {
 			return
 		}
 	}

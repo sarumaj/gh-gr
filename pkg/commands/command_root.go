@@ -45,9 +45,11 @@ var rootCmd = func() *cobra.Command {
 // Execute executes the root command.
 func Execute(version, buildDate string) {
 	internalVersion, internalBuildDate = version, buildDate
-	logger := util.Logger
 
+	logger := util.Logger
 	logger.Debugf("Version: %s, build date: %s", internalVersion, internalBuildDate)
+
+	defer configfile.AcquireProcessIDLock().Unlock()
 
 	if err := rootCmd.Execute(); err != nil {
 		logger.Debugf("Execution failed: %v", err)
