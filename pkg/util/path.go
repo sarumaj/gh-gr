@@ -64,9 +64,9 @@ func GetHostnameFromPath(path string) string {
 
 func ListFilesByExtension(ext string) []string {
 	var fileList []string
-	filepath.Walk(".", func(path string, info fs.FileInfo, err error) error {
+	supererrors.Except(filepath.Walk(".", func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
-			return nil
+			return err
 		}
 
 		if !info.IsDir() && filepath.Ext(path) == ext {
@@ -74,7 +74,7 @@ func ListFilesByExtension(ext string) []string {
 		}
 
 		return nil
-	})
+	}))
 
 	slices.Sort(fileList)
 	return fileList
