@@ -42,7 +42,7 @@ func FatalIfError(err error, ignore ...error) {
 
 		case
 			strings.Contains(ctx, "FatalIfError()"),
-			strings.Contains(ctx, "FatalIfErrorOrReturn()"),
+			strings.Contains(ctx, "FatalIfErrorOrReturn[...]()"),
 			strings.Contains(ctx, "runtime.main()"),
 			strings.Contains(ctx, "runtime.goexit()"):
 
