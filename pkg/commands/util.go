@@ -107,7 +107,6 @@ func initializeOrUpdateConfig(conf *configfile.Configuration, update bool) {
 	logger.Debugf("Retrieved tokens: %d", len(tokens))
 
 	defer util.PreventInterrupt().Stop()
-
 	for host, token := range tokens {
 		client, err := restclient.NewRESTClient(conf, restclient.ClientOptions{
 			AuthToken:   token,

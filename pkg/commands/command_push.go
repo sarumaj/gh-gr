@@ -26,7 +26,6 @@ func pushOperation(wu pool.WorkUnit, args operationContext) {
 	repo := unwrapOperationContext[configfile.Repository](args, "repo")
 	status := unwrapOperationContext[*operationStatus](args, "status")
 
-	defer util.PreventInterrupt().Stop()
 	changeProgressbarText(bar, conf, "Pushing", repo)
 
 	logger := loggerEntry.WithField("command", "push").WithField("repository", repo.Directory)
