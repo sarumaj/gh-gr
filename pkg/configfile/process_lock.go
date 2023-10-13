@@ -20,8 +20,8 @@ type processLockFile struct{ *os.File }
 
 func (p processLockFile) Unlock() {
 	pidFilePath := p.File.Name()
-	util.FatalIfError(p.File.Close())
-	util.FatalIfError(os.Remove(pidFilePath))
+	util.FatalIfError(p.File.Close(), os.ErrClosed)
+	util.FatalIfError(os.Remove(pidFilePath), os.ErrNotExist)
 }
 
 func AcquireProcessIDLock() interface{ Unlock() } {
@@ -36,12 +36,14 @@ func AcquireProcessIDLock() interface{ Unlock() } {
 			util.PrintlnAndExit(ProcessAlreadyRunning, proc.Pid)
 
 		} else {
-			util.FatalIfError(os.Remove(pidFilePath))
+			util.FatalIfError(os.Remove(pidFilePath), os.ErrNotExist)
 
 		}
 	}
 
-	f := util.FatalIfErrorOrReturn(os.Create(pidFilePath))
+	f, err := os.OpenFile(pidFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
+	util.FatalIfError(err, os.ErrNotExist)
+
 	_ = util.FatalIfErrorOrReturn(f.Write([]byte(fmt.Sprint(os.Getpid()))))
 
 	return processLockFile{File: f}

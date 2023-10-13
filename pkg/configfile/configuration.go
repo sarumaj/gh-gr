@@ -260,7 +260,7 @@ func (conf Configuration) Remove(purge bool) {
 	subDirectories := make(map[string]bool)
 	for _, repo := range conf.Repositories {
 		_ = bar.Describe(c.CheckColors(color.RedString, conf.GetProgressbarDescriptionForVerb("Removing", repo)))
-		util.FatalIfError(os.RemoveAll(repo.Directory))
+		util.FatalIfError(os.RemoveAll(repo.Directory), os.ErrNotExist)
 		_ = bar.Inc()
 
 		if conf.SubDirectories {
@@ -269,11 +269,11 @@ func (conf Configuration) Remove(purge bool) {
 	}
 
 	if conf.BaseDirectory != "." {
-		util.FatalIfError(os.RemoveAll(conf.BaseDirectory))
+		util.FatalIfError(os.RemoveAll(conf.BaseDirectory), os.ErrNotExist)
 
 	} else if conf.SubDirectories {
 		for folder := range subDirectories {
-			util.FatalIfError(os.Remove(folder))
+			util.FatalIfError(os.Remove(folder), os.ErrNotExist)
 		}
 
 	}
