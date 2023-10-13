@@ -4,12 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"reflect"
 	"testing"
 
 	monkey "bou.ke/monkey"
 	auth "github.com/cli/go-gh/v2/pkg/auth"
 	config "github.com/cli/go-gh/v2/pkg/config"
+	resources "github.com/sarumaj/gh-gr/pkg/restclient/resources"
 	util "github.com/sarumaj/gh-gr/pkg/util"
+	supererrors "github.com/sarumaj/go-super/errors"
 )
 
 const testConfiguration = `
@@ -91,6 +94,55 @@ func TestConfigurationExists(t *testing.T) {
 	}
 }
 
+func TestConfigurationFilterRepositories(t *testing.T) {
+	type args struct {
+		conf  *Configuration
+		repos []resources.Repository
+	}
+
+	makeRepo := func(name string) resources.Repository {
+		return resources.Repository{
+			FullName: name,
+			Permissions: resources.Permissions{
+				Pull: true,
+				Push: true,
+			},
+		}
+	}
+
+	makeRepos := func(names ...string) (repos []resources.Repository) {
+		for _, name := range names {
+			repos = append(repos, makeRepo(name))
+		}
+
+		return
+	}
+
+	for _, tt := range []struct {
+		name string
+		args args
+		want []resources.Repository
+	}{
+		{"test#1",
+			args{&Configuration{Included: []string{}, Excluded: []string{}}, makeRepos("org1/repo1", "org2/repo1", "org2/repo2")},
+			makeRepos("org1/repo1", "org2/repo1", "org2/repo2")},
+		{"test#2",
+			args{&Configuration{Included: []string{"org2/.*"}, Excluded: []string{}}, makeRepos("org1/repo1", "org2/repo1", "org2/repo2")},
+			makeRepos("org2/repo1", "org2/repo2")},
+		{"test#3",
+			args{&Configuration{Included: []string{"org2/.*"}, Excluded: []string{"org2/repo2"}}, makeRepos("org1/repo1", "org2/repo1", "org2/repo2")},
+			makeRepos("org2/repo1")},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.args.repos
+			tt.args.conf.FilterRepositories(&got)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("(%v).FilterRepositories(%p) failed: got: %d, want: %d", tt.args.conf, &got, len(got), len(tt.want))
+			}
+		})
+	}
+}
+
 func TestConfigurationLoad(t *testing.T) {
 	for _, tt := range []struct {
 		name      string
@@ -103,7 +155,7 @@ func TestConfigurationLoad(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var capturedErr error
 			func() {
-				guard := monkey.Patch(util.FatalIfError, func(err error, ignore ...error) {
+				guard := monkey.Patch(supererrors.Except, func(err error, ignore ...error) {
 					if err != nil {
 						for _, e := range ignore {
 							if errors.Is(err, e) {
@@ -148,7 +200,7 @@ func TestConfigurationRemove(t *testing.T) {
 			var capturedErr error
 			var conf *Configuration
 			func(conf **Configuration) {
-				guard := monkey.Patch(util.FatalIfError, func(err error, ignore ...error) {
+				guard := monkey.Patch(supererrors.Except, func(err error, ignore ...error) {
 					if err != nil {
 						for _, e := range ignore {
 							if errors.Is(err, e) {
@@ -192,7 +244,7 @@ func TestConfigurationSave(t *testing.T) {
 			var capturedErr error
 			var conf *Configuration
 			func(conf **Configuration) {
-				guard := monkey.Patch(util.FatalIfError, func(err error, ignore ...error) {
+				guard := monkey.Patch(supererrors.Except, func(err error, ignore ...error) {
 					if err != nil {
 						for _, e := range ignore {
 							if errors.Is(err, e) {

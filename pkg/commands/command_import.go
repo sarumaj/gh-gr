@@ -13,11 +13,15 @@ var importCmd = func() *cobra.Command {
 
 	importCmd := &cobra.Command{
 		Use:   "import",
-		Short: "Import configuration from stdin",
+		Short: "Import configuration from stdin or a file",
+		Long: "Import configuration from stdin or a file.\n\n" +
+			"Command supports piped input and HEREDOC.\n" +
+			"Caution! The configuration will be overwritten!",
+		Example: "cat file.json | gh gr import --format yaml",
 		Run: func(*cobra.Command, []string) {
 			logger := loggerEntry.WithField("command", "import")
-
 			logger.Debugf("Import format: %s", formatOption)
+
 			configfile.Import(formatOption)
 		},
 		PostRun: func(*cobra.Command, []string) {

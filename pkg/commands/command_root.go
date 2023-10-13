@@ -5,6 +5,7 @@ import (
 
 	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
 	util "github.com/sarumaj/gh-gr/pkg/util"
+	supererrors "github.com/sarumaj/go-super/errors"
 	logrus "github.com/sirupsen/logrus"
 	cobra "github.com/spf13/cobra"
 )
@@ -17,14 +18,14 @@ var rootCmd = func() *cobra.Command {
 		Use:   "gr",
 		Short: "gr is a gh cli extension allowing management of multiple repositories at once",
 		Run: func(cmd *cobra.Command, _ []string) {
-			util.FatalIfError(cmd.Help())
+			supererrors.Except(cmd.Help())
 		},
 		PersistentPreRun: func(*cobra.Command, []string) {
 			if configfile.ConfigurationExists() {
 				configFlags = configfile.Load()
 			}
 
-			if getenvBool(verbose) {
+			if util.GetenvBool(util.Verbose) {
 				util.Logger.SetLevel(logrus.DebugLevel)
 			}
 

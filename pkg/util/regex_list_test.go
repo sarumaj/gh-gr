@@ -1,6 +1,9 @@
 package util
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestRegexListMatch(t *testing.T) {
 	type args struct {
@@ -17,7 +20,7 @@ func TestRegexListMatch(t *testing.T) {
 		{"test#3", args{[]string{`^owner/\w+$`}, "owner/!@$"}, false},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			got := RegexList(tt.args.list).Match(tt.args.target)
+			got := RegexList(tt.args.list).Match(tt.args.target, time.Second)
 			if got != tt.want {
 				t.Errorf(`RegexList(%v).Match(%q) failed: got: %t, want: %t`, tt.args.list, tt.args.target, got, tt.want)
 			}

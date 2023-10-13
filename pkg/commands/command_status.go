@@ -7,6 +7,7 @@ import (
 	git "github.com/go-git/go-git/v5"
 	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
 	util "github.com/sarumaj/gh-gr/pkg/util"
+	supererrors "github.com/sarumaj/go-super/errors"
 	cobra "github.com/spf13/cobra"
 	pool "gopkg.in/go-playground/pool.v3"
 )
@@ -16,7 +17,7 @@ var statusCmd = &cobra.Command{
 	Short: "Show status for all repositories",
 	Run: func(*cobra.Command, []string) {
 		operationLoop(statusOperation)
-		util.FatalIfError(runLocalStatus())
+		supererrors.Except(runLocalStatus())
 	},
 }
 

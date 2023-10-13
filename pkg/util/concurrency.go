@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	color "github.com/fatih/color"
+	supererrors "github.com/sarumaj/go-super/errors"
 )
 
 var interruptBlocker = sync.Pool{
@@ -37,9 +38,9 @@ func (i *blocker) Fire() {
 			select {
 
 			case <-interrupt:
-				_ = FatalIfErrorOrReturn(
+				_ = supererrors.ExceptFn(supererrors.W(
 					fmt.Fprintln(c.Stderr(), c.CheckColors(color.RedString, c.CheckColors(color.RedString, "Current execution cannot be interrupted!"))),
-				)
+				))
 
 			case <-quit:
 				return
