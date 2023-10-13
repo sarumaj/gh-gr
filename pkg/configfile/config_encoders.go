@@ -24,11 +24,19 @@ var supportedEncoders = map[string]encoderPair{
 			e.SetIndent("", "\t")
 			return e
 		},
-		Decoder: func(r io.Reader) decoder { return json.NewDecoder(r) },
+		Decoder: func(r io.Reader) decoder {
+			e := json.NewDecoder(r)
+			e.DisallowUnknownFields()
+			return e
+		},
 	},
 	"yaml": {
 		Encoder: func(w io.Writer) encoder { return yaml.NewEncoder(w) },
-		Decoder: func(r io.Reader) decoder { return yaml.NewDecoder(r) },
+		Decoder: func(r io.Reader) decoder {
+			e := yaml.NewDecoder(r)
+			e.KnownFields(true)
+			return e
+		},
 	},
 }
 
