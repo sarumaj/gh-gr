@@ -4,7 +4,8 @@ go 1.21
 
 require (
 	bou.ke/monkey v1.0.2
-	github.com/cli/go-gh/v2 v2.3.0
+	github.com/cli/go-gh/v2 v2.4.0
+	github.com/cli/safeexec v1.0.1
 	github.com/fatih/color v1.15.0
 	github.com/go-git/go-git/v5 v5.9.0
 	github.com/schollz/progressbar/v3 v3.13.1
@@ -22,7 +23,6 @@ require (
 	github.com/ProtonMail/go-crypto v0.0.0-20230923063757-afb1ddc0824c // indirect
 	github.com/acomagu/bufpipe v1.0.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
-	github.com/cli/safeexec v1.0.1 // indirect
 	github.com/cli/shurcooL-graphql v0.0.4 // indirect
 	github.com/cloudflare/circl v1.3.3 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect

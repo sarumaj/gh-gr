@@ -163,14 +163,21 @@ func (conf Configuration) Display(format string, export bool) {
 			_ = util.FatalIfErrorOrReturn(fmt.Fprint(c.Stdout(), color.BlueString("(more):")))
 
 			var in string
-			_ = util.FatalIfErrorOrReturn(fmt.Fscanln(c.Stdin(), &in))
+			_, err := fmt.Fscanln(c.Stdin(), &in)
 
 			// move one line up and use carriage return to move to the beginning of line
 			_ = util.FatalIfErrorOrReturn(fmt.Fprint(c.Stdout(), "\033[1A"+strings.Repeat(" ", len("(more):")+len(in))+"\r"))
 
-			if strings.HasPrefix(strings.ToLower(in), "q") {
+			if err != nil {
+				continue
+			}
+
+			switch strings.ToLower(in) {
+
+			case "exit", "quit", "q":
 				_ = util.FatalIfErrorOrReturn(fmt.Fprintln(c.Stdout()))
-				break
+				return
+
 			}
 		}
 	}
