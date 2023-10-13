@@ -1,6 +1,7 @@
 package util
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -22,9 +23,15 @@ var Logger = func() *logrus.Logger {
 	return l
 }()
 
-func FatalIfError(err error) {
+func FatalIfError(err error, ignore ...error) {
 	if err == nil {
 		return
+	}
+
+	for _, e := range ignore {
+		if errors.Is(err, e) {
+			return
+		}
 	}
 
 	err = tracerr.Wrap(err)

@@ -69,7 +69,7 @@ func PathExists(path string) bool {
 		return false
 	}
 
-	FatalIfError(err)
+	FatalIfError(err, os.ErrNotExist)
 	return false
 }
 
