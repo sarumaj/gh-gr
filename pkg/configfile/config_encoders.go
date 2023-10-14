@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	color "github.com/fatih/color"
 	json "github.com/goccy/go-json"
 	yaml "github.com/goccy/go-yaml"
 	jc "github.com/neilotoole/jsoncolor"
@@ -16,7 +17,15 @@ var supportedEncoders = func() map[string]encoderPair {
 			Encoder: func(w io.Writer, colored bool) encoder {
 				if colored {
 					e := jc.NewEncoder(w)
-					e.SetColors(jc.DefaultColors())
+					e.SetColors(&jc.Colors{
+						Null:   jc.Color(util.CSI + fmt.Sprintf("%d", color.FgHiMagenta) + util.CCT),
+						Bool:   jc.Color(util.CSI + fmt.Sprintf("%d", color.FgHiMagenta) + util.CCT),
+						Number: jc.Color(util.CSI + fmt.Sprintf("%d", color.FgHiMagenta) + util.CCT),
+						String: jc.Color(util.CSI + fmt.Sprintf("%d", color.FgHiGreen) + util.CCT),
+						Key:    jc.Color(util.CSI + fmt.Sprintf("%d", color.FgHiCyan) + util.CCT),
+						Bytes:  jc.Color(util.CSI + fmt.Sprintf("%d", color.FgHiGreen) + util.CCT),
+						Time:   jc.Color(util.CSI + fmt.Sprintf("%d", color.FgHiMagenta) + util.CCT),
+					})
 					e.SetIndent("", "  ")
 					return e
 				}
