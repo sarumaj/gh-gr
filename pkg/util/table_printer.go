@@ -105,10 +105,10 @@ func NewTablePrinter() *TablePrinter {
 	width, _, _ := c.Size()
 	width = max(width, 40)
 
-	isTTy := c.IsTerminalOutput()
+	isTTY := c.IsTerminalOutput()
 	return &TablePrinter{
-		stdOut:  tableprinter.New(c.Stdout(), isTTy, width),
-		stdErr:  tableprinter.New(c.Stderr(), isTTy, width),
+		stdOut:  tableprinter.New(c.Stdout(), isTTY, width),
+		stdErr:  tableprinter.New(c.Stderr(), isTTY, width),
 		records: make([][]string, 1),
 	}
 }

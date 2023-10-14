@@ -168,7 +168,7 @@ func (conf Configuration) Display(format string, export bool) {
 
 	go func() {
 		defer writer.Close()
-		supererrors.Except(enc.Encoder(writer).Encode(conf))
+		supererrors.Except(enc.Encoder(writer, !export && c.ColorsEnabled()).Encode(conf))
 	}()
 
 	interactive := !export && c.IsTerminal(true, false, true)
@@ -177,8 +177,9 @@ func (conf Configuration) Display(format string, export bool) {
 		_ = supererrors.ExceptFn(supererrors.W(fmt.Fprintln(c.Stdout(), scanner.Text())))
 
 		if interactive && iter > 0 && iter%noLines == 0 {
+
 			_ = supererrors.ExceptFn(supererrors.W(
-				fmt.Fprint(c.Stdout(), color.BlueString("(more):")),
+				fmt.Fprint(c.Stdout(), c.CheckColors(color.BlueString, "(more:)")),
 			))
 
 			var in string
@@ -186,7 +187,7 @@ func (conf Configuration) Display(format string, export bool) {
 
 			// move one line up and use carriage return to move to the beginning of line
 			_ = supererrors.ExceptFn(supererrors.W(
-				fmt.Fprint(c.Stdout(), "\033[1A"+strings.Repeat(" ", len("(more):")+len(in))+"\r"),
+				fmt.Fprint(c.Stdout(), util.MUP+strings.Repeat(" ", len("(more):")+len(in))+"\r"),
 			))
 
 			if err != nil {

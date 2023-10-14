@@ -101,7 +101,9 @@ func initializeOrUpdateConfig(conf *configfile.Configuration, update bool) {
 
 	}
 
-	conf.SanitizeDirectory()
+	if !update {
+		conf.SanitizeDirectory()
+	}
 
 	tokens := configfile.GetTokens()
 	logger.Debugf("Retrieved tokens: %d", len(tokens))
