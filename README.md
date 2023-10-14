@@ -16,14 +16,14 @@ Prerequisites: [github cli (gh)](https://cli.github.com/)
 
 To install gr:
 
-```
-gh extension install https://github.com/sarumaj/gh-gr
+``` console
+$ gh extension install https://github.com/sarumaj/gh-gr
 ```
 
 ## Usage
 
-```
-gh gr --help
+``` console
+$ gh gr --help
 
 >> gr is a gh cli extension allowing management of multiple repositories at once
 >> 
@@ -56,40 +56,40 @@ gh gr --help
 
 First, create the configuration:
 
-```
-gh gr init -d SOMEDIR -c 10
+``` console
+$ gh gr init -d SOMEDIR -c 10
 ```
 
 or, if you are willing to exclude some repositories, you can use regular expressions:
 
-```
-gh gr init -c 10 -d SOMEDIR -e ".*repo1" -e "SOMEORG/repo-.*" -s
+``` console
+$ gh gr init -c 10 -d SOMEDIR -e ".*repo1" -e "SOMEORG/repo-.*" -s
 ```
 
 Run `gh gr init --help` or `gh gr help init` to retrieve more information about the init command.
 
 After the configuration is created, you can pull all repositories using:
 
-```
-gh gr pull
+``` console
+$ gh gr pull
 ```
 
 you can view the status of the repositories using:
 
-```
-gh gr status
+``` console
+$ gh gr status
 ```
 
 and you can push all repositories using:
 
-```
-gh gr push
+``` console
+$ gh gr push
 ```
 
 After creating new repositories on the server or after user data changes, you can update the local configuration using:
 
-```
-gh gr update
+``` console
+$ gh gr update
 ```
 
 ## Acknowledgments
