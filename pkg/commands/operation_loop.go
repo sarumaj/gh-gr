@@ -9,7 +9,7 @@ import (
 	pool "gopkg.in/go-playground/pool.v3"
 )
 
-func operationLoop(fn func(pool.WorkUnit, operationContext)) {
+func operationLoop(fn func(pool.WorkUnit, operationContext), verb string) {
 	logger := loggerEntry
 	bar := util.NewProgressbar(100)
 
@@ -35,17 +35,16 @@ func operationLoop(fn func(pool.WorkUnit, operationContext)) {
 		return func(wu pool.WorkUnit) (any, error) {
 			if wu.IsCancelled() {
 				logger.Warn("work unit has been prematurely canceled")
-				return nil, nil
+				return nil, wu.Error()
 			}
 
 			fn(wu, newOperationContext(operationContextMap{
-				"bar":    bar,
 				"conf":   conf,
 				"repo":   repo,
 				"status": status,
 			}))
 
-			return nil, nil
+			return repo, nil
 		}
 	}
 
@@ -76,7 +75,20 @@ func operationLoop(fn func(pool.WorkUnit, operationContext)) {
 	}(finished)
 
 	_ = bar.ChangeMax(len(conf.Repositories))
-	for range batch.Results() {
+	for result := range batch.Results() {
+		value, err := result.Value(), result.Error()
+		if err != nil {
+			logger.Warnf("worker returned error: %v", err)
+			continue
+		}
+
+		repo, ok := value.(configfile.Repository)
+		if !ok {
+			logger.Warnf("expected configfile.Repository got: %T", value)
+			continue
+		}
+
+		changeProgressbarText(bar, conf, verb, repo)
 		_ = bar.Inc()
 	}
 

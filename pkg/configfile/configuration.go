@@ -212,24 +212,20 @@ func (conf *Configuration) FilterRepositories(repositories *[]resources.Reposito
 		case
 			// not explicitly included
 			len(conf.Included) > 0 && !util.RegexList(conf.Included).Match(repo.FullName, conf.Timeout),
-
 			// explicitly excluded
 			len(conf.Excluded) > 0 && util.RegexList(conf.Excluded).Match(repo.FullName, conf.Timeout),
-
 			// repository size exceeds size limit
 			conf.SizeLimit > 0 && uint64(repo.Size) > conf.SizeLimit,
-
+			// repository is archived or disabled
+			repo.Archived || repo.Disabled,
 			// lacking pull and push permissions
 			!repo.Permissions.Pull || !repo.Permissions.Push:
 
 			loggerEntry.Debugf("Skipping %s", repo.FullName)
-
-			// removing one repository from list, so decrease the total number
-			total = len(*repositories) - 1
 			// remove the repository at index
-			*repositories = append((*repositories)[:index], (*repositories)[index+1:]...)[:total:total]
+			*repositories = append((*repositories)[:index], (*repositories)[index+1:]...)[: total-1 : total-1]
 			// move index back to point at the next repository which now occupies the position of the removed one
-			index -= 1
+			index, total = index-1, total-1
 
 		}
 	}
