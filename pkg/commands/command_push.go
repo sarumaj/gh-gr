@@ -16,17 +16,14 @@ var pushCmd = &cobra.Command{
 	Use:   "push",
 	Short: "Push all repositories",
 	Run: func(*cobra.Command, []string) {
-		operationLoop(pushOperation)
+		operationLoop(pushOperation, "Pushed")
 	},
 }
 
 func pushOperation(wu pool.WorkUnit, args operationContext) {
-	bar := unwrapOperationContext[*util.Progressbar](args, "bar")
 	conf := unwrapOperationContext[*configfile.Configuration](args, "conf")
 	repo := unwrapOperationContext[configfile.Repository](args, "repo")
 	status := unwrapOperationContext[*operationStatus](args, "status")
-
-	changeProgressbarText(bar, conf, "Pushing", repo)
 
 	logger := loggerEntry.WithField("command", "push").WithField("repository", repo.Directory)
 

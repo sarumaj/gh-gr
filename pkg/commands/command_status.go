@@ -16,7 +16,7 @@ var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show status for all repositories",
 	Run: func(*cobra.Command, []string) {
-		operationLoop(statusOperation)
+		operationLoop(statusOperation, "Checked")
 		supererrors.Except(runLocalStatus())
 	},
 }
@@ -52,12 +52,9 @@ func runLocalStatus() error {
 }
 
 func statusOperation(wu pool.WorkUnit, args operationContext) {
-	bar := unwrapOperationContext[*util.Progressbar](args, "bar")
 	conf := unwrapOperationContext[*configfile.Configuration](args, "conf")
 	repo := unwrapOperationContext[configfile.Repository](args, "repo")
 	status := unwrapOperationContext[*operationStatus](args, "status")
-
-	changeProgressbarText(bar, conf, "Checking", repo)
 
 	logger := loggerEntry.WithField("command", "status").WithField("repository", repo.Directory)
 

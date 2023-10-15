@@ -16,7 +16,7 @@ var pullCmd = &cobra.Command{
 	Use:   "pull",
 	Short: "Pull all repositories",
 	Run: func(*cobra.Command, []string) {
-		operationLoop(pullOperation)
+		operationLoop(pullOperation, "Pulled")
 	},
 }
 
@@ -82,12 +82,9 @@ func pullExistingRepository(repo configfile.Repository, status *operationStatus)
 }
 
 func pullOperation(wu pool.WorkUnit, args operationContext) {
-	bar := unwrapOperationContext[*util.Progressbar](args, "bar")
 	conf := unwrapOperationContext[*configfile.Configuration](args, "conf")
 	repo := unwrapOperationContext[configfile.Repository](args, "repo")
 	status := unwrapOperationContext[*operationStatus](args, "status")
-
-	changeProgressbarText(bar, conf, "Pulling", repo)
 
 	logger := loggerEntry.WithField("command", "pull").WithField("repository", repo.Directory)
 
