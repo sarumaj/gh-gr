@@ -194,8 +194,16 @@ func (conf Configuration) Cleanup() {
 
 	defer util.Chdir(conf.AbsoluteDirectoryPath).Popd()
 
+	var tmp Configuration
 	for _, index := range selected {
-		supererrors.Except(os.RemoveAll(untracked[index]), os.ErrNotExist)
+		tmp.Repositories = append(tmp.Repositories, Repository{Directory: untracked[index]})
+	}
+
+	bar := util.NewProgressbar(len(tmp.Repositories))
+	for _, repo := range tmp.Repositories {
+		_ = bar.Describe(c.CheckColors(color.RedString, tmp.GetProgressbarDescriptionForVerb("Removing", repo)))
+		supererrors.Except(os.RemoveAll(repo.Directory), os.ErrNotExist)
+		_ = bar.Inc()
 	}
 
 	_ = supererrors.ExceptFn(supererrors.W(
@@ -318,8 +326,8 @@ func (conf *Configuration) GetProgressbarDescriptionForVerb(verb string, repo Re
 		return strings.TrimPrefix(in, conf.BaseDirectory+"/")
 	}
 
-	maxLength := len(fmt.Sprintf("%s %s", verb, trim(conf.Repositories.LongestName())))
-	description := fmt.Sprintf("%s %s", verb, trim(repo.Directory))
+	maxLength := len(fmt.Sprintf("%s %s...", verb, trim(conf.Repositories.LongestName())))
+	description := fmt.Sprintf("%s %s...", verb, trim(repo.Directory))
 	result := description + strings.Repeat(".", maxLength-len(description))
 
 	return result
@@ -475,7 +483,7 @@ func Import(format string) {
 	if c.IsTerminal(true, true, true) {
 
 		var path string
-		if fileList := util.ListFilesByExtension("." + format); len(fileList) > 0 {
+		if fileList := util.ListFilesByExtension("."+format, 2); len(fileList) > 0 {
 			path = fileList[supererrors.ExceptFn(supererrors.W(
 				prompt.Select(
 					"Select file to import the configuration from:",
