@@ -15,28 +15,26 @@ import (
 )
 
 // Regular expression used to extract last page information from response header.
-var linkRegex = regexp.MustCompile(`<(?P<Link>[^>]+)>;\s*rel="(?P<Type>[^"]+)"`)
+var lastPageLinkRegex = regexp.MustCompile(`<(?P<Link>[^>]+)>;\s*rel="last"`)
 
 // Send HTTP request to fetch first page and retrieve number of pages.
 func getLastPage(responseHeader http.Header) (limit int) {
-	for _, m := range linkRegex.FindAllStringSubmatch(responseHeader.Get("Link"), -1) {
-		if len(m) <= 2 || m[2] != "last" {
-			continue
-		}
-
-		parsed, err := url.Parse(m[1])
-		if err != nil {
-			return
-		}
-
-		page, err := strconv.Atoi(parsed.Query().Get("page"))
-		if err != nil {
-			return
-		}
-
-		return page
+	match := lastPageLinkRegex.FindStringSubmatch(responseHeader.Get("Link"))
+	if len(match) <= 1 {
+		return
 	}
-	return
+
+	parsed, err := url.Parse(match[1])
+	if err != nil {
+		return
+	}
+
+	page, err := strconv.Atoi(parsed.Query().Get("page"))
+	if err != nil {
+		return
+	}
+
+	return page
 }
 
 // Retrieve all elements through paginated requests.
