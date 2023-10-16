@@ -39,6 +39,10 @@ func Chdir(path string) interface{ Popd() } {
 	return popd(current)
 }
 
+func GetHostnameFromPath(path string) string {
+	return hostRegex.ReplaceAllString(path, "$Hostname")
+}
+
 func IntToSizeBytes(s int, unit int64, precision int) string {
 	b := int64(s)
 	if b < unit {
@@ -56,10 +60,6 @@ func IntToSizeBytes(s int, unit int64, precision int) string {
 		float64(b)/float64(div),
 		"kMGTPE"[exp],
 	)
-}
-
-func GetHostnameFromPath(path string) string {
-	return hostRegex.ReplaceAllString(path, "$Hostname")
 }
 
 func ListFilesByExtension(ext string) []string {
