@@ -1,6 +1,7 @@
 package util
 
 import (
+	"bytes"
 	"slices"
 	"sync"
 
@@ -15,6 +16,28 @@ type TablePrinter struct {
 	stdOut   tableprinter.TablePrinter
 	stdErr   tableprinter.TablePrinter
 	records  [][]string
+}
+
+func (t *TablePrinter) align(to int) {
+	if to == 0 {
+		to = len(t.records)
+	}
+
+	var maxLength int
+	for rowId := 0; rowId < to; rowId++ {
+		if len(t.records[rowId]) > maxLength {
+			maxLength = len(t.records[rowId])
+			if rowId > 0 {
+				t.align(rowId)
+			}
+
+			continue
+		}
+
+		for len(t.records[rowId]) < maxLength {
+			t.records[rowId] = append(t.records[rowId], "")
+		}
+	}
 }
 
 func (t *TablePrinter) current() tableprinter.TablePrinter {
@@ -58,6 +81,7 @@ func (t *TablePrinter) EndRow() *TablePrinter {
 func (t *TablePrinter) Print() {
 	current := t.current()
 
+	t.align(0)
 	for _, row := range t.records {
 		for _, field := range row {
 			current.AddField(field, tableprinter.WithTruncate(nil))
@@ -67,6 +91,28 @@ func (t *TablePrinter) Print() {
 	}
 
 	supererrors.Except(current.Render())
+}
+
+func (t *TablePrinter) Sprint() string {
+	c := Console()
+	width, _, _ := c.Size()
+	width = max(width, 40)
+
+	buffer := bytes.NewBuffer(nil)
+	printer := tableprinter.New(buffer, c.IsTerminalOutput(), width)
+
+	t.align(0)
+	for _, row := range t.records {
+		for _, field := range row {
+			printer.AddField(field, tableprinter.WithTruncate(nil))
+		}
+
+		printer.EndRow()
+	}
+
+	supererrors.Except(printer.Render())
+
+	return buffer.String()
 }
 
 func (t *TablePrinter) Sort() *TablePrinter {
