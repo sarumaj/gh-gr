@@ -103,11 +103,13 @@ func initializeOrUpdateConfig(conf *configfile.Configuration, update bool) {
 
 	}
 
-	if !update {
-		conf.SanitizeDirectory()
-	} else {
+	if update {
 		conf.Profiles = nil
 		conf.Repositories = nil
+
+	} else {
+		conf.SanitizeDirectory()
+
 	}
 
 	tokens := configfile.GetTokens()

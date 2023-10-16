@@ -38,7 +38,7 @@ var versionCmd = &cobra.Command{
 			vSuffix = " (latest)"
 
 		case err == nil && (found || latest.Version.GT(current)):
-			vSuffix = " (newer version available: " + latest.Version.String() + ", run \"gh extension upgrade\" to update)"
+			vSuffix = " (newer version available: " + latest.Version.String() + ", run \"gh extension upgrade gr\" to update)"
 
 		}
 

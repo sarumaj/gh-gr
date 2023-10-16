@@ -33,8 +33,7 @@ var Logger = func() *logrus.Logger {
 				switch ctx := frame.String(); {
 
 				case
-					strings.Contains(ctx, "FatalIfError()"),
-					strings.Contains(ctx, "FatalIfErrorOrReturn[...]()"),
+					strings.Contains(ctx, "supererrors.Except"),
 					strings.Contains(ctx, "runtime.main()"),
 					strings.Contains(ctx, "runtime.goexit()"):
 

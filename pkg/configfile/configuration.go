@@ -142,9 +142,8 @@ func (conf Configuration) Authenticate(targetURL *string) {
 
 // Remove local repositories which are not enlisted.
 func (conf Configuration) Cleanup() {
-	util.PathSanitize(&conf.BaseDirectory)
-
 	c := util.Console()
+	interactive := c.IsTerminal(true, true, true)
 
 	untracked := conf.ListUntracked()
 	if len(untracked) == 0 {
@@ -154,7 +153,7 @@ func (conf Configuration) Cleanup() {
 	}
 
 	var selected []int
-	if c.IsTerminal(true, true, true) {
+	if interactive {
 		selected = supererrors.ExceptFn(supererrors.W(
 			prompt.MultiSelect(
 				c.CheckColors(
@@ -172,6 +171,25 @@ func (conf Configuration) Cleanup() {
 	}
 	if len(selected) == 0 {
 		return
+	}
+
+	if interactive {
+		if !supererrors.ExceptFn(supererrors.W(
+			prompt.Confirm(
+				c.CheckColors(
+					color.RedString,
+					"DANGER!!! ",
+				)+fmt.Sprintf("You will delete %d untracked local repositories! Are you sure?", len(selected)),
+				false,
+			),
+		), terminal.InterruptErr) {
+
+			return
+		}
+
+		if supererrors.LastErrorWas(terminal.InterruptErr) {
+			os.Exit(0)
+		}
 	}
 
 	defer util.Chdir(conf.AbsoluteDirectoryPath).Popd()
@@ -312,9 +330,9 @@ func (conf Configuration) ListUntracked() (untracked []string) {
 	util.PathSanitize(&conf.BaseDirectory)
 	defer util.Chdir(conf.AbsoluteDirectoryPath).Popd()
 
-	files := supererrors.ExceptFn(supererrors.W(filepath.Glob(filepath.Join(conf.BaseDirectory, "*"))))
+	files := supererrors.ExceptFn(supererrors.W(filepath.Glob(conf.BaseDirectory + "/*")))
 	if conf.SubDirectories {
-		parents := supererrors.ExceptFn(supererrors.W(filepath.Glob(filepath.Join(conf.BaseDirectory, "*", "*"))))
+		parents := supererrors.ExceptFn(supererrors.W(filepath.Glob(conf.BaseDirectory + "/*/*")))
 		files = append(files, parents...)
 	}
 

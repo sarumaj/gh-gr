@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 
-	color "github.com/fatih/color"
 	git "github.com/go-git/go-git/v5"
 	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
 	util "github.com/sarumaj/gh-gr/pkg/util"
@@ -18,15 +17,11 @@ var statusCmd = &cobra.Command{
 		"Additionally, untracked directories will be listed.",
 	Example: "gh gr status",
 	Run: func(*cobra.Command, []string) {
-		if !configfile.ConfigurationExists() {
-			c := util.Console()
-			util.PrintlnAndExit(c.CheckColors(color.RedString, configfile.ConfigNotFound))
-		}
-
 		operationLoop(statusOperation, "Checked")
-		conf := configfile.Load()
 
+		conf := configfile.Load()
 		status := newOperationStatus()
+
 		for _, f := range conf.ListUntracked() {
 			status.appendErrorRow(f, fmt.Errorf("untracked"))
 		}
@@ -42,6 +37,10 @@ func statusOperation(wu pool.WorkUnit, args operationContext) {
 	status := unwrapOperationContext[*operationStatus](args, "status")
 
 	logger := loggerEntry.WithField("command", "status").WithField("repository", repo.Directory)
+
+	conf.Authenticate(&repo.URL)
+	conf.Authenticate(&repo.ParentURL)
+	logger.Debugf("Authenticated: URL: %t, ParentURL: %t", repo.URL != "", repo.ParentURL != "")
 
 	defer util.Chdir(conf.AbsoluteDirectoryPath).Popd()
 

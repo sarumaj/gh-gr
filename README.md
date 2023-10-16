@@ -36,7 +36,7 @@ $ gh gr --help
 >>   completion  Generate the autocompletion script for the specified shell
 >>   export      Export current configuration to stdout
 >>   help        Help about any command
->>   import      Import configuration from stdin
+>>   import      Import configuration from stdin or a file
 >>   init        Initialize repository mirror
 >>   pull        Pull all repositories
 >>   push        Push all repositories

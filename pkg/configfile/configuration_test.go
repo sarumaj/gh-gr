@@ -59,6 +59,7 @@ func TestConfigurationAuthenticate(t *testing.T) {
 		want string
 	}{
 		{"test#1", "http://example.com", "http://user:token@example.com"},
+		{"test#2", "http://invalid:invalid@example.com", "http://user:token@example.com"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.args
