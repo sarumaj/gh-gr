@@ -111,8 +111,8 @@ func PathSanitize(paths ...*string) {
 
 		*path = filepath.Clean(*path)
 
-		if volume := filepath.VolumeName(*path); volume == "C:" || volume == "c:" {
-			*path = strings.Replace(*path, volume, "", 1)
+		if volume := filepath.VolumeName(*path); strings.EqualFold(volume, "C:") {
+			*path = strings.TrimPrefix(*path, volume)
 		}
 
 		*path = filepath.ToSlash(*path)
