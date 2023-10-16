@@ -18,8 +18,9 @@ var internalVersion string
 var internalBuildDate string
 
 var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Display version information",
+	Use:     "version",
+	Short:   "Display version information",
+	Example: "gh pr version",
 	Run: func(*cobra.Command, []string) {
 		c := util.Console()
 

@@ -1,5 +1,6 @@
 # Custom Dictionary Words
 adressed
+Aivazis
 blang
 configfile
 Cristian
@@ -31,6 +32,7 @@ stderrpath
 stdoutpath
 Storer
 subdirs
+supererrors
 tableprinter
 Teble
 tmpl

@@ -2,7 +2,6 @@ package configfile
 
 import (
 	"fmt"
-	"reflect"
 
 	resources "github.com/sarumaj/gh-gr/pkg/restclient/resources"
 	util "github.com/sarumaj/gh-gr/pkg/util"
@@ -44,7 +43,7 @@ func (p *Profiles) Append(profile *Profile) {
 
 func (p Profiles) Has(profile Profile) bool {
 	for _, own := range p {
-		if reflect.DeepEqual(own, profile) {
+		if own.Host == profile.Host && own.Username == profile.Username {
 			return true
 		}
 	}

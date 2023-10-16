@@ -127,6 +127,50 @@ func (conf Configuration) Authenticate(targetURL *string) {
 	util.PrintlnAndExit(util.Console().CheckColors(color.RedString, AuthenticationFailed, *targetURL, hostname))
 }
 
+func (conf Configuration) Cleanup() {
+	util.PathSanitize(&conf.BaseDirectory)
+
+	c := util.Console()
+
+	untracked := conf.ListUntracked()
+	if len(untracked) == 0 {
+		_ = supererrors.ExceptFn(supererrors.W(
+			fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "No untracked repositories to remove.")),
+		))
+	}
+
+	var selected []int
+	if c.IsTerminal(true, true, true) {
+		selected = supererrors.ExceptFn(supererrors.W(
+			prompt.MultiSelect(
+				c.CheckColors(
+					color.RedString,
+					"DANGER!!! ",
+				)+"Select untracked repositories to remove:",
+				untracked,
+				untracked,
+			),
+		), terminal.InterruptErr)
+
+		if supererrors.LastErrorWas(terminal.InterruptErr) {
+			os.Exit(0)
+		}
+	}
+	if len(selected) == 0 {
+		return
+	}
+
+	defer util.Chdir(conf.AbsoluteDirectoryPath).Popd()
+
+	for _, index := range selected {
+		supererrors.Except(os.RemoveAll(untracked[index]), os.ErrNotExist)
+	}
+
+	_ = supererrors.ExceptFn(supererrors.W(
+		fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "Successfully removed %d untracked repositories from local filesystem.", len(selected))),
+	))
+}
+
 func (conf *Configuration) Copy() *Configuration {
 	n := &Configuration{
 		BaseDirectory:         conf.BaseDirectory,
@@ -242,6 +286,25 @@ func (conf *Configuration) GetProgressbarDescriptionForVerb(verb string, repo Re
 	result := description + strings.Repeat(".", maxLength-len(description))
 
 	return result
+}
+
+func (conf Configuration) ListUntracked() (untracked []string) {
+	util.PathSanitize(&conf.BaseDirectory)
+	defer util.Chdir(conf.AbsoluteDirectoryPath).Popd()
+
+	files := supererrors.ExceptFn(supererrors.W(filepath.Glob(filepath.Join(conf.BaseDirectory, "*"))))
+	if conf.SubDirectories {
+		parents := supererrors.ExceptFn(supererrors.W(filepath.Glob(filepath.Join(conf.BaseDirectory, "*", "*"))))
+		files = append(files, parents...)
+	}
+
+	for _, f := range files {
+		if !IsRepoDir(f, conf.Repositories) {
+			untracked = append(untracked, f)
+		}
+	}
+
+	return
 }
 
 func (conf Configuration) Remove(purge bool) {

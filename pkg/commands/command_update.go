@@ -5,8 +5,9 @@ import (
 )
 
 var updateCmd = &cobra.Command{
-	Use:   "update",
-	Short: "Update configuration",
+	Use:     "update",
+	Short:   "Update configuration",
+	Example: "gh pr update",
 	Run: func(*cobra.Command, []string) {
 		initializeOrUpdateConfig(nil, true)
 	},

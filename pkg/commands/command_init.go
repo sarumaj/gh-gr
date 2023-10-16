@@ -8,7 +8,7 @@ var initCmd = func() *cobra.Command {
 	initCmd := &cobra.Command{
 		Use:   "init",
 		Short: "Initialize repository mirror",
-		Long: "Initialize repositry mirror.\n\n" +
+		Long: "Initialize repository mirror.\n\n" +
 			"Automatically generates a list of repositories a given user has permissions to.\n" +
 			"Supports filtering by repository blob size and with regular expressions.\n" +
 			"Regular expressions support following features:\n\n" +
@@ -24,6 +24,9 @@ var initCmd = func() *cobra.Command {
 			"\t- named back reference \\k'name'\n" +
 			"\t- named ascii character class [[:foo:]]\n" +
 			"\t- conditionals (?(expr)yes|no)\n",
+		Example: "gh gr init " +
+			"--concurrency 100 --timeout \"10s\" " +
+			"--dir \"/home/user/github\" --subdirs --sizelimit $((10*1024*1024)) --include \"(ORG1|ORG2)/.*\" --exclude \"ORG1/REPO1\"",
 		Run: func(*cobra.Command, []string) {
 			// call copy to initialize all empty config fields
 			initializeOrUpdateConfig(configFlags.Copy(), false)

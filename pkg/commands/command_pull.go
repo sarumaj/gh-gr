@@ -13,8 +13,9 @@ import (
 )
 
 var pullCmd = &cobra.Command{
-	Use:   "pull",
-	Short: "Pull all repositories",
+	Use:     "pull",
+	Short:   "Pull all repositories",
+	Example: "gh pr pull",
 	Run: func(*cobra.Command, []string) {
 		operationLoop(pullOperation, "Pulled")
 	},

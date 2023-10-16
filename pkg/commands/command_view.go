@@ -16,6 +16,9 @@ var viewCmd = func() *cobra.Command {
 	viewCmd := &cobra.Command{
 		Use:   "view",
 		Short: "Display current configuration",
+		Long: "Display current configuration.\n\n" +
+			"Different output formats supported.",
+		Example: "gh pr view -f json",
 		Run: func(*cobra.Command, []string) {
 			if !configfile.ConfigurationExists() {
 				c := util.Console()

@@ -1,9 +1,5 @@
 package configfile
 
-import (
-	"reflect"
-)
-
 // Repository holds a repository URL and its local directory equivalent.
 type Repository struct {
 	URL       string `json:"URL" yaml:"URL"`
@@ -24,7 +20,7 @@ func (r *Repositories) Append(repo Repository) {
 
 func (r Repositories) Has(repo Repository) bool {
 	for _, own := range r {
-		if reflect.DeepEqual(own, repo) {
+		if own.URL == repo.URL {
 			return true
 		}
 	}

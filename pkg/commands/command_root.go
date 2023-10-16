@@ -20,6 +20,7 @@ var rootCmd = func() *cobra.Command {
 		Run: func(cmd *cobra.Command, _ []string) {
 			supererrors.Except(cmd.Help())
 		},
+		Example: "gh gr --concurrency 100 --timeout \"20s\" <subcommand>",
 		PersistentPreRun: func(*cobra.Command, []string) {
 			if configfile.ConfigurationExists() {
 				configFlags = configfile.Load()
