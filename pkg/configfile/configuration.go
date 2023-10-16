@@ -24,21 +24,31 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
+// Attribute name to store the configuration inside of the GitHub CLI config.
 const configKey = "gr.conf"
 
-const (
-	AuthenticationFailed = "Authentication for %q failed. Make sure to configure GitHub CLI for %q."
-	ConfigInvalidFormat  = "Invalid format %q. Supported formats are: [%s]."
-	ConfigNotFound       = "No configuration found. Make sure to run 'init' to create initial configuration " +
-		"or run 'import' to import configuration from stdin."
-	ConfigShouldNotExist = "Configuration already exists. " +
-		"Please run 'update' if you want to update your settings. " +
-		"Alternatively, run 'remove' if you want to setup from scratch once again."
-)
+// Message, when authentication fails.
+const AuthenticationFailed = "Authentication for %q failed. Make sure to configure GitHub CLI for %q."
 
+// Message, when unsupported format for config provided.
+const ConfigInvalidFormat = "Invalid format %q. Supported formats are: [%s]."
+
+// Message, when config not found.
+const ConfigNotFound = "No configuration found. Make sure to run 'init' to create initial configuration " +
+	"or run 'import' to import configuration from stdin."
+
+// Message, when config exists, although it should not.
+const ConfigShouldNotExist = "Configuration already exists. " +
+	"Please run 'update' if you want to update your settings. " +
+	"Alternatively, run 'remove' if you want to setup from scratch once again."
+
+// Regular expression used to split URL into components.
 var urlRegex = regexp.MustCompile(`(?P<Schema>[^:]+://)(?P<Creds>[^@]+@)?(?P<Hostpath>.+)`)
+
+// Module logger.
 var loggerEntry = util.Logger.WithFields(logrus.Fields{"mod": "configfile"})
 
+// Prompter for interactive shell.
 var prompt = func() *prompter.Prompter { c := util.Console(); return prompter.New(c.Stdin(), c.Stdout(), c.Stderr()) }()
 
 // Configuration holds gr configuration data
@@ -56,6 +66,7 @@ type Configuration struct {
 	Repositories          Repositories  `json:"repositories" yaml:"repositories"`
 }
 
+// Append multiple repositories and sort them alphabetically by Directory.
 func (conf *Configuration) AppendRepositories(user *resources.User, repos ...resources.Repository) {
 	for _, repo := range repos {
 		dir := repo.FullName
@@ -96,6 +107,8 @@ func (conf *Configuration) AppendRepositories(user *resources.User, repos ...res
 	loggerEntry.Debugf("Configured %d repositories", conf.Total)
 }
 
+// Encode username and token into URL.
+// In the case, no matching token can be found for given URL, emit message and exit.
 func (conf Configuration) Authenticate(targetURL *string) {
 	loggerEntry.Debugf("Authenticating URL: %v", targetURL)
 	if targetURL == nil || *targetURL == "" || !urlRegex.MatchString(*targetURL) {
@@ -127,6 +140,7 @@ func (conf Configuration) Authenticate(targetURL *string) {
 	util.PrintlnAndExit(util.Console().CheckColors(color.RedString, AuthenticationFailed, *targetURL, hostname))
 }
 
+// Remove local repositories which are not enlisted.
 func (conf Configuration) Cleanup() {
 	util.PathSanitize(&conf.BaseDirectory)
 
@@ -171,6 +185,7 @@ func (conf Configuration) Cleanup() {
 	))
 }
 
+// Clone config.
 func (conf *Configuration) Copy() *Configuration {
 	n := &Configuration{
 		BaseDirectory:         conf.BaseDirectory,
@@ -194,6 +209,8 @@ func (conf *Configuration) Copy() *Configuration {
 	return n
 }
 
+// Flush config into Stdout.
+// Supports multiple formats and partial emission (if !export).
 func (conf Configuration) Display(format string, export bool) {
 	reader, writer := io.Pipe()
 	c := util.Console()
@@ -221,7 +238,6 @@ func (conf Configuration) Display(format string, export bool) {
 		_ = supererrors.ExceptFn(supererrors.W(fmt.Fprintln(c.Stdout(), scanner.Text())))
 
 		if interactive && iter > 0 && iter%noLines == 0 {
-
 			_ = supererrors.ExceptFn(supererrors.W(
 				fmt.Fprint(c.Stdout(), c.CheckColors(color.BlueString, "(more:)")),
 			))
@@ -249,6 +265,8 @@ func (conf Configuration) Display(format string, export bool) {
 	}
 }
 
+// Filter repositories.
+// Applied filters: included || !excluded || size below x || archived || disabled || !pullPermission || !pushPermission.
 func (conf *Configuration) FilterRepositories(repositories *[]resources.Repository) {
 	for index, total := 0, len(*repositories); index < total; index++ {
 		switch repo := (*repositories)[index]; {
@@ -275,6 +293,7 @@ func (conf *Configuration) FilterRepositories(repositories *[]resources.Reposito
 	}
 }
 
+// Produce progressbar description considering the length of the repository with the longest name.
 func (conf *Configuration) GetProgressbarDescriptionForVerb(verb string, repo Repository) string {
 	trim := func(in string) string {
 		util.PathSanitize(&in, &conf.BaseDirectory)
@@ -288,6 +307,7 @@ func (conf *Configuration) GetProgressbarDescriptionForVerb(verb string, repo Re
 	return result
 }
 
+// List local repositories which are not enlisted any longer.
 func (conf Configuration) ListUntracked() (untracked []string) {
 	util.PathSanitize(&conf.BaseDirectory)
 	defer util.Chdir(conf.AbsoluteDirectoryPath).Popd()
@@ -299,7 +319,7 @@ func (conf Configuration) ListUntracked() (untracked []string) {
 	}
 
 	for _, f := range files {
-		if !IsRepoDir(f, conf.Repositories) {
+		if !isRepoDir(f, conf.Repositories) {
 			untracked = append(untracked, f)
 		}
 	}
@@ -307,6 +327,8 @@ func (conf Configuration) ListUntracked() (untracked []string) {
 	return
 }
 
+// Remove config.
+// If purge, remove all local repositories.
 func (conf Configuration) Remove(purge bool) {
 	ghconf := supererrors.ExceptFn(supererrors.W(config.Read()))
 
@@ -369,6 +391,7 @@ func (conf Configuration) Remove(purge bool) {
 	))
 }
 
+// Transform base directory into UNIx style path and set absolute directory path.
 func (conf *Configuration) SanitizeDirectory() {
 	if filepath.IsAbs(conf.BaseDirectory) {
 		conf.AbsoluteDirectoryPath = filepath.Dir(conf.BaseDirectory)
@@ -382,6 +405,7 @@ func (conf *Configuration) SanitizeDirectory() {
 	util.PathSanitize(&conf.BaseDirectory, &conf.AbsoluteDirectoryPath)
 }
 
+// Save configuration into GitHub CLI config.
 func (conf Configuration) Save() {
 	ghconf := supererrors.ExceptFn(supererrors.W(config.Read()))
 
@@ -399,6 +423,7 @@ func (conf Configuration) Save() {
 	))
 }
 
+// Check if configuration exists within GitHub CLI config.
 func ConfigurationExists() bool {
 	c, err := config.Read()
 	if err != nil {
@@ -410,6 +435,7 @@ func ConfigurationExists() bool {
 	return err == nil && len(raw) > 0
 }
 
+// Load configuration from GitHub CLI config.
 func Load() *Configuration {
 	ghconf := supererrors.ExceptFn(supererrors.W(config.Read()))
 	content := supererrors.ExceptFn(supererrors.W(ghconf.Get([]string{configKey})))
@@ -423,6 +449,7 @@ func Load() *Configuration {
 	return &conf
 }
 
+// Import configuration from Stdin or local file.
 func Import(format string) {
 	c := util.Console()
 
@@ -441,6 +468,7 @@ func Import(format string) {
 
 		} else {
 			path = supererrors.ExceptFn(supererrors.W(prompt.Input("Provide path to configuration file:", "")))
+
 		}
 
 		if supererrors.LastErrorWas(terminal.InterruptErr) {

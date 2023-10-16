@@ -21,6 +21,7 @@ var pullCmd = &cobra.Command{
 	},
 }
 
+// Clone remote repository locally.
 func cloneRemoteRepository(repo configfile.Repository, status *operationStatus) (*git.Repository, *git.Worktree, error) {
 	repository, err := git.PlainClone(repo.Directory, false, &git.CloneOptions{
 		URL:               repo.URL,
@@ -40,6 +41,7 @@ func cloneRemoteRepository(repo configfile.Repository, status *operationStatus) 
 	return repository, workTree, nil
 }
 
+// Pull remote repository.
 func pullExistingRepository(repo configfile.Repository, status *operationStatus) (*git.Repository, *git.Worktree, error) {
 	repository, err := openRepository(repo, status)
 	if err != nil {
@@ -82,6 +84,7 @@ func pullExistingRepository(repo configfile.Repository, status *operationStatus)
 	return repository, workTree, nil
 }
 
+// Pull remote repository.
 func pullOperation(wu pool.WorkUnit, args operationContext) {
 	conf := unwrapOperationContext[*configfile.Configuration](args, "conf")
 	repo := unwrapOperationContext[configfile.Repository](args, "repo")
@@ -163,6 +166,7 @@ func pullOperation(wu pool.WorkUnit, args operationContext) {
 	status.appendStatusRow(repo.Directory, "ok")
 }
 
+// Pull GitHub submodule.
 func pullSubmodule(submodule *git.Submodule) error {
 	status, err := submodule.Status()
 	if err != nil {
@@ -230,6 +234,7 @@ func pullSubmodule(submodule *git.Submodule) error {
 	return nil
 }
 
+// Set username and email in the repository config.
 func updateRepoConfig(conf *configfile.Configuration, host string, repository *git.Repository) error {
 	repoConf, err := repository.Config()
 	if err != nil {

@@ -12,12 +12,14 @@ type Repository struct {
 
 type Repositories []Repository
 
+// Append repository (only if not present).
 func (r *Repositories) Append(repo Repository) {
 	if !r.Has(repo) {
 		*r = append(*r, repo)
 	}
 }
 
+// Check if repo is enlisted (URL is considered to be unique).
 func (r Repositories) Has(repo Repository) bool {
 	for _, own := range r {
 		if own.URL == repo.URL {
@@ -28,6 +30,7 @@ func (r Repositories) Has(repo Repository) bool {
 	return false
 }
 
+// Get the name of the repository with the longest name.
 func (r Repositories) LongestName() string {
 	var name string
 	for _, own := range r {

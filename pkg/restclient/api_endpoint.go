@@ -15,8 +15,10 @@ const (
 	userReposEp = apiEndpoint("user/repos")
 )
 
+// Helper for storing API endpoints.
 type apiEndpoint string
 
+// Replace the {KEY} placeholders with values from a map.
 func (s apiEndpoint) Format(params map[string]any) apiEndpoint {
 	o := s
 	for k, v := range params {

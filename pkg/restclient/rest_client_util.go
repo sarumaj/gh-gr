@@ -14,8 +14,10 @@ import (
 	pool "gopkg.in/go-playground/pool.v3"
 )
 
+// Regular expression used to extract last page information from response header.
 var linkRegex = regexp.MustCompile(`<(?P<Link>[^>]+)>;\s*rel="(?P<Type>[^"]+)"`)
 
+// Send HTTP request to fetch first page and retrieve number of pages.
 func getLastPage(responseHeader http.Header) (limit int) {
 	for _, m := range linkRegex.FindAllStringSubmatch(responseHeader.Get("Link"), -1) {
 		if len(m) <= 2 || m[2] != "last" {
@@ -37,6 +39,7 @@ func getLastPage(responseHeader http.Header) (limit int) {
 	return
 }
 
+// Retrieve all elements through paginated requests.
 func getPaged[T any](c RESTClient, ep apiEndpoint, ctx context.Context) (result []T, err error) {
 	resp, err := c.RequestWithContext(
 		ctx,
@@ -84,6 +87,7 @@ func getPaged[T any](c RESTClient, ep apiEndpoint, ctx context.Context) (result 
 	return
 }
 
+// Worker to send paginated requests.
 func getPagedWorkUnit[T any](c RESTClient, ep apiEndpoint, ctx context.Context, page int) pool.WorkFunc {
 	return func(wu pool.WorkUnit) (any, error) {
 		defer c.Inc()
@@ -114,6 +118,7 @@ func getPagedWorkUnit[T any](c RESTClient, ep apiEndpoint, ctx context.Context, 
 	}
 }
 
+// Unmarshal first page of paginated response.
 func unmarshalListHead[T any](response *http.Response) ([]T, error) {
 	if response.Body == nil {
 		return nil, nil

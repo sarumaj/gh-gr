@@ -19,6 +19,7 @@ import (
 	logrus "github.com/sirupsen/logrus"
 )
 
+// Write git alias commands into local repository config file.
 func addGitAliases() error {
 	var ga []struct {
 		Alias   string `json:"alias"`
@@ -65,6 +66,7 @@ func addGitAliases() error {
 	return nil
 }
 
+// Change progressbar description for given repository.
 func changeProgressbarText(bar *util.Progressbar, conf *configfile.Configuration, verb string, repo configfile.Repository) {
 	if bar != nil && conf != nil {
 		c := util.Console()
@@ -72,6 +74,7 @@ func changeProgressbarText(bar *util.Progressbar, conf *configfile.Configuration
 	}
 }
 
+// Initialize new configuration or update existing one.
 func initializeOrUpdateConfig(conf *configfile.Configuration, update bool) {
 	var logger *logrus.Entry
 	if update {
@@ -147,6 +150,7 @@ func initializeOrUpdateConfig(conf *configfile.Configuration, update bool) {
 	conf.Save()
 }
 
+// Open local repository.
 func openRepository(repo configfile.Repository, status *operationStatus) (*git.Repository, error) {
 	switch repository, err := git.PlainOpen(repo.Directory); {
 
@@ -164,6 +168,7 @@ func openRepository(repo configfile.Repository, status *operationStatus) (*git.R
 	}
 }
 
+// Update configFlags from loaded configuration.
 func updateConfigFlags() {
 	var conf *configfile.Configuration
 	if configfile.ConfigurationExists() {

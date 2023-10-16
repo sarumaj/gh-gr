@@ -11,6 +11,7 @@ import (
 	tracerr "github.com/ztrue/tracerr"
 )
 
+// App logger (default format JSON).
 var Logger = func() *logrus.Logger {
 	l := logrus.New()
 	l.SetLevel(logrus.WarnLevel)
@@ -58,6 +59,7 @@ var Logger = func() *logrus.Logger {
 	return l
 }()
 
+// Print to Stdout and exit.
 func PrintlnAndExit(format string, a ...any) {
 	c := Console()
 	_ = supererrors.ExceptFn(supererrors.W(fmt.Fprintln(c.Stderr(), c.CheckColors(color.RedString, format, a...))))

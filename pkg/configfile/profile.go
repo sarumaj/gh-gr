@@ -7,6 +7,7 @@ import (
 	util "github.com/sarumaj/gh-gr/pkg/util"
 )
 
+// Profile holds the context of authenticated user profile.
 type Profile struct {
 	Username string `json:"username" yaml:"username"`
 	Fullname string `json:"fullname" yaml:"fullname"`
@@ -14,6 +15,7 @@ type Profile struct {
 	Host     string `json:"host" yaml:"host"`
 }
 
+// Create new profile for given GitHub user and host.
 func NewProfile(user *resources.User, host string) *Profile {
 	profile := &Profile{
 		Username: user.Login,
@@ -35,12 +37,14 @@ func NewProfile(user *resources.User, host string) *Profile {
 
 type Profiles []Profile
 
+// Append profile (only if not present).
 func (p *Profiles) Append(profile *Profile) {
 	if profile != nil && !p.Has(*profile) {
 		*p = append(*p, *profile)
 	}
 }
 
+// Check if profile is enlisted (Username and Host are considered to be unique).
 func (p Profiles) Has(profile Profile) bool {
 	for _, own := range p {
 		if own.Host == profile.Host && own.Username == profile.Username {
@@ -51,6 +55,7 @@ func (p Profiles) Has(profile Profile) bool {
 	return false
 }
 
+// Map profiles to hosts: <host> => <Profile>.
 func (p Profiles) ToMap() map[string]Profile {
 	m := make(map[string]Profile)
 	for _, profile := range p {

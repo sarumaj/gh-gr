@@ -5,15 +5,19 @@ blang
 configfile
 Cristian
 Debugf
+dlclark
 exluded
 fatih
 fslock
 Fullname
 ghconf
+goccy
 Henzel
 Hostpath
+jsoncolor
 logrus
 MGTPE
+neilotoole
 noreply
 popd
 Progressbar
@@ -37,6 +41,7 @@ tableprinter
 Teble
 tmpl
 tracerr
+Uncolorize
 Unpatch
 Warnf
 worktree
