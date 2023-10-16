@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	color "github.com/fatih/color"
 	git "github.com/go-git/go-git/v5"
@@ -103,6 +102,9 @@ func initializeOrUpdateConfig(conf *configfile.Configuration, update bool) {
 
 	if !update {
 		conf.SanitizeDirectory()
+	} else {
+		conf.Profiles = nil
+		conf.Repositories = nil
 	}
 
 	tokens := configfile.GetTokens()
@@ -143,18 +145,6 @@ func initializeOrUpdateConfig(conf *configfile.Configuration, update bool) {
 	}
 
 	conf.Save()
-}
-
-func isRepoDir(path string, repos []configfile.Repository) bool {
-	util.PathSanitize(&path)
-	for _, r := range repos {
-		util.PathSanitize(&r.Directory)
-		if strings.HasPrefix(r.Directory+"/", path+"/") {
-			return true
-		}
-	}
-
-	return false
 }
 
 func openRepository(repo configfile.Repository, status *operationStatus) (*git.Repository, error) {

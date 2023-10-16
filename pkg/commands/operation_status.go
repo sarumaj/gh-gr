@@ -9,14 +9,6 @@ import (
 
 type operationStatus struct{ *util.TablePrinter }
 
-func (p operationStatus) appendErrorRow(name string, err error) {
-	if err == nil {
-		return
-	}
-
-	_ = p.AddField(name).AddField(err.Error(), color.FgRed).EndRow()
-}
-
 func (p operationStatus) appendCustomRow(name string, args ...any) {
 	_ = p.AddField(name)
 
@@ -36,6 +28,14 @@ func (p operationStatus) appendCustomRow(name string, args ...any) {
 	}
 
 	_ = p.EndRow()
+}
+
+func (p operationStatus) appendErrorRow(name string, err error) {
+	if err == nil {
+		return
+	}
+
+	_ = p.AddField(name).AddField(err.Error(), color.FgRed).EndRow()
 }
 
 func (p operationStatus) appendStatusRow(name, status string) {

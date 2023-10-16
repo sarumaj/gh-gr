@@ -2,54 +2,51 @@ package commands
 
 import (
 	"fmt"
-	"path/filepath"
 
 	git "github.com/go-git/go-git/v5"
 	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
 	util "github.com/sarumaj/gh-gr/pkg/util"
-	supererrors "github.com/sarumaj/go-super/errors"
 	cobra "github.com/spf13/cobra"
 	pool "gopkg.in/go-playground/pool.v3"
 )
 
-var statusCmd = &cobra.Command{
-	Use:   "status",
-	Short: "Show status for all repositories",
-	Run: func(*cobra.Command, []string) {
-		operationLoop(statusOperation, "Checked")
-		supererrors.Except(runLocalStatus())
-	},
-}
+var statusCmd = func() *cobra.Command {
+	var purgeUntracked bool
 
-func runLocalStatus() error {
-	conf := configfile.Load()
-	util.PathSanitize(&conf.BaseDirectory)
+	statusCmd := &cobra.Command{
+		Use:   "status",
+		Short: "Show status for all repositories",
+		Long: "Show status for all repositories.\n\n" +
+			"Per default untracked directories will be only listed.\n" +
+			"To clean up untracked directories, provide the \"--cleanup\" option.",
+		Example: "gh gr status --cleanup",
+		Run: func(*cobra.Command, []string) {
+			logger := loggerEntry.WithField("command", "status")
 
-	files, err := filepath.Glob(conf.BaseDirectory + "/*")
-	if err != nil {
-		return err
+			operationLoop(statusOperation, "Checked")
+			conf := configfile.Load()
+
+			logger.Debugf("Purge untracked: %t", purgeUntracked)
+			if !purgeUntracked {
+				status := newOperationStatus()
+
+				for _, f := range conf.ListUntracked() {
+					status.appendErrorRow(f, fmt.Errorf("untracked"))
+				}
+
+				status.Sort().Print()
+				return
+			}
+
+			conf.Cleanup()
+		},
 	}
 
-	if conf.SubDirectories {
-		parents, err := filepath.Glob(conf.BaseDirectory + "/*/*")
-		if err != nil {
-			return err
-		}
+	flags := statusCmd.Flags()
+	flags.BoolVar(&purgeUntracked, "cleanup", false, "Remove untracked directories")
 
-		files = append(files, parents...)
-	}
-
-	status := newOperationStatus()
-	for _, f := range files {
-		if !isRepoDir(f, conf.Repositories) {
-			status.appendErrorRow(f, fmt.Errorf("untracked"))
-		}
-	}
-
-	status.Sort().Print()
-
-	return nil
-}
+	return statusCmd
+}()
 
 func statusOperation(wu pool.WorkUnit, args operationContext) {
 	conf := unwrapOperationContext[*configfile.Configuration](args, "conf")

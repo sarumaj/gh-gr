@@ -13,8 +13,9 @@ import (
 )
 
 var pushCmd = &cobra.Command{
-	Use:   "push",
-	Short: "Push all repositories",
+	Use:     "push",
+	Short:   "Push all repositories",
+	Example: "gh pr push",
 	Run: func(*cobra.Command, []string) {
 		operationLoop(pushOperation, "Pushed")
 	},

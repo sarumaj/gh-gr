@@ -13,6 +13,9 @@ var removeCmd = func() *cobra.Command {
 	removeCmd := &cobra.Command{
 		Use:   "remove",
 		Short: "Remove current configuration",
+		Long: "Remove current configuration.\n\n" +
+			"To remove local repositories as well, provide the \"--purge\" option.",
+		Example: "gh gr remove --purge",
 		Run: func(*cobra.Command, []string) {
 			if !configfile.ConfigurationExists() {
 				c := util.Console()
@@ -28,7 +31,7 @@ var removeCmd = func() *cobra.Command {
 	}
 
 	flags := removeCmd.Flags()
-	flags.BoolVarP(&purge, "purge", "p", false, "DANGER!!! Purge directory with local repositories")
+	flags.BoolVar(&purge, "purge", false, "DANGER!!! Purge directory with local repositories")
 
 	return removeCmd
 }()

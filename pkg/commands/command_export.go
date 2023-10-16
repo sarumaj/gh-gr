@@ -16,6 +16,9 @@ var exportCmd = func() *cobra.Command {
 	exportCmd := &cobra.Command{
 		Use:   "export",
 		Short: "Export current configuration to stdout",
+		Long: "Export current configuration to stdout.\n\n" +
+			"Different output formats supported.",
+		Example: " gh gr export --format yaml > export.yaml",
 		Run: func(*cobra.Command, []string) {
 			if !configfile.ConfigurationExists() {
 				c := util.Console()

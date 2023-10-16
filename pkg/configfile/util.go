@@ -1,6 +1,8 @@
 package configfile
 
 import (
+	"strings"
+
 	auth "github.com/cli/go-gh/v2/pkg/auth"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 )
@@ -29,6 +31,18 @@ func GetTokens() map[string]string {
 	}
 
 	return tokens
+}
+
+func IsRepoDir(path string, repos []Repository) bool {
+	util.PathSanitize(&path)
+	for _, r := range repos {
+		util.PathSanitize(&r.Directory)
+		if strings.HasPrefix(r.Directory+"/", path+"/") {
+			return true
+		}
+	}
+
+	return false
 }
 
 func newBinaryProgressbar() *util.Progressbar {
