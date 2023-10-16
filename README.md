@@ -32,6 +32,7 @@ $ gh gr --help
 >>   gr [command]
 >> 
 >> Available Commands:
+>>   cleanup     Clean up untracked local repositories
 >>   completion  Generate the autocompletion script for the specified shell
 >>   export      Export current configuration to stdout
 >>   help        Help about any command
@@ -49,7 +50,6 @@ $ gh gr --help
 >>   -c, --concurrency uint   Concurrency for concurrent jobs (default 12)
 >>   -h, --help               help for gr
 >>   -t, --timeout duration   Set timeout for long running jobs (default 10m0s)
->>   -v, --verbose            Print verbose logs
 >> 
 >> Use "gr [command] --help" for more information about a command.
 ```

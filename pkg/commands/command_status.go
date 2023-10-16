@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 
+	color "github.com/fatih/color"
 	git "github.com/go-git/go-git/v5"
 	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
 	util "github.com/sarumaj/gh-gr/pkg/util"
@@ -10,43 +11,29 @@ import (
 	pool "gopkg.in/go-playground/pool.v3"
 )
 
-var statusCmd = func() *cobra.Command {
-	var purgeUntracked bool
+var statusCmd = &cobra.Command{
+	Use:   "status",
+	Short: "Show status for all repositories",
+	Long: "Show status for all repositories.\n\n" +
+		"Additionally, untracked directories will be listed.",
+	Example: "gh gr status",
+	Run: func(*cobra.Command, []string) {
+		if !configfile.ConfigurationExists() {
+			c := util.Console()
+			util.PrintlnAndExit(c.CheckColors(color.RedString, configfile.ConfigNotFound))
+		}
 
-	statusCmd := &cobra.Command{
-		Use:   "status",
-		Short: "Show status for all repositories",
-		Long: "Show status for all repositories.\n\n" +
-			"Per default untracked directories will be only listed.\n" +
-			"To clean up untracked directories, provide the \"--cleanup\" option.",
-		Example: "gh gr status --cleanup",
-		Run: func(*cobra.Command, []string) {
-			logger := loggerEntry.WithField("command", "status")
+		operationLoop(statusOperation, "Checked")
+		conf := configfile.Load()
 
-			operationLoop(statusOperation, "Checked")
-			conf := configfile.Load()
+		status := newOperationStatus()
+		for _, f := range conf.ListUntracked() {
+			status.appendErrorRow(f, fmt.Errorf("untracked"))
+		}
 
-			logger.Debugf("Purge untracked: %t", purgeUntracked)
-			if !purgeUntracked {
-				status := newOperationStatus()
-
-				for _, f := range conf.ListUntracked() {
-					status.appendErrorRow(f, fmt.Errorf("untracked"))
-				}
-
-				status.Sort().Print()
-				return
-			}
-
-			conf.Cleanup()
-		},
-	}
-
-	flags := statusCmd.Flags()
-	flags.BoolVar(&purgeUntracked, "cleanup", false, "Remove untracked directories")
-
-	return statusCmd
-}()
+		status.Sort().Print()
+	},
+}
 
 func statusOperation(wu pool.WorkUnit, args operationContext) {
 	conf := unwrapOperationContext[*configfile.Configuration](args, "conf")
