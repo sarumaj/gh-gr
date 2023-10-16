@@ -69,11 +69,15 @@ func IntToSizeBytes(s int, unit int64, precision int) string {
 }
 
 // List files in current working directory matching given extension (extension has to start with a dot).
-func ListFilesByExtension(ext string) []string {
+func ListFilesByExtension(ext string, depth int) []string {
 	var fileList []string
 	supererrors.Except(filepath.Walk(".", func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
+		}
+
+		if depth > 0 && strings.Count(filepath.ToSlash(path), "/") > depth {
+			return nil
 		}
 
 		if !info.IsDir() && filepath.Ext(path) == ext {
