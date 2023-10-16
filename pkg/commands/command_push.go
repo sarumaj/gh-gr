@@ -21,6 +21,7 @@ var pushCmd = &cobra.Command{
 	},
 }
 
+// Push local repository.
 func pushOperation(wu pool.WorkUnit, args operationContext) {
 	conf := unwrapOperationContext[*configfile.Configuration](args, "conf")
 	repo := unwrapOperationContext[configfile.Repository](args, "repo")
@@ -39,6 +40,7 @@ func pushOperation(wu pool.WorkUnit, args operationContext) {
 	status.appendStatusRow(repo.Directory, "ok")
 }
 
+// Push local repository.
 func pushRepository(repo configfile.Repository, status *operationStatus) error {
 	repository, err := openRepository(repo, status)
 	if err != nil {

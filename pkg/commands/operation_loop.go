@@ -9,6 +9,7 @@ import (
 	pool "gopkg.in/go-playground/pool.v3"
 )
 
+// Wrapper for repository operations (e.g. pull, push, status).
 func operationLoop(fn func(pool.WorkUnit, operationContext), verb string) {
 	logger := loggerEntry
 	bar := util.NewProgressbar(100)

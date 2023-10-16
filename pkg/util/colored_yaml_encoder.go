@@ -12,14 +12,17 @@ import (
 	"github.com/goccy/go-yaml/printer"
 )
 
+// Regular expression for matching ANSI code sequences for color codes.
 var colorSequenceRegex = regexp.MustCompile(regexp.QuoteMeta(CSI) + fmt.Sprintf("[^%[1]s]+%[1]s", CCT))
 
+// Custom encoder to produce colored YAML output.
 type coloredYAMLEncoder struct {
 	b *bytes.Buffer
 	w io.Writer
 	*yaml.Encoder
 }
 
+// Encode YAML and colorize output.
 func (enc *coloredYAMLEncoder) Encode(v any) error {
 	if err := enc.Encoder.Encode(v); err != nil {
 		return err
@@ -47,6 +50,7 @@ func (enc *coloredYAMLEncoder) Encode(v any) error {
 	return err
 }
 
+// Helper to produce color config for YAML property.
 func makeColoredProperty(c color.Attribute) func() *printer.Property {
 	return func() *printer.Property {
 		return &printer.Property{
@@ -56,6 +60,7 @@ func makeColoredProperty(c color.Attribute) func() *printer.Property {
 	}
 }
 
+// Create new colorful YAML encoder for given writer.
 func NewColoredYAMLEncoder(w io.Writer, opts ...yaml.EncodeOption) *coloredYAMLEncoder {
 	buffer := bytes.NewBuffer(nil)
 	return &coloredYAMLEncoder{
@@ -65,6 +70,7 @@ func NewColoredYAMLEncoder(w io.Writer, opts ...yaml.EncodeOption) *coloredYAMLE
 	}
 }
 
+// For future use to uncolorize content of a reader.
 func UncolorizeReader(r io.Reader) (io.Reader, error) {
 	raw, err := io.ReadAll(r)
 	if err != nil {

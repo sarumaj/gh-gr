@@ -10,6 +10,7 @@ import (
 	supererrors "github.com/sarumaj/go-super/errors"
 )
 
+// Table printer prints text in padded, tabular form.
 type TablePrinter struct {
 	sync.RWMutex
 	isStdErr bool
@@ -18,6 +19,7 @@ type TablePrinter struct {
 	records  [][]string
 }
 
+// Make sure all records are of equal size.
 func (t *TablePrinter) align(to int) {
 	if to == 0 {
 		to = len(t.records)
@@ -40,6 +42,7 @@ func (t *TablePrinter) align(to int) {
 	}
 }
 
+// Get current printer.
 func (t *TablePrinter) current() tableprinter.TablePrinter {
 	t.RLock()
 	defer t.RUnlock()
@@ -51,6 +54,7 @@ func (t *TablePrinter) current() tableprinter.TablePrinter {
 	return t.stdOut
 }
 
+// Add record.
 func (t *TablePrinter) AddField(field string, colors ...color.Attribute) *TablePrinter {
 	t.Lock()
 	defer t.Unlock()
@@ -69,6 +73,7 @@ func (t *TablePrinter) AddField(field string, colors ...color.Attribute) *TableP
 	return t
 }
 
+// End row (new line).
 func (t *TablePrinter) EndRow() *TablePrinter {
 	t.Lock()
 	defer t.Unlock()
@@ -78,6 +83,7 @@ func (t *TablePrinter) EndRow() *TablePrinter {
 	return t
 }
 
+// Print to Stdout.
 func (t *TablePrinter) Print() {
 	current := t.current()
 
@@ -93,6 +99,7 @@ func (t *TablePrinter) Print() {
 	supererrors.Except(current.Render())
 }
 
+// Print through a buffer to deliver rendered string.
 func (t *TablePrinter) Sprint() string {
 	c := Console()
 	width, _, _ := c.Size()
@@ -115,6 +122,7 @@ func (t *TablePrinter) Sprint() string {
 	return buffer.String()
 }
 
+// Sort records.
 func (t *TablePrinter) Sort() *TablePrinter {
 	t.Lock()
 	defer t.Unlock()
@@ -138,6 +146,7 @@ func (t *TablePrinter) Sort() *TablePrinter {
 	return t
 }
 
+// Switch between Stdout and Stderr.
 func (t *TablePrinter) SetOutputToStdErr(isStdErr bool) *TablePrinter {
 	t.Lock()
 	defer t.Unlock()
@@ -146,6 +155,7 @@ func (t *TablePrinter) SetOutputToStdErr(isStdErr bool) *TablePrinter {
 	return t
 }
 
+// Create new table printer.
 func NewTablePrinter() *TablePrinter {
 	c := Console()
 	width, _, _ := c.Size()

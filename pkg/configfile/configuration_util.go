@@ -7,6 +7,7 @@ import (
 	util "github.com/sarumaj/gh-gr/pkg/util"
 )
 
+// Retrieve all configured hosts from GitHub CLI.
 func GetHosts() []string {
 	hosts := auth.KnownHosts()
 	if len(hosts) == 0 {
@@ -17,6 +18,7 @@ func GetHosts() []string {
 	return hosts
 }
 
+// Retrieve all authentication tokens for each host from GitHub CLI.
 func GetTokens() map[string]string {
 	tokens := make(map[string]string)
 
@@ -33,7 +35,8 @@ func GetTokens() map[string]string {
 	return tokens
 }
 
-func IsRepoDir(path string, repos []Repository) bool {
+// Check if existing directory is enlisted as GitHub repository.
+func isRepoDir(path string, repos []Repository) bool {
 	util.PathSanitize(&path)
 	for _, r := range repos {
 		util.PathSanitize(&r.Directory)
@@ -45,6 +48,7 @@ func IsRepoDir(path string, repos []Repository) bool {
 	return false
 }
 
+// Create progressbar for binary data stream (unknown length).
 func newBinaryProgressbar() *util.Progressbar {
 	c := util.Console()
 	return util.NewProgressbar(

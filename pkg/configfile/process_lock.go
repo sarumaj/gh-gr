@@ -13,18 +13,24 @@ import (
 	supererrors "github.com/sarumaj/go-super/errors"
 )
 
+// Name of the PID file.
 const pidFile = "gr.pid"
 
+// Message when process with given ID is already running.
 const ProcessAlreadyRunning = "gr is already running (pid: %d). Either kill the process or wait for it to terminate."
 
+// Stores reference to the PID file.
 type processLockFile struct{ *os.File }
 
+// Release lock (close PID file and remove it).
 func (p processLockFile) Unlock() {
 	pidFilePath := p.File.Name()
 	supererrors.Except(p.File.Close(), os.ErrClosed)
 	supererrors.Except(os.Remove(pidFilePath), os.ErrNotExist)
 }
 
+// Record process ID and store it into the PID file.
+// If process is already running, return corresponding message and exit.
 func AcquireProcessIDLock() interface{ Unlock() } {
 	configDir := config.ConfigDir()
 	pidFilePath := filepath.Join(configDir, pidFile)
@@ -33,6 +39,7 @@ func AcquireProcessIDLock() interface{ Unlock() } {
 		raw := supererrors.ExceptFn(supererrors.W(os.ReadFile(pidFilePath)))
 		pid := supererrors.ExceptFn(supererrors.W(strconv.Atoi(string(raw))))
 
+		// correct way to check if process is running: send 0 signal
 		if proc, err := os.FindProcess(int(pid)); err == nil && !errors.Is(proc.Signal(syscall.Signal(0x0)), os.ErrProcessDone) {
 			util.PrintlnAndExit(ProcessAlreadyRunning, proc.Pid)
 

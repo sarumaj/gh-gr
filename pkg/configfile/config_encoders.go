@@ -62,6 +62,7 @@ type (
 	}
 )
 
+// Get list of supported formats.
 func GetListOfSupportedFormats(quote bool) (formats []string) {
 	for format := range supportedEncoders {
 		if quote {

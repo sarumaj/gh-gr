@@ -8,11 +8,7 @@ import (
 	progressbar "github.com/schollz/progressbar/v3"
 )
 
-type Progressbar struct {
-	*progressbar.ProgressBar
-	w io.Writer
-}
-
+// Export option
 type ProgressbarOption = progressbar.Option
 
 var (
@@ -40,31 +36,43 @@ var (
 	UseANSICodes             = progressbar.OptionUseANSICodes
 )
 
+// Custom implementation of progressbar.
+type Progressbar struct {
+	*progressbar.ProgressBar
+	w io.Writer
+}
+
+// Increase progressbar counter by i.
 func (p *Progressbar) Add(i int) *Progressbar {
 	_ = p.ProgressBar.Add(i)
 	return p
 }
 
+// Change max value of progressbar.
 func (p *Progressbar) ChangeMax(max int) *Progressbar {
 	p.ProgressBar.ChangeMax64(int64(max))
 	return p
 }
 
+// Clear state of progressbar.
 func (p *Progressbar) Clear() *Progressbar {
 	_ = p.ProgressBar.Clear()
 	return p
 }
 
+// Set description.
 func (p *Progressbar) Describe(format string, a ...any) *Progressbar {
 	p.ProgressBar.Describe(fmt.Sprintf(format, a...))
 	return p
 }
 
+// Increase state by one.
 func (p *Progressbar) Inc() *Progressbar {
 	_ = p.Add(1)
 	return p
 }
 
+// Create new progressbar with default settings.
 func NewProgressbar(m int, options ...ProgressbarOption) *Progressbar {
 	c := Console()
 	p := &Progressbar{w: c.Stdout()}
