@@ -42,7 +42,8 @@ var versionCmd = &cobra.Command{
 
 		}
 
-		_ = supererrors.ExceptFn(supererrors.W(fmt.Fprintln(c.Stdout(), c.CheckColors(color.BlueString, "gr version: %s", internalVersion+vSuffix))))
+		_ = supererrors.ExceptFn(supererrors.W(fmt.Fprintln(c.Stdout(), c.CheckColors(color.BlueString, "Version: %s", internalVersion+vSuffix))))
 		_ = supererrors.ExceptFn(supererrors.W(fmt.Fprintln(c.Stdout(), c.CheckColors(color.BlueString, "Built at: %s", internalBuildDate))))
+		_ = supererrors.ExceptFn(supererrors.W(fmt.Fprintln(c.Stdout(), c.CheckColors(color.BlueString, "Executable path: %s", util.GetExecutablePath()))))
 	},
 }
