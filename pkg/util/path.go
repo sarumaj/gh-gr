@@ -43,6 +43,21 @@ func Chdir(path string) interface{ Popd() } {
 	return popd(current)
 }
 
+// Get path of the executable that started current gr process.
+func GetExecutablePath() string {
+	executablePath, err := os.Executable()
+	if err != nil {
+		return "unknown"
+	}
+
+	evaluatedPath, err := filepath.EvalSymlinks(executablePath)
+	if err != nil {
+		return executablePath
+	}
+
+	return evaluatedPath
+}
+
 // Extract hostname from path.
 func GetHostnameFromPath(path string) string {
 	return hostRegex.ReplaceAllString(path, "$Hostname")

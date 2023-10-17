@@ -49,9 +49,9 @@ func Execute(version, buildDate string) {
 	internalVersion, internalBuildDate = version, buildDate
 
 	logger := util.Logger
-	logger.Debugf("Version: %s, build date: %s", internalVersion, internalBuildDate)
+	logger.Debugf("Version: %s, build date: %s, executable path: %s", internalVersion, internalBuildDate, util.GetExecutablePath())
 
-	defer configfile.AcquireProcessIDLock().Unlock()
+	defer util.AcquireProcessIDLock().Unlock()
 
 	if err := rootCmd.Execute(); err != nil {
 		logger.Debugf("Execution failed: %v", err)

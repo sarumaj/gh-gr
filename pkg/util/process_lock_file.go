@@ -1,4 +1,4 @@
-package configfile
+package util
 
 import (
 	"errors"
@@ -9,7 +9,6 @@ import (
 	"syscall"
 
 	config "github.com/cli/go-gh/v2/pkg/config"
-	util "github.com/sarumaj/gh-gr/pkg/util"
 	supererrors "github.com/sarumaj/go-super/errors"
 )
 
@@ -35,13 +34,13 @@ func AcquireProcessIDLock() interface{ Unlock() } {
 	configDir := config.ConfigDir()
 	pidFilePath := filepath.Join(configDir, pidFile)
 
-	if util.PathExists(pidFilePath) {
+	if PathExists(pidFilePath) {
 		raw := supererrors.ExceptFn(supererrors.W(os.ReadFile(pidFilePath)))
 		pid := supererrors.ExceptFn(supererrors.W(strconv.Atoi(string(raw))))
 
 		// correct way to check if process is running: send 0 signal
 		if proc, err := os.FindProcess(int(pid)); err == nil && !errors.Is(proc.Signal(syscall.Signal(0x0)), os.ErrProcessDone) {
-			util.PrintlnAndExit(ProcessAlreadyRunning, proc.Pid)
+			PrintlnAndExit(ProcessAlreadyRunning, proc.Pid)
 
 		} else {
 			supererrors.Except(os.Remove(pidFilePath), os.ErrNotExist)
