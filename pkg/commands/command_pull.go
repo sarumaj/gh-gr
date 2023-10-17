@@ -17,7 +17,7 @@ var pullCmd = &cobra.Command{
 	Short:   "Pull all repositories",
 	Example: "gh pr pull",
 	Run: func(*cobra.Command, []string) {
-		operationLoop(pullOperation, "Pulled")
+		operationLoop(pullOperation, "Pull")
 	},
 }
 
@@ -28,13 +28,13 @@ func cloneRemoteRepository(repo configfile.Repository, status *operationStatus) 
 		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
 	})
 	if err != nil {
-		status.appendErrorRow(repo.Directory, err)
+		status.appendRow(repo.Directory, err)
 		return nil, nil, fmt.Errorf("repository %s: %w", repo.Directory, err)
 	}
 
 	workTree, err := repository.Worktree()
 	if err != nil {
-		status.appendErrorRow(repo.Directory, err)
+		status.appendRow(repo.Directory, err)
 		return nil, nil, fmt.Errorf("repository %s: %w", repo.Directory, err)
 	}
 
@@ -50,18 +50,18 @@ func pullExistingRepository(repo configfile.Repository, status *operationStatus)
 
 	workTree, err := repository.Worktree()
 	if err != nil {
-		status.appendErrorRow(repo.Directory, err)
+		status.appendRow(repo.Directory, err)
 		return nil, nil, fmt.Errorf("repository %s: %w", repo.Directory, err)
 	}
 
 	repoStatus, err := workTree.Status()
 	if err != nil {
-		status.appendErrorRow(repo.Directory, err)
+		status.appendRow(repo.Directory, err)
 		return nil, nil, fmt.Errorf("repository %s: %w", repo.Directory, err)
 	}
 
 	if !repoStatus.IsClean() {
-		status.appendErrorRow(repo.Directory, git.ErrWorktreeNotClean)
+		status.appendRow(repo.Directory, git.ErrWorktreeNotClean)
 		return nil, nil, fmt.Errorf("repository %s: %w", repo.Directory, git.ErrWorktreeNotClean)
 	}
 
@@ -70,13 +70,13 @@ func pullExistingRepository(repo configfile.Repository, status *operationStatus)
 	}); {
 
 	case errors.Is(err, git.ErrNonFastForwardUpdate):
-		status.appendErrorRow(repo.Directory, fmt.Errorf("non-fast-forward update"))
+		status.appendRow(repo.Directory, fmt.Errorf("non-fast-forward update"))
 		return nil, nil, fmt.Errorf("repository %s: %w", repo.Directory, err)
 
 	case errors.Is(err, git.NoErrAlreadyUpToDate): // ignore
 
 	case err != nil:
-		status.appendErrorRow(repo.Directory, err)
+		status.appendRow(repo.Directory, err)
 		return nil, nil, fmt.Errorf("repository %s: %w", repo.Directory, err)
 
 	}
@@ -120,7 +120,7 @@ func pullOperation(wu pool.WorkUnit, args operationContext) {
 	submodules, err := workTree.Submodules()
 	if err != nil {
 		logger.Debugf("Failed to retrieve submodules: %v", err)
-		status.appendErrorRow(repo.Directory, err)
+		status.appendRow(repo.Directory, err)
 		return
 	}
 
@@ -128,7 +128,7 @@ func pullOperation(wu pool.WorkUnit, args operationContext) {
 	for _, s := range submodules {
 		if err := pullSubmodule(s); err != nil {
 			logger.Debugf("Failed to pull submodule: %v", err)
-			status.appendErrorRow(repo.Directory, err)
+			status.appendRow(repo.Directory, err)
 			return
 		}
 	}
@@ -137,14 +137,14 @@ func pullOperation(wu pool.WorkUnit, args operationContext) {
 		RefSpecs: []gitconfig.RefSpec{"refs/*:refs/*"},
 	}); err != nil && !errors.Is(err, git.NoErrAlreadyUpToDate) {
 
-		status.appendErrorRow(repo.Directory, err)
+		status.appendRow(repo.Directory, err)
 		return
 	}
 
 	host := util.GetHostnameFromPath(repo.URL)
 	if err := updateRepoConfig(conf, host, repository); err != nil {
 		logger.Debugf("Failed to update repo config: %v", err)
-		status.appendErrorRow(repo.Directory, err)
+		status.appendRow(repo.Directory, err)
 		return
 	}
 
@@ -157,13 +157,13 @@ func pullOperation(wu pool.WorkUnit, args operationContext) {
 		}); err != nil {
 
 			logger.Debugf("Failed to create mirror: %v", err)
-			status.appendErrorRow(repo.Directory, err)
+			status.appendRow(repo.Directory, err)
 			return
 		}
 
 	}
 
-	status.appendStatusRow(repo.Directory, "ok")
+	status.appendRow(repo.Directory, "ok")
 }
 
 // Pull GitHub submodule.

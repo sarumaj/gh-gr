@@ -17,13 +17,13 @@ var statusCmd = &cobra.Command{
 		"Additionally, untracked directories will be listed.",
 	Example: "gh gr status",
 	Run: func(*cobra.Command, []string) {
-		operationLoop(statusOperation, "Checked")
+		operationLoop(statusOperation, "Check")
 
 		conf := configfile.Load()
 		status := newOperationStatus()
 
 		for _, f := range conf.ListUntracked() {
-			status.appendErrorRow(f, fmt.Errorf("untracked"))
+			status.appendRow(f, fmt.Errorf("untracked"))
 		}
 
 		status.Sort().Print()
@@ -47,7 +47,7 @@ func statusOperation(wu pool.WorkUnit, args operationContext) {
 	var ret []any
 	if !util.PathExists(repo.Directory) {
 		logger.Debug("Local repository does not exist")
-		status.appendErrorRow(repo.Directory, fmt.Errorf("absent"))
+		status.appendRow(repo.Directory, fmt.Errorf("absent"))
 		return
 	}
 
@@ -60,7 +60,7 @@ func statusOperation(wu pool.WorkUnit, args operationContext) {
 	head, err := repository.Head()
 	if err != nil {
 		logger.Debugf("Failed to retrieve head: %v", err)
-		status.appendErrorRow(repo.Directory, err)
+		status.appendRow(repo.Directory, err)
 		return
 	}
 
@@ -74,14 +74,14 @@ func statusOperation(wu pool.WorkUnit, args operationContext) {
 	workTree, err := repository.Worktree()
 	if err != nil {
 		logger.Debugf("Failed to retrieve worktree: %v", err)
-		status.appendErrorRow(repo.Directory, err)
+		status.appendRow(repo.Directory, err)
 		return
 	}
 
 	repoStatus, err := workTree.Status()
 	if err != nil {
 		logger.Debugf("Failed to retrieve worktree status: %v", err)
-		status.appendErrorRow(repo.Directory, err)
+		status.appendRow(repo.Directory, err)
 		return
 	}
 
@@ -95,14 +95,14 @@ func statusOperation(wu pool.WorkUnit, args operationContext) {
 	remote, err := repository.Remote(git.DefaultRemoteName)
 	if err != nil {
 		logger.Debugf("Failed to retrieve remote name: %v", err)
-		status.appendErrorRow(repo.Directory, err)
+		status.appendRow(repo.Directory, err)
 		return
 	}
 
 	remoteRef, err := remote.List(&git.ListOptions{})
 	if err != nil {
 		logger.Debugf("Failed to retrieve remote references: %v", err)
-		status.appendErrorRow(repo.Directory, err)
+		status.appendRow(repo.Directory, err)
 		return
 	}
 
@@ -119,5 +119,5 @@ func statusOperation(wu pool.WorkUnit, args operationContext) {
 		}
 	}
 
-	status.appendCustomRow(repo.Directory, ret...)
+	status.appendRow(repo.Directory, ret...)
 }

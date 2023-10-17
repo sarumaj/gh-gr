@@ -10,7 +10,7 @@ import (
 )
 
 // Wrapper for repository operations (e.g. pull, push, status).
-func operationLoop(fn func(pool.WorkUnit, operationContext), verb string) {
+func operationLoop(fn func(pool.WorkUnit, operationContext), verbInfinitive string) {
 	logger := loggerEntry
 	bar := util.NewProgressbar(100)
 
@@ -49,6 +49,7 @@ func operationLoop(fn func(pool.WorkUnit, operationContext), verb string) {
 		}
 	}
 
+	changeProgressbarText(bar, conf, verbInfinitive+"ing", configfile.Repository{})
 	defer util.PreventInterrupt().Stop()
 
 	go func(finished chan<- bool) {
@@ -89,7 +90,7 @@ func operationLoop(fn func(pool.WorkUnit, operationContext), verb string) {
 			continue
 		}
 
-		changeProgressbarText(bar, conf, verb, repo)
+		changeProgressbarText(bar, conf, verbInfinitive+"ed", repo)
 		_ = bar.Inc()
 	}
 
