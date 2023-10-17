@@ -158,11 +158,11 @@ func openRepository(repo configfile.Repository, status *operationStatus) (*git.R
 
 	// If we get ErrRepositoryNotExists here, it means the repo is broken
 	case errors.Is(err, git.ErrRepositoryNotExists):
-		status.appendErrorRow(repo.Directory, fmt.Errorf("broken"))
+		status.appendRow(repo.Directory, fmt.Errorf("broken"))
 		return nil, err
 
 	case err != nil:
-		status.appendErrorRow(repo.Directory, err)
+		status.appendRow(repo.Directory, err)
 		return nil, err
 
 	default:

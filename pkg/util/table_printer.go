@@ -3,7 +3,6 @@ package util
 import (
 	"bytes"
 	"slices"
-	"sync"
 
 	tableprinter "github.com/cli/go-gh/v2/pkg/tableprinter"
 	color "github.com/fatih/color"
@@ -12,41 +11,14 @@ import (
 
 // Table printer prints text in padded, tabular form.
 type TablePrinter struct {
-	sync.RWMutex
 	isStdErr bool
 	stdOut   tableprinter.TablePrinter
 	stdErr   tableprinter.TablePrinter
 	records  [][]string
 }
 
-// Make sure all records are of equal size.
-func (t *TablePrinter) align(to int) {
-	if to == 0 {
-		to = len(t.records)
-	}
-
-	var maxLength int
-	for rowId := 0; rowId < to; rowId++ {
-		if len(t.records[rowId]) > maxLength {
-			maxLength = len(t.records[rowId])
-			if rowId > 0 {
-				t.align(rowId)
-			}
-
-			continue
-		}
-
-		for len(t.records[rowId]) < maxLength {
-			t.records[rowId] = append(t.records[rowId], "")
-		}
-	}
-}
-
 // Get current printer.
 func (t *TablePrinter) current() tableprinter.TablePrinter {
-	t.RLock()
-	defer t.RUnlock()
-
 	if t.isStdErr {
 		return t.stdErr
 	}
@@ -55,10 +27,7 @@ func (t *TablePrinter) current() tableprinter.TablePrinter {
 }
 
 // Add record.
-func (t *TablePrinter) AddField(field string, colors ...color.Attribute) *TablePrinter {
-	t.Lock()
-	defer t.Unlock()
-
+func (t *TablePrinter) AddRowField(field string, colors ...color.Attribute) *TablePrinter {
 	if len(t.records) == 0 {
 		t.records = append(t.records, nil)
 	}
@@ -75,9 +44,6 @@ func (t *TablePrinter) AddField(field string, colors ...color.Attribute) *TableP
 
 // End row (new line).
 func (t *TablePrinter) EndRow() *TablePrinter {
-	t.Lock()
-	defer t.Unlock()
-
 	t.records = append(t.records, nil)
 
 	return t
@@ -87,7 +53,6 @@ func (t *TablePrinter) EndRow() *TablePrinter {
 func (t *TablePrinter) Print() {
 	current := t.current()
 
-	t.align(0)
 	for _, row := range t.records {
 		for _, field := range row {
 			current.AddField(field, tableprinter.WithTruncate(nil))
@@ -108,7 +73,6 @@ func (t *TablePrinter) Sprint() string {
 	buffer := bytes.NewBuffer(nil)
 	printer := tableprinter.New(buffer, c.IsTerminalOutput(), width)
 
-	t.align(0)
 	for _, row := range t.records {
 		for _, field := range row {
 			printer.AddField(field, tableprinter.WithTruncate(nil))
@@ -124,9 +88,6 @@ func (t *TablePrinter) Sprint() string {
 
 // Sort records.
 func (t *TablePrinter) Sort() *TablePrinter {
-	t.Lock()
-	defer t.Unlock()
-
 	slices.SortFunc(t.records, func(a, b []string) int {
 		switch {
 		case len(a)*len(b) > 0 && a[0] == b[0]:
@@ -148,9 +109,6 @@ func (t *TablePrinter) Sort() *TablePrinter {
 
 // Switch between Stdout and Stderr.
 func (t *TablePrinter) SetOutputToStdErr(isStdErr bool) *TablePrinter {
-	t.Lock()
-	defer t.Unlock()
-
 	t.isStdErr = isStdErr
 	return t
 }

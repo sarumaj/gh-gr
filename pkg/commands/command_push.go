@@ -17,7 +17,7 @@ var pushCmd = &cobra.Command{
 	Short:   "Push all repositories",
 	Example: "gh pr push",
 	Run: func(*cobra.Command, []string) {
-		operationLoop(pushOperation, "Pushed")
+		operationLoop(pushOperation, "Push")
 	},
 }
 
@@ -41,7 +41,7 @@ func pushOperation(wu pool.WorkUnit, args operationContext) {
 		return
 	}
 
-	status.appendStatusRow(repo.Directory, "ok")
+	status.appendRow(repo.Directory, "ok")
 }
 
 // Push local repository.
@@ -54,20 +54,20 @@ func pushRepository(repo configfile.Repository, status *operationStatus) error {
 	switch err := repository.Push(&git.PushOptions{}); {
 
 	case errors.Is(err, git.ErrNonFastForwardUpdate):
-		status.appendErrorRow(repo.Directory, fmt.Errorf("non-fast-forward update"))
+		status.appendRow(repo.Directory, fmt.Errorf("non-fast-forward update"))
 		return fmt.Errorf("repository %s: %w", repo.Directory, err)
 
 	case
 		errors.Is(err, transport.ErrAuthenticationRequired),
 		errors.Is(err, transport.ErrAuthorizationFailed):
 
-		status.appendErrorRow(repo.Directory, fmt.Errorf("unauthorized"))
+		status.appendRow(repo.Directory, fmt.Errorf("unauthorized"))
 		return fmt.Errorf("repository %s: %w", repo.Directory, err)
 
 	case errors.Is(err, git.NoErrAlreadyUpToDate): // ignore
 
 	case err != nil:
-		status.appendErrorRow(repo.Directory, err)
+		status.appendRow(repo.Directory, err)
 		return fmt.Errorf("repository %s: %w", repo.Directory, err)
 
 	}
