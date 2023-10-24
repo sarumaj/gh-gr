@@ -83,8 +83,9 @@ func TestConfigurationExists(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var got bool
 			func(got *bool) {
-				guard := monkey.Patch(config.Read, func() (*config.Config, error) { return config.ReadFromString(tt.args), nil })
-				defer guard.Unpatch()
+				backup := configReader
+				defer func() { configReader = backup }()
+				configReader = func() (*config.Config, error) { return config.ReadFromString(tt.args), nil }
 				*got = ConfigurationExists()
 			}(&got)
 
@@ -169,8 +170,9 @@ func TestConfigurationLoad(t *testing.T) {
 				})
 				defer guard.Unpatch()
 
-				guard = monkey.Patch(config.Read, func() (*config.Config, error) { return config.ReadFromString(tt.args), nil })
-				defer guard.Unpatch()
+				backup := configReader
+				defer func() { configReader = backup }()
+				configReader = func() (*config.Config, error) { return config.ReadFromString(tt.args), nil }
 
 				_ = Load()
 			}()
@@ -214,8 +216,9 @@ func TestConfigurationRemove(t *testing.T) {
 				})
 				defer guard.Unpatch()
 
-				guard = monkey.Patch(config.Read, func() (*config.Config, error) { return config.ReadFromString(tt.args), nil })
-				defer guard.Unpatch()
+				backup := configReader
+				defer func() { configReader = backup }()
+				configReader = func() (*config.Config, error) { return config.ReadFromString(tt.args), nil }
 
 				*conf = Load()
 
@@ -258,8 +261,9 @@ func TestConfigurationSave(t *testing.T) {
 				})
 				defer guard.Unpatch()
 
-				guard = monkey.Patch(config.Read, func() (*config.Config, error) { return config.ReadFromString(tt.args), nil })
-				defer guard.Unpatch()
+				backup := configReader
+				defer func() { configReader = backup }()
+				configReader = func() (*config.Config, error) { return config.ReadFromString(tt.args), nil }
 
 				*conf = Load()
 				(*conf).Save()
