@@ -51,6 +51,20 @@ var loggerEntry = util.Logger.WithFields(logrus.Fields{"mod": "configfile"})
 // Prompter for interactive shell.
 var prompt = func() *prompter.Prompter { c := util.Console(); return prompter.New(c.Stdin(), c.Stdout(), c.Stderr()) }()
 
+var configReader = func() func() (*config.Config, error) {
+	switch read := any(config.Read).(type) {
+	case func() (*config.Config, error):
+		return read
+
+	case func(*config.Config) (*config.Config, error):
+		return func() (*config.Config, error) { return read(nil) }
+
+	default:
+		return func() (*config.Config, error) { return nil, fmt.Errorf(`config.Read is of unsupported type: %T`, read) }
+
+	}
+}()
+
 // Configuration holds gr configuration data
 type Configuration struct {
 	BaseDirectory         string        `json:"baseDirectory" yaml:"baseDirectory"`
@@ -356,7 +370,7 @@ func (conf Configuration) ListUntracked() (untracked []string) {
 // Remove config.
 // If purge, remove all local repositories.
 func (conf Configuration) Remove(purge bool) {
-	ghconf := supererrors.ExceptFn(supererrors.W(config.Read()))
+	ghconf := supererrors.ExceptFn(supererrors.W(configReader()))
 
 	supererrors.Except(ghconf.Remove([]string{configKey}))
 	supererrors.Except(config.Write(ghconf))
@@ -433,7 +447,7 @@ func (conf *Configuration) SanitizeDirectory() {
 
 // Save configuration into GitHub CLI config.
 func (conf Configuration) Save() {
-	ghconf := supererrors.ExceptFn(supererrors.W(config.Read()))
+	ghconf := supererrors.ExceptFn(supererrors.W(configReader()))
 
 	c := util.Console()
 	buffer := bytes.NewBuffer(nil)
@@ -451,7 +465,7 @@ func (conf Configuration) Save() {
 
 // Check if configuration exists within GitHub CLI config.
 func ConfigurationExists() bool {
-	c, err := config.Read()
+	c, err := configReader()
 	if err != nil {
 		return false
 	}
@@ -463,7 +477,7 @@ func ConfigurationExists() bool {
 
 // Load configuration from GitHub CLI config.
 func Load() *Configuration {
-	ghconf := supererrors.ExceptFn(supererrors.W(config.Read()))
+	ghconf := supererrors.ExceptFn(supererrors.W(configReader()))
 	content := supererrors.ExceptFn(supererrors.W(ghconf.Get([]string{configKey})))
 
 	var conf Configuration
