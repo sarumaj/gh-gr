@@ -9,7 +9,7 @@ require (
 	github.com/cli/go-gh/v2 v2.4.0
 	github.com/dlclark/regexp2 v1.10.0
 	github.com/fatih/color v1.15.0
-	github.com/go-git/go-git/v5 v5.9.0
+	github.com/go-git/go-git/v5 v5.10.0
 	github.com/goccy/go-json v0.10.2
 	github.com/goccy/go-yaml v1.11.2
 	github.com/neilotoole/jsoncolor v0.6.0

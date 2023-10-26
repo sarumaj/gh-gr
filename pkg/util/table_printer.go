@@ -55,7 +55,7 @@ func (t *TablePrinter) Print() {
 
 	for _, row := range t.records {
 		for _, field := range row {
-			current.AddField(field, tableprinter.WithTruncate(nil))
+			current.AddField(field)
 		}
 
 		current.EndRow()
@@ -75,7 +75,7 @@ func (t *TablePrinter) Sprint() string {
 
 	for _, row := range t.records {
 		for _, field := range row {
-			printer.AddField(field, tableprinter.WithTruncate(nil))
+			printer.AddField(field)
 		}
 
 		printer.EndRow()
