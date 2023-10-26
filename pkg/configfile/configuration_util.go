@@ -51,10 +51,13 @@ func isRepoDir(path string, repos []Repository) bool {
 // Create progressbar for binary data stream (unknown length).
 func newBinaryProgressbar() *util.Progressbar {
 	c := util.Console()
+	width, _, _ := c.Size()
+	width = min(width/10, 20)
+
 	return util.NewProgressbar(
 		-1,
 		util.EnableColorCodes(c.ColorsEnabled()),
-		util.SetWidth(10),
+		util.SetWidth(width),
 		util.ShowBytes(true),
 		util.SetRenderBlankState(true),
 		util.ClearOnFinish(),

@@ -163,7 +163,7 @@ func (conf Configuration) Cleanup() {
 	untracked := conf.ListUntracked()
 	if len(untracked) == 0 {
 		_ = supererrors.ExceptFn(supererrors.W(
-			fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "No untracked repositories to remove.")),
+			fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "No untracked directories to remove.")),
 		))
 	}
 
@@ -194,7 +194,7 @@ func (conf Configuration) Cleanup() {
 				c.CheckColors(
 					color.RedString,
 					"DANGER!!! ",
-				)+fmt.Sprintf("You will delete %d untracked local repositories! Are you sure?", len(selected)),
+				)+fmt.Sprintf("You will delete %d untracked local directories! Are you sure?", len(selected)),
 				false,
 			),
 		), terminal.InterruptErr) {
@@ -222,7 +222,7 @@ func (conf Configuration) Cleanup() {
 	}
 
 	_ = supererrors.ExceptFn(supererrors.W(
-		fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "Successfully removed %d untracked repositories from local filesystem.", len(selected))),
+		fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "Successfully removed %d untracked directories from local filesystem.", len(selected))),
 	))
 }
 

@@ -75,12 +75,15 @@ func (p *Progressbar) Inc() *Progressbar {
 // Create new progressbar with default settings.
 func NewProgressbar(m int, options ...ProgressbarOption) *Progressbar {
 	c := Console()
+	width, _, _ := c.Size()
+	width = min(width/10, 20)
+
 	p := &Progressbar{w: c.Stdout()}
 
 	if options == nil {
 		options = []ProgressbarOption{
 			EnableColorCodes(c.ColorsEnabled()),
-			SetWidth(20),
+			SetWidth(width),
 			ShowCount(),
 			ShowElapsedTimeOnFinish(),
 			ClearOnFinish(),
