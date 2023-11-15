@@ -49,7 +49,10 @@ var urlRegex = regexp.MustCompile(`(?P<Schema>[^:]+://)(?P<Creds>[^@]+@)?(?P<Hos
 var loggerEntry = util.Logger.WithFields(logrus.Fields{"mod": "configfile"})
 
 // Prompter for interactive shell.
-var prompt = func() *prompter.Prompter { c := util.Console(); return prompter.New(c.Stdin(), c.Stdout(), c.Stderr()) }()
+var prompt = func() *prompter.Prompter {
+	c := util.Console()
+	return prompter.New(c.Stdin(), c.Stdout(), c.Stderr())
+}()
 
 // Related to https://github.com/sarumaj/gh-gr/issues/62
 var configReader = func() func() (*config.Config, error) {
