@@ -40,13 +40,9 @@ for ((j = 0; j < ${#supported_platforms[@]}; j++)); do
         -o "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed" \
         "cmd/gh-gr/main.go"
 
-    # since upx does not support win64/arm64 yet
-    # since upx does not work on freebsd with 64 bit arch
-    if [[ "$p" == windows-arm64 ]] || [[ "$p" == freebsd* ]]; then
-        mv "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed" "dist/gh-gr_${VERSION}_${p}${ext}"
-    else
-        upx --best -v "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed" -o "dist/gh-gr_${VERSION}_${p}${ext}" &&
-            rm "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed"
-    fi
+    (
+        upx --best -q -q -v "dist/ldap-cli_${VERSION}_${p}${ext}.uncompressed" -o "dist/ldap-cli_${VERSION}_${p}${ext}" &&
+            rm "dist/ldap-cli_${VERSION}_${p}${ext}.uncompressed"
+    ) || mv "dist/ldap-cli_${VERSION}_${p}${ext}.uncompressed" "dist/ldap-cli_${VERSION}_${p}${ext}"
     sha256sum "dist/gh-gr_${VERSION}_${p}${ext}" | awk '{print $1}' >"dist/gh-gr_${VERSION}_${p}${ext}.sha256"
 done
