@@ -41,9 +41,9 @@ for ((j = 0; j < ${#supported_platforms[@]}; j++)); do
         "cmd/gh-gr/main.go"
 
     (
-        upx --best -q -q -v "dist/ldap-cli_${VERSION}_${p}${ext}.uncompressed" -o "dist/ldap-cli_${VERSION}_${p}${ext}" &&
-            rm "dist/ldap-cli_${VERSION}_${p}${ext}.uncompressed"
-    ) || mv "dist/ldap-cli_${VERSION}_${p}${ext}.uncompressed" "dist/ldap-cli_${VERSION}_${p}${ext}"
+        upx --best -q -q -v "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed" -o "dist/ldap-cli_${VERSION}_${p}${ext}" &&
+            rm "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed"
+    ) || mv "dist/gh-gr_${VERSION}_${p}${ext}.uncompressed" "dist/gh-gr_${VERSION}_${p}${ext}"
 
-    sha256sum "dist/gh-gr_${VERSION}_${p}${ext}" | awk '{print $1}' >"dist/gh-gr_${VERSION}_${p}${ext}.sha256" || true
+    sha256sum "dist/gh-gr_${VERSION}_${p}${ext}" | awk '{print $1}' >"dist/gh-gr_${VERSION}_${p}${ext}.sha256"
 done
