@@ -85,7 +85,7 @@ func pullExistingRepository(repo configfile.Repository, status *operationStatus)
 }
 
 // Pull remote repository.
-func pullOperation(wu pool.WorkUnit, args operationContext) {
+func pullOperation(_ pool.WorkUnit, args operationContext) {
 	conf := unwrapOperationContext[*configfile.Configuration](args, "conf")
 	repo := unwrapOperationContext[configfile.Repository](args, "repo")
 	status := unwrapOperationContext[*operationStatus](args, "status")

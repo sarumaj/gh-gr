@@ -22,7 +22,7 @@ var pushCmd = &cobra.Command{
 }
 
 // Push local repository.
-func pushOperation(wu pool.WorkUnit, args operationContext) {
+func pushOperation(_ pool.WorkUnit, args operationContext) {
 	conf := unwrapOperationContext[*configfile.Configuration](args, "conf")
 	repo := unwrapOperationContext[configfile.Repository](args, "repo")
 	status := unwrapOperationContext[*operationStatus](args, "status")

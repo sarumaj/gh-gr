@@ -31,7 +31,7 @@ var statusCmd = &cobra.Command{
 }
 
 // Check status of local repository.
-func statusOperation(wu pool.WorkUnit, args operationContext) {
+func statusOperation(_ pool.WorkUnit, args operationContext) {
 	conf := unwrapOperationContext[*configfile.Configuration](args, "conf")
 	repo := unwrapOperationContext[configfile.Repository](args, "repo")
 	status := unwrapOperationContext[*operationStatus](args, "status")
