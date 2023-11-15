@@ -44,5 +44,6 @@ for ((j = 0; j < ${#supported_platforms[@]}; j++)); do
         upx --best -q -q -v "dist/ldap-cli_${VERSION}_${p}${ext}.uncompressed" -o "dist/ldap-cli_${VERSION}_${p}${ext}" &&
             rm "dist/ldap-cli_${VERSION}_${p}${ext}.uncompressed"
     ) || mv "dist/ldap-cli_${VERSION}_${p}${ext}.uncompressed" "dist/ldap-cli_${VERSION}_${p}${ext}"
-    sha256sum "dist/gh-gr_${VERSION}_${p}${ext}" | awk '{print $1}' >"dist/gh-gr_${VERSION}_${p}${ext}.sha256"
+
+    sha256sum "dist/gh-gr_${VERSION}_${p}${ext}" | awk '{print $1}' >"dist/gh-gr_${VERSION}_${p}${ext}.sha256" || true
 done
