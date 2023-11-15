@@ -265,7 +265,7 @@ func (conf Configuration) Display(format string, export bool) {
 	if export { // prevent flood of logs into stdout
 		out := util.Logger.Out
 		util.Logger.SetOutput(io.Discard)
-		defer func(w io.Writer) { util.Logger.SetOutput(out) }(out)
+		defer func(w io.Writer) { util.Logger.SetOutput(w) }(out)
 	}
 
 	go func() {

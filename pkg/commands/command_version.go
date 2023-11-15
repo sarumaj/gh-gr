@@ -1,11 +1,12 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 
 	semver "github.com/blang/semver"
+	selfupdate "github.com/creativeprojects/go-selfupdate"
 	color "github.com/fatih/color"
-	selfupdate "github.com/rhysd/go-github-selfupdate/selfupdate"
 	util "github.com/sarumaj/gh-gr/pkg/util"
 	supererrors "github.com/sarumaj/go-super/errors"
 	cobra "github.com/spf13/cobra"
@@ -30,15 +31,15 @@ var versionCmd = &cobra.Command{
 		c := util.Console()
 
 		current := supererrors.ExceptFn(supererrors.W(semver.ParseTolerant(internalVersion)))
-		latest, found, err := selfupdate.DetectLatest(remoteRepository)
+		latest, found, err := selfupdate.DetectLatest(context.Background(), selfupdate.ParseSlug(remoteRepository))
 
 		var vSuffix string
 		switch {
-		case err == nil && (!found || latest.Version.LTE(current)):
+		case err == nil && (!found || latest.LessOrEqual(current.String())):
 			vSuffix = " (latest)"
 
-		case err == nil && (found || latest.Version.GT(current)):
-			vSuffix = " (newer version available: " + latest.Version.String() + ", run \"gh extension upgrade gr\" to update)"
+		case err == nil && (found || latest.GreaterThan(current.String())):
+			vSuffix = " (newer version available: " + latest.Version() + ", run \"gh extension upgrade gr\" to update)"
 
 		}
 
