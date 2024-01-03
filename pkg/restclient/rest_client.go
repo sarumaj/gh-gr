@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"time"
 
 	api "github.com/cli/go-gh/v2/pkg/api"
 	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
@@ -31,7 +32,7 @@ func (c RESTClient) DoWithContext(ctx context.Context, method string, path strin
 }
 
 // Get all repositories for given user and the organizations he belongs to.
-func (c RESTClient) GetAllUserRepos(ctx context.Context) ([]resources.Repository, error) {
+func (c RESTClient) GetAllUserRepos(ctx context.Context, include, exclude util.RegexList) ([]resources.Repository, error) {
 	repos, err := c.GetUserRepos(ctx)
 	if err != nil {
 		return nil, err
@@ -42,7 +43,20 @@ func (c RESTClient) GetAllUserRepos(ctx context.Context) ([]resources.Repository
 		return nil, err
 	}
 
+	timeout := time.Duration(1<<63 - 1)
+	if deadline, ok := ctx.Deadline(); ok {
+		timeout = time.Until(deadline)
+	}
+
 	for _, org := range orgs {
+		switch {
+		case
+			len(include) > 0 && !(include.Match(org.Login+"/someRepository", timeout) || include.Match(org.Login+"/", timeout)),
+			len(exclude) > 0 && (exclude.Match(org.Login+"/someRepository", timeout) || exclude.Match(org.Login+"/", timeout)):
+
+			continue
+		}
+
 		orgRepos, err := c.GetOrgRepos(ctx, org.Login)
 		if err != nil {
 			return nil, err

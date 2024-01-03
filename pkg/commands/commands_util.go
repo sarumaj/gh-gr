@@ -135,7 +135,7 @@ func initializeOrUpdateConfig(conf *configfile.Configuration, update bool) {
 		conf.Profiles.Append(profile)
 		logger.Debugf("Username: %s, name: %s, email: %s", profile.Username, profile.Fullname, profile.Email)
 
-		repos, err := client.GetAllUserRepos(ctx)
+		repos, err := client.GetAllUserRepos(ctx, conf.Included, conf.Excluded)
 		supererrors.Except(err)
 		logger.Debugf("Retrieved %d user repositories", len(repos))
 
