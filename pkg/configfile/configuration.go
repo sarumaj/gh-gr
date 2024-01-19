@@ -168,6 +168,7 @@ func (conf Configuration) Cleanup() {
 		_ = supererrors.ExceptFn(supererrors.W(
 			fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "No untracked directories to remove.")),
 		))
+		return
 	}
 
 	var selected []int
