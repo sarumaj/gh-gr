@@ -95,6 +95,10 @@ func initializeOrUpdateConfig(conf *configfile.Configuration, update bool) {
 	case !exists && update:
 		util.PrintlnAndExit(c.CheckColors(color.RedString, configfile.ConfigNotFound))
 
+	}
+
+	switch {
+
 	case exists && conf == nil:
 		conf = configfile.Load()
 
