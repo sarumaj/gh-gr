@@ -1,3 +1,4 @@
+[![test_and_report](https://github.com/sarumaj/gh-gr/actions/workflows/test_and_report.yml/badge.svg)](https://github.com/sarumaj/gh-gr/actions/workflows/test_and_report.yml)
 [![build_and_release](https://github.com/sarumaj/gh-gr/actions/workflows/build_and_release.yml/badge.svg)](https://github.com/sarumaj/gh-gr/actions/workflows/build_and_release.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/sarumaj/gh-gr)](https://goreportcard.com/report/github.com/sarumaj/gh-gr)
 [![Maintainability](https://img.shields.io/codeclimate/maintainability-percentage/sarumaj/gh-gr.svg)](https://codeclimate.com/github/sarumaj/gh-gr/maintainability)
