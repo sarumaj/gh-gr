@@ -30,7 +30,6 @@ func (p *operationStatus) appendRow(name string, args ...any) {
 
 		case string:
 			p.AddRowField(v, color.FgGreen)
-
 		case error:
 			p.AddRowField(v.Error(), color.FgRed)
 
