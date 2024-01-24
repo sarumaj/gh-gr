@@ -241,15 +241,22 @@ func updateRepoConfig(conf *configfile.Configuration, host string, repository *g
 		return err
 	}
 
-	section := repoConf.Raw.Section("user")
 	profilesMap := conf.Profiles.ToMap()
 	profile, ok := profilesMap[host]
 	if !ok {
 		return fmt.Errorf("no profile for host: %q", host)
 	}
 
-	section.SetOption("name", profile.Fullname)
-	section.SetOption("email", profile.Email)
+	// set commiter and author
+	userSection := repoConf.Raw.Section("user")
+	userSection.SetOption("name", profile.Fullname)
+	userSection.SetOption("email", profile.Email)
+
+	// override remote origin url and remove authentication context
+	remoteOriginSection := repoConf.Raw.Section("remote").Subsection("origin")
+	url := remoteOriginSection.Options.Get("url")
+	conf.Generalize(&url)
+	remoteOriginSection.SetOption("url", url)
 
 	if err := repoConf.Validate(); err != nil {
 		return err
