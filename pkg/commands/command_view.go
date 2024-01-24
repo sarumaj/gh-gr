@@ -14,8 +14,9 @@ var viewCmd = func() *cobra.Command {
 	var formatOption string
 
 	viewCmd := &cobra.Command{
-		Use:   "view",
-		Short: "Display current configuration",
+		Aliases: []string{"show", "list"},
+		Use:     "view",
+		Short:   "Display current configuration",
 		Long: "Display current configuration.\n\n" +
 			"Different output formats supported.",
 		Example: "gh pr view -f json",

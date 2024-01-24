@@ -349,7 +349,7 @@ func (conf Configuration) Generalize(targetURL *string) {
 	loggerEntry.Debugf("Generalizing URL: %s", *targetURL)
 
 	*targetURL = urlRegex.ReplaceAllString(*targetURL, "${Schema}${Hostpath}")
-	loggerEntry.Debugf("Generelized: %s", *targetURL)
+	loggerEntry.Debugf("Generalized: %s", *targetURL)
 }
 
 // Produce progressbar description considering the length of the repository with the longest name.
