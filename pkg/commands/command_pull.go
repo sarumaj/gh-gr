@@ -116,6 +116,14 @@ func pullOperation(_ pool.WorkUnit, args operationContext) {
 		return
 	}
 
+	logger.Debug("Overwriting repo config")
+	host := util.GetHostnameFromPath(repo.URL)
+	if err := updateRepoConfig(conf, host, repository); err != nil {
+		logger.Debugf("Failed to update repo config: %v", err)
+		status.appendRow(repo.Directory, err)
+		return
+	}
+
 	logger.Debug("Retrieving submodules")
 	submodules, err := workTree.Submodules()
 	if err != nil {
@@ -137,13 +145,6 @@ func pullOperation(_ pool.WorkUnit, args operationContext) {
 		RefSpecs: []gitconfig.RefSpec{"refs/*:refs/*"},
 	}); err != nil && !errors.Is(err, git.NoErrAlreadyUpToDate) {
 
-		status.appendRow(repo.Directory, err)
-		return
-	}
-
-	host := util.GetHostnameFromPath(repo.URL)
-	if err := updateRepoConfig(conf, host, repository); err != nil {
-		logger.Debugf("Failed to update repo config: %v", err)
 		status.appendRow(repo.Directory, err)
 		return
 	}
@@ -247,10 +248,26 @@ func updateRepoConfig(conf *configfile.Configuration, host string, repository *g
 		return fmt.Errorf("no profile for host: %q", host)
 	}
 
-	// set commiter and author
-	_ = repoConf.Raw.Section("user").
-		SetOption("name", profile.Fullname).
-		SetOption("email", profile.Email)
+	// set user
+	repoConf.User.Name = profile.Fullname
+	repoConf.User.Email = profile.Email
+
+	// update remote "origin" urls to use current authentication context
+	if cfg, ok := repoConf.Remotes["origin"]; ok {
+		for i := range cfg.URLs {
+			conf.Generalize(&cfg.URLs[i])
+			conf.Authenticate(&cfg.URLs[i])
+		}
+
+		repoConf.Remotes["origin"] = cfg
+	}
+
+	// update submodules urls to use current authentication context
+	for name, cfg := range repoConf.Submodules {
+		conf.Generalize(&cfg.URL)
+		conf.Authenticate(&cfg.URL)
+		repoConf.Submodules[name] = cfg
+	}
 
 	if err := repoConf.Validate(); err != nil {
 		return err
