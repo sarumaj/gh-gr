@@ -11,8 +11,9 @@ var removeCmd = func() *cobra.Command {
 	var purge bool
 
 	removeCmd := &cobra.Command{
-		Use:   "remove",
-		Short: "Remove current configuration",
+		Use:     "remove",
+		Aliases: []string{"reset", "rm", "delete", "del"},
+		Short:   "Remove current configuration",
 		Long: "Remove current configuration.\n\n" +
 			"To remove local repositories as well, provide the \"--purge\" option.",
 		Example: "gh gr remove --purge",

@@ -39,7 +39,7 @@ gr.conf: |
       branch: main
 `
 
-func TestConfigurationAuthenticate(t *testing.T) {
+func TestConfigurationAuthenticateURL(t *testing.T) {
 	conf := &Configuration{
 		Profiles: Profiles{{Username: "user", Host: "example.com"}},
 	}
@@ -63,7 +63,7 @@ func TestConfigurationAuthenticate(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.args
-			conf.Authenticate(&got)
+			conf.AuthenticateURL(&got)
 			if got != tt.want {
 				t.Errorf(`conf.Authenticate(&(%q)) failed: got: %q, want %q`, tt.args, got, tt.want)
 			}
@@ -155,11 +155,11 @@ func TestConfigurationGeneralize(t *testing.T) {
 		{"test#1", "", ""},
 		{"test#2", "https://user:pass@example.com", "https://example.com"},
 		{"test#3", "https://example.com", "https://example.com"},
-		{"test#4", "https://example.com/q=1", "https://example.com/q=1"},
+		{"test#4", "https://example.com?q=1", "https://example.com?q=1"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.args
-			conf.Generalize(&got)
+			conf.GeneralizeURL(&got)
 			if got != tt.want {
 				t.Errorf(`conf.Generalize(&(%q)) failed: got: %q, want %q`, tt.args, got, tt.want)
 			}

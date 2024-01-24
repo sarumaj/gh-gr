@@ -84,7 +84,7 @@ type Configuration struct {
 	Repositories          Repositories  `json:"repositories" yaml:"repositories"`
 }
 
-// Append multiple repositories and sort them alphabetically by Directory.
+// AppendRepositories appends multiple repositories to the configuration and sorts them alphabetically by Directory.
 func (conf *Configuration) AppendRepositories(user *resources.User, repos ...resources.Repository) {
 	for _, repo := range repos {
 		dir := repo.FullName
@@ -125,9 +125,9 @@ func (conf *Configuration) AppendRepositories(user *resources.User, repos ...res
 	loggerEntry.Debugf("Configured %d repositories", conf.Total)
 }
 
-// Encode username and token into URL.
+// AuthenticateURL encodes username and token into URL.
 // In the case, no matching token can be found for given URL, emit message and exit.
-func (conf Configuration) Authenticate(targetURL *string) {
+func (conf Configuration) AuthenticateURL(targetURL *string) {
 	loggerEntry.Debugf("Authenticating URL: %v", targetURL)
 	if targetURL == nil || *targetURL == "" || !urlRegex.MatchString(*targetURL) {
 		loggerEntry.Debugf("Got empty or invalid URL: %#v", targetURL)
@@ -257,7 +257,7 @@ func (conf *Configuration) Copy() *Configuration {
 
 // Flush config into Stdout.
 // Supports multiple formats and partial emission (if !export).
-func (conf Configuration) Display(format string, export bool) {
+func (conf Configuration) Display(format string, export bool, filters ...string) {
 	reader, writer := io.Pipe()
 	c := util.Console()
 
@@ -271,6 +271,16 @@ func (conf Configuration) Display(format string, export bool) {
 		out := util.Logger.Out
 		util.Logger.SetOutput(io.Discard)
 		defer func(w io.Writer) { util.Logger.SetOutput(w) }(out)
+	}
+
+	if len(filters) > 0 {
+		var repositories []Repository
+		for _, repository := range conf.Repositories {
+			if util.PatternList(filters).GlobMatch(util.StripPathPrefix(repository.Directory, 1)) {
+				repositories = append(repositories, repository)
+			}
+		}
+		conf.Repositories = repositories
 	}
 
 	go func() {
@@ -319,9 +329,9 @@ func (conf *Configuration) FilterRepositories(repositories *[]resources.Reposito
 
 		case
 			// not explicitly included
-			len(conf.Included) > 0 && !util.RegexList(conf.Included).Match(repo.FullName, conf.Timeout),
+			len(conf.Included) > 0 && !util.PatternList(conf.Included).RegexMatch(repo.FullName, conf.Timeout),
 			// explicitly excluded
-			len(conf.Excluded) > 0 && util.RegexList(conf.Excluded).Match(repo.FullName, conf.Timeout),
+			len(conf.Excluded) > 0 && util.PatternList(conf.Excluded).RegexMatch(repo.FullName, conf.Timeout),
 			// repository size exceeds size limit
 			conf.SizeLimit > 0 && uint64(repo.Size) > conf.SizeLimit,
 			// repository is archived or disabled
@@ -339,8 +349,8 @@ func (conf *Configuration) FilterRepositories(repositories *[]resources.Reposito
 	}
 }
 
-// Remove username and token from URL.
-func (conf Configuration) Generalize(targetURL *string) {
+// GeneralizeURL removes username and token from URL.
+func (conf Configuration) GeneralizeURL(targetURL *string) {
 	if targetURL == nil || *targetURL == "" || !urlRegex.MatchString(*targetURL) {
 		loggerEntry.Debugf("Got empty or invalid URL: %#v", targetURL)
 		return

@@ -8,8 +8,9 @@ import (
 )
 
 var cleanupCmd = &cobra.Command{
-	Use:   "cleanup",
-	Short: "Clean up untracked local repositories",
+	Use:     "cleanup",
+	Aliases: []string{"clean", "cl"},
+	Short:   "Clean up untracked local repositories",
 	Long: "Clean up untracked local repositories.\n\n" +
 		"Multiple selection is possible (default: all).",
 	Example: "gh gr cleanup",

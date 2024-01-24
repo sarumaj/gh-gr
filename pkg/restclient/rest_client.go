@@ -32,7 +32,7 @@ func (c RESTClient) DoWithContext(ctx context.Context, method string, path strin
 }
 
 // Get all repositories for given user and the organizations he belongs to.
-func (c RESTClient) GetAllUserRepos(ctx context.Context, include, exclude util.RegexList) ([]resources.Repository, error) {
+func (c RESTClient) GetAllUserRepos(ctx context.Context, include, exclude []string) ([]resources.Repository, error) {
 	repos, err := c.GetUserRepos(ctx)
 	if err != nil {
 		return nil, err
@@ -49,10 +49,10 @@ func (c RESTClient) GetAllUserRepos(ctx context.Context, include, exclude util.R
 	}
 
 	for _, org := range orgs {
-		switch {
+		switch includes, excludes := util.PatternList(include), util.PatternList(exclude); {
 		case
-			len(include) > 0 && !(include.Match(org.Login+"/someRepository", timeout) || include.Match(org.Login+"/", timeout)),
-			len(exclude) > 0 && (exclude.Match(org.Login+"/someRepository", timeout) || exclude.Match(org.Login+"/", timeout)):
+			len(include) > 0 && !(includes.RegexMatch(org.Login+"/someRepository", timeout) || includes.RegexMatch(org.Login+"/", timeout)),
+			len(exclude) > 0 && (excludes.RegexMatch(org.Login+"/someRepository", timeout) || excludes.RegexMatch(org.Login+"/", timeout)):
 
 			continue
 		}

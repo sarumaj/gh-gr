@@ -54,3 +54,29 @@ func TestPathSanitize(t *testing.T) {
 		})
 	}
 }
+
+func TestStripPathPrefix(t *testing.T) {
+	type args struct {
+		path        string
+		keepParents uint
+	}
+
+	for _, tt := range []struct {
+		name string
+		args args
+		want string
+	}{
+		{"test#1", args{"", 0}, ""},
+		{"test#2", args{"/dir1/dir2/item", 1}, "dir2/item"},
+		{"test#3", args{"/dir1/dir2/item", 2}, "dir1/dir2/item"},
+		{"test#4", args{"/dir1/../dir2/item", 1}, "dir2/item"},
+		{"test#5", args{"/dir1/../dir2/item", 10}, "/dir2/item"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			got := StripPathPrefix(tt.args.path, tt.args.keepParents)
+			if got != tt.want {
+				t.Errorf(`StripPathPrefix(%q, %d) failed: got: %q, want: %q`, tt.args.path, tt.args.keepParents, got, tt.want)
+			}
+		})
+	}
+}

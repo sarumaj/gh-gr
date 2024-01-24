@@ -138,3 +138,26 @@ func PathSanitize(paths ...*string) {
 		*path = strings.TrimSuffix(*path, "/")
 	}
 }
+
+// StripPathPrefix strips prefix from path given a number of parent directories to keep.
+func StripPathPrefix(path string, keepParents uint) string {
+	if path == "" {
+		return filepath.FromSlash("")
+	}
+
+	if p, err := filepath.Abs(path); err == nil {
+		path = p
+	}
+
+	if length := len(filepath.SplitList(path)); length > int(keepParents) {
+		keepParents = uint(length)
+	}
+
+	parts := []string{filepath.Base(path)}
+	for i := uint(0); i < keepParents; i++ {
+		path = filepath.Dir(path)
+		parts = append([]string{filepath.Base(path)}, parts...)
+	}
+
+	return filepath.Join(parts...)
+}
