@@ -248,15 +248,9 @@ func updateRepoConfig(conf *configfile.Configuration, host string, repository *g
 	}
 
 	// set commiter and author
-	userSection := repoConf.Raw.Section("user")
-	userSection.SetOption("name", profile.Fullname)
-	userSection.SetOption("email", profile.Email)
-
-	// override remote origin url and remove authentication context
-	remoteOriginSection := repoConf.Raw.Section("remote").Subsection("origin")
-	url := remoteOriginSection.Options.Get("url")
-	conf.Generalize(&url)
-	remoteOriginSection.SetOption("url", url)
+	_ = repoConf.Raw.Section("user").
+		SetOption("name", profile.Fullname).
+		SetOption("email", profile.Email)
 
 	if err := repoConf.Validate(); err != nil {
 		return err

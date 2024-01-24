@@ -17,6 +17,24 @@ type TablePrinter struct {
 	records  [][]string
 }
 
+// Align records to match the maximum column width and prevent index errors.
+func (t *TablePrinter) Align() *TablePrinter {
+	var max_row_width int
+	for _, row := range t.records {
+		if len(row) > max_row_width {
+			max_row_width = len(row)
+		}
+	}
+
+	for i := range t.records {
+		for len(t.records[i]) < max_row_width {
+			t.records[i] = append(t.records[i], "")
+		}
+	}
+
+	return t
+}
+
 // Get current printer.
 func (t *TablePrinter) current() tableprinter.TablePrinter {
 	if t.isStdErr {

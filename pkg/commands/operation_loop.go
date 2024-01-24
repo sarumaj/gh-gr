@@ -95,5 +95,5 @@ func operationLoop(fn func(pool.WorkUnit, operationContext), verbInfinitive stri
 	}
 
 	logger.Debug("Collected workers")
-	status.Sort().Print()
+	status.Sort().Align().Print()
 }

@@ -130,6 +130,7 @@ func (conf *Configuration) AppendRepositories(user *resources.User, repos ...res
 func (conf Configuration) Authenticate(targetURL *string) {
 	loggerEntry.Debugf("Authenticating URL: %v", targetURL)
 	if targetURL == nil || *targetURL == "" || !urlRegex.MatchString(*targetURL) {
+		loggerEntry.Debugf("Got empty or invalid URL: %#v", targetURL)
 		return
 	}
 
@@ -340,10 +341,12 @@ func (conf *Configuration) FilterRepositories(repositories *[]resources.Reposito
 
 // Remove username and token from URL.
 func (conf Configuration) Generalize(targetURL *string) {
-	loggerEntry.Debugf("Generalizing URL: %v", targetURL)
 	if targetURL == nil || *targetURL == "" || !urlRegex.MatchString(*targetURL) {
+		loggerEntry.Debugf("Got empty or invalid URL: %#v", targetURL)
 		return
 	}
+
+	loggerEntry.Debugf("Generalizing URL: %s", *targetURL)
 
 	*targetURL = urlRegex.ReplaceAllString(*targetURL, "${Schema}${Hostpath}")
 	loggerEntry.Debugf("Generelized: %s", *targetURL)
