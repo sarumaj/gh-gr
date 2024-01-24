@@ -29,8 +29,8 @@ func pushOperation(_ pool.WorkUnit, args operationContext) {
 
 	logger := loggerEntry.WithField("command", "push").WithField("repository", repo.Directory)
 
-	conf.Authenticate(&repo.URL)
-	conf.Authenticate(&repo.ParentURL)
+	conf.AuthenticateURL(&repo.URL)
+	conf.AuthenticateURL(&repo.ParentURL)
 	logger.Debugf("Authenticated: URL: %t, ParentURL: %t", repo.URL != "", repo.ParentURL != "")
 
 	defer util.Chdir(conf.AbsoluteDirectoryPath).Popd()

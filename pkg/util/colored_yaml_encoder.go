@@ -6,10 +6,10 @@ import (
 	"io"
 	"regexp"
 
-	"github.com/fatih/color"
+	color "github.com/fatih/color"
 	yaml "github.com/goccy/go-yaml"
-	"github.com/goccy/go-yaml/lexer"
-	"github.com/goccy/go-yaml/printer"
+	lexer "github.com/goccy/go-yaml/lexer"
+	printer "github.com/goccy/go-yaml/printer"
 )
 
 // Regular expression for matching ANSI code sequences for color codes.

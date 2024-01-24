@@ -92,8 +92,8 @@ func pullOperation(_ pool.WorkUnit, args operationContext) {
 
 	logger := loggerEntry.WithField("command", "pull").WithField("repository", repo.Directory)
 
-	conf.Authenticate(&repo.URL)
-	conf.Authenticate(&repo.ParentURL)
+	conf.AuthenticateURL(&repo.URL)
+	conf.AuthenticateURL(&repo.ParentURL)
 	logger.Debugf("Authenticated: URL: %t, ParentURL: %t", repo.URL != "", repo.ParentURL != "")
 
 	defer util.Chdir(conf.AbsoluteDirectoryPath).Popd()
@@ -255,17 +255,15 @@ func updateRepoConfig(conf *configfile.Configuration, host string, repository *g
 	// update remote "origin" urls to use current authentication context
 	if cfg, ok := repoConf.Remotes["origin"]; ok {
 		for i := range cfg.URLs {
-			conf.Generalize(&cfg.URLs[i])
-			conf.Authenticate(&cfg.URLs[i])
+			conf.AuthenticateURL(&cfg.URLs[i])
 		}
 
 		repoConf.Remotes["origin"] = cfg
 	}
 
-	// update submodules urls to use current authentication context
+	// update submodules' urls to use current authentication context
 	for name, cfg := range repoConf.Submodules {
-		conf.Generalize(&cfg.URL)
-		conf.Authenticate(&cfg.URL)
+		conf.AuthenticateURL(&cfg.URL)
 		repoConf.Submodules[name] = cfg
 	}
 

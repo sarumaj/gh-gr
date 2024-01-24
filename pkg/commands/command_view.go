@@ -12,9 +12,10 @@ import (
 
 var viewCmd = func() *cobra.Command {
 	var formatOption string
+	var filters []string
 
 	viewCmd := &cobra.Command{
-		Aliases: []string{"show", "list"},
+		Aliases: []string{"show", "list", "ls"},
 		Use:     "view",
 		Short:   "Display current configuration",
 		Long: "Display current configuration.\n\n" +
@@ -30,13 +31,14 @@ var viewCmd = func() *cobra.Command {
 			conf := configfile.Load()
 
 			logger.Debug("Streaming")
-			conf.Display(formatOption, false)
+			conf.Display(formatOption, false, filters...)
 		},
 	}
 
 	flags := viewCmd.Flags()
 	supportedFormats := strings.Join(configfile.GetListOfSupportedFormats(true), ", ")
 	flags.StringVarP(&formatOption, "format", "f", "yaml", fmt.Sprintf("Change output format, supported formats: [%s]", supportedFormats))
+	flags.StringArrayVarP(&filters, "match", "m", []string{}, "Glob pattern(s) to filter repositories")
 
 	return viewCmd
 }()

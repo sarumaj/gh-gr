@@ -16,7 +16,7 @@ func Getenv(key envVariable) string { return os.Getenv(EnvPrefix + string(key)) 
 
 // Retrieve environment variable of boolean type.
 func GetenvBool(key envVariable) bool {
-	switch Getenv(Verbose) {
+	switch Getenv(key) {
 	case "true", "TRUE", "True", "1", "Y", "y", "YES", "yes":
 		return true
 
