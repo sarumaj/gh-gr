@@ -338,6 +338,17 @@ func (conf *Configuration) FilterRepositories(repositories *[]resources.Reposito
 	}
 }
 
+// Remove username and token from URL.
+func (conf Configuration) Generalize(targetURL *string) {
+	loggerEntry.Debugf("Generalizing URL: %v", targetURL)
+	if targetURL == nil || *targetURL == "" || !urlRegex.MatchString(*targetURL) {
+		return
+	}
+
+	*targetURL = urlRegex.ReplaceAllString(*targetURL, "${Schema}${Hostpath}")
+	loggerEntry.Debugf("Generelized: %s", *targetURL)
+}
+
 // Produce progressbar description considering the length of the repository with the longest name.
 func (conf *Configuration) GetProgressbarDescriptionForVerb(verb string, repo Repository) string {
 	trim := func(in string) string {

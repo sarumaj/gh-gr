@@ -145,6 +145,28 @@ func TestConfigurationFilterRepositories(t *testing.T) {
 	}
 }
 
+func TestConfigurationGeneralize(t *testing.T) {
+	conf := &Configuration{}
+	for _, tt := range []struct {
+		name string
+		args string
+		want string
+	}{
+		{"test#1", "", ""},
+		{"test#2", "https://user:pass@example.com", "https://example.com"},
+		{"test#3", "https://example.com", "https://example.com"},
+		{"test#4", "https://example.com/q=1", "https://example.com/q=1"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.args
+			conf.Generalize(&got)
+			if got != tt.want {
+				t.Errorf(`conf.Generalize(&(%q)) failed: got: %q, want %q`, tt.args, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestConfigurationLoad(t *testing.T) {
 	for _, tt := range []struct {
 		name      string
