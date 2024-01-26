@@ -4,8 +4,8 @@ import (
 	"time"
 
 	color "github.com/fatih/color"
-	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
-	util "github.com/sarumaj/gh-gr/pkg/util"
+	configfile "github.com/sarumaj/gh-gr/v2/pkg/configfile"
+	util "github.com/sarumaj/gh-gr/v2/pkg/util"
 	pool "gopkg.in/go-playground/pool.v3"
 )
 

@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strconv"
 
-	util "github.com/sarumaj/gh-gr/pkg/util"
+	util "github.com/sarumaj/gh-gr/v2/pkg/util"
 	pool "gopkg.in/go-playground/pool.v3"
 )
 

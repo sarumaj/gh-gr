@@ -34,7 +34,7 @@
 package main
 
 import (
-	commands "github.com/sarumaj/gh-gr/pkg/commands"
+	commands "github.com/sarumaj/gh-gr/v2/pkg/commands"
 )
 
 // Version holds the application version.

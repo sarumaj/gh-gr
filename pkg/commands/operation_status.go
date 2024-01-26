@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	color "github.com/fatih/color"
-	util "github.com/sarumaj/gh-gr/pkg/util"
+	util "github.com/sarumaj/gh-gr/v2/pkg/util"
 )
 
 // Utilizes table printer.

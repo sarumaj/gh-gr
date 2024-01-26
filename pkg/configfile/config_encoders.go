@@ -8,7 +8,7 @@ import (
 	json "github.com/goccy/go-json"
 	yaml "github.com/goccy/go-yaml"
 	jc "github.com/neilotoole/jsoncolor"
-	util "github.com/sarumaj/gh-gr/pkg/util"
+	util "github.com/sarumaj/gh-gr/v2/pkg/util"
 )
 
 // supportedEncoders contains supported encoder pairs for both encoding and decoding.

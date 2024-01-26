@@ -4,8 +4,8 @@ import (
 	"time"
 
 	color "github.com/fatih/color"
-	resources "github.com/sarumaj/gh-gr/pkg/restclient/resources"
-	util "github.com/sarumaj/gh-gr/pkg/util"
+	resources "github.com/sarumaj/gh-gr/v2/pkg/restclient/resources"
+	util "github.com/sarumaj/gh-gr/v2/pkg/util"
 )
 
 // Message emitted, when API limit exceeded.

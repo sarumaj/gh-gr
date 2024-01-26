@@ -3,8 +3,8 @@ package configfile
 import (
 	"fmt"
 
-	resources "github.com/sarumaj/gh-gr/pkg/restclient/resources"
-	util "github.com/sarumaj/gh-gr/pkg/util"
+	resources "github.com/sarumaj/gh-gr/v2/pkg/restclient/resources"
+	util "github.com/sarumaj/gh-gr/v2/pkg/util"
 )
 
 // Profile holds the context of authenticated user profile.

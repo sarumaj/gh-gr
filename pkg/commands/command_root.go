@@ -3,8 +3,8 @@ package commands
 import (
 	"time"
 
-	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
-	util "github.com/sarumaj/gh-gr/pkg/util"
+	configfile "github.com/sarumaj/gh-gr/v2/pkg/configfile"
+	util "github.com/sarumaj/gh-gr/v2/pkg/util"
 	supererrors "github.com/sarumaj/go-super/errors"
 	logrus "github.com/sirupsen/logrus"
 	cobra "github.com/spf13/cobra"
