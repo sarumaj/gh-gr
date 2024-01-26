@@ -22,7 +22,7 @@ var pullCmd = &cobra.Command{
 	},
 }
 
-// Clone remote repository locally.
+// cloneRemoteRepository clones remote repository locally.
 func cloneRemoteRepository(repo configfile.Repository, status *operationStatus) (*git.Repository, *git.Worktree, error) {
 	repository, err := git.PlainClone(repo.Directory, false, &git.CloneOptions{
 		URL:               repo.URL,
@@ -42,7 +42,7 @@ func cloneRemoteRepository(repo configfile.Repository, status *operationStatus) 
 	return repository, workTree, nil
 }
 
-// Pull remote repository.
+// pullExistingRepository pulls remote repository.
 func pullExistingRepository(repo configfile.Repository, status *operationStatus) (*git.Repository, *git.Worktree, error) {
 	repository, err := openRepository(repo, status)
 	if err != nil {
