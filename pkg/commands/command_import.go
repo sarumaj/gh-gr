@@ -11,6 +11,7 @@ import (
 // importFlags contains flags for import command
 var importFlags struct {
 	formatOption string
+	input        string
 }
 
 // importCmd represents the import command
@@ -27,7 +28,7 @@ var importCmd = func() *cobra.Command {
 			logger := loggerEntry.WithField("command", "import")
 			logger.Debugf("Import format: %s", importFlags.formatOption)
 
-			configfile.Import(importFlags.formatOption)
+			configfile.Import(importFlags.formatOption, importFlags.input)
 		},
 		PostRun: func(*cobra.Command, []string) {
 			updateConfigFlags()
@@ -37,6 +38,7 @@ var importCmd = func() *cobra.Command {
 	flags := importCmd.Flags()
 	supportedFormats := strings.Join(configfile.GetListOfSupportedFormats(true), ", ")
 	flags.StringVarP(&importFlags.formatOption, "format", "f", "yaml", fmt.Sprintf("Change input format, supported formats: [%s]", supportedFormats))
+	flags.StringVarP(&importFlags.input, "input", "i", configfile.DefaultImportSource, "Path to input file or console input (stdin)")
 
 	return importCmd
 }()

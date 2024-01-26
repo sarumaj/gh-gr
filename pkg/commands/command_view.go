@@ -35,7 +35,7 @@ var viewCmd = func() *cobra.Command {
 			conf := configfile.Load()
 
 			logger.Debug("Streaming")
-			conf.Display(viewFlags.formatOption, false, viewFlags.filters...)
+			conf.Display(viewFlags.formatOption, configfile.DefaultExportDestination, false, viewFlags.filters)
 		},
 	}
 

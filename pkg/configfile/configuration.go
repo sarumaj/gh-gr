@@ -42,6 +42,12 @@ const ConfigShouldNotExist = "Configuration already exists. " +
 	"Please run 'update' if you want to update your settings. " +
 	"Alternatively, run 'remove' if you want to setup from scratch once again."
 
+// Default destination for export.
+const DefaultExportDestination = "stdout"
+
+// Default source for import.
+const DefaultImportSource = "stdin"
+
 // Regular expression used to split URL into components.
 var urlRegex = regexp.MustCompile(`(?P<Schema>[^:]+://)(?P<Creds>[^@]+@)?(?P<Hostpath>.+)`)
 
@@ -255,9 +261,9 @@ func (conf *Configuration) Copy() *Configuration {
 	return n
 }
 
-// Flush config into Stdout.
+// Display flushes config into Stdout.
 // Supports multiple formats and partial emission (if !export).
-func (conf Configuration) Display(format string, export bool, filters ...string) {
+func (conf Configuration) Display(format, output string, export bool, filters []string) {
 	reader, writer := io.Pipe()
 	c := util.Console()
 
@@ -288,14 +294,18 @@ func (conf Configuration) Display(format string, export bool, filters ...string)
 		supererrors.Except(enc.Encoder(writer, !export && c.ColorsEnabled()).Encode(conf))
 	}()
 
-	interactive := !export && c.IsTerminal(true, false, true)
+	var target io.Writer = c.Stdout()
+	if output != DefaultExportDestination && export {
+		target = supererrors.ExceptFn(supererrors.W(os.OpenFile(output, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)))
+	}
 
+	isTerminal := c.IsTerminal(true, false, true)
 	for iter, noLines, scanner := 0, 10, bufio.NewScanner(reader); scanner.Scan(); iter++ {
-		_ = supererrors.ExceptFn(supererrors.W(fmt.Fprintln(c.Stdout(), scanner.Text())))
+		_ = supererrors.ExceptFn(supererrors.W(fmt.Fprintln(target, scanner.Text())))
 
-		if interactive && iter > 0 && iter%noLines == 0 {
+		if !export && isTerminal && iter > 0 && iter%noLines == 0 {
 			_ = supererrors.ExceptFn(supererrors.W(
-				fmt.Fprint(c.Stdout(), c.CheckColors(color.BlueString, "(more:)")),
+				fmt.Fprint(target, c.CheckColors(color.BlueString, "(more:)")),
 			))
 
 			var in string
@@ -303,7 +313,7 @@ func (conf Configuration) Display(format string, export bool, filters ...string)
 
 			// move one line up and use carriage return to move to the beginning of line
 			_ = supererrors.ExceptFn(supererrors.W(
-				fmt.Fprint(c.Stdout(), util.MUP+strings.Repeat(" ", len("(more):")+len(in))+"\r"),
+				fmt.Fprint(target, util.MUP+strings.Repeat(" ", len("(more):")+len(in))+"\r"),
 			))
 
 			if err != nil {
@@ -313,7 +323,7 @@ func (conf Configuration) Display(format string, export bool, filters ...string)
 			switch strings.ToLower(in) {
 
 			case "exit", "quit", "q":
-				_ = supererrors.ExceptFn(supererrors.W(fmt.Fprintln(c.Stdout())))
+				_ = supererrors.ExceptFn(supererrors.W(fmt.Fprintln(target)))
 				return
 
 			}
@@ -519,15 +529,16 @@ func Load() *Configuration {
 }
 
 // Import configuration from Stdin or local file.
-func Import(format string) {
+func Import(format, input string) {
 	c := util.Console()
 
 	var reader io.Reader
-	if c.IsTerminal(true, true, true) {
+	if input != DefaultImportSource && util.PathExists(input) {
+		reader = bufio.NewReader(supererrors.ExceptFn(supererrors.W(os.OpenFile(input, os.O_RDONLY, os.ModePerm))))
 
-		var path string
+	} else if c.IsTerminal(true, true, true) {
 		if fileList := util.ListFilesByExtension("."+format, 2); len(fileList) > 0 {
-			path = fileList[supererrors.ExceptFn(supererrors.W(
+			input = fileList[supererrors.ExceptFn(supererrors.W(
 				prompt.Select(
 					"Select file to import the configuration from:",
 					fileList[0],
@@ -536,7 +547,7 @@ func Import(format string) {
 			), terminal.InterruptErr)]
 
 		} else {
-			path = supererrors.ExceptFn(supererrors.W(prompt.Input("Provide path to configuration file:", "")))
+			input = supererrors.ExceptFn(supererrors.W(prompt.Input("Provide path to configuration file:", "")))
 
 		}
 
@@ -561,7 +572,7 @@ func Import(format string) {
 			os.Exit(0)
 		}
 
-		reader = bufio.NewReader(supererrors.ExceptFn(supererrors.W(os.OpenFile(path, os.O_RDONLY, os.ModePerm))))
+		reader = bufio.NewReader(supererrors.ExceptFn(supererrors.W(os.OpenFile(input, os.O_RDONLY, os.ModePerm))))
 	} else {
 		reader = bufio.NewReader(c.Stdin())
 	}
