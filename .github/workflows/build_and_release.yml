@@ -20,21 +20,26 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Install upx
         uses: crazy-max/ghaction-upx@v3
         with:
           install-only: true
+
       - name: Install go
         uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go }}
+
       - name: Install go tools
         run: |
           go install golang.org/x/tools/gopls@latest && \
           go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && \
           go install github.com/axw/gocov/gocov@latest
+
       - name: Run linters
         run: gofmt -s -d ./ && golangci-lint run -v
+
       - name: Test & publish code coverage
         uses: paambaati/codeclimate-action@v5.0.0
         env:
@@ -43,7 +48,8 @@ jobs:
           coverageCommand: gocov test ./... -coverprofile=c.out
           coverageLocations: ./c.out:gocov
           debug: true
-          prefix: github.com/${{ github.repository }}
+          prefix: github.com/${{ github.repository }}/v2
+
       - name: Precompile binaries and upload assets
         uses: cli/gh-extension-precompile@v1
         with:
