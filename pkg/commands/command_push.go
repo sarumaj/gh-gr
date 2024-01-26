@@ -12,6 +12,7 @@ import (
 	pool "gopkg.in/go-playground/pool.v3"
 )
 
+// pullCmd represents the pull command
 var pushCmd = &cobra.Command{
 	Use:     "push",
 	Short:   "Push all repositories",

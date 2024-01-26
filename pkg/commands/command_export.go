@@ -10,9 +10,13 @@ import (
 	cobra "github.com/spf13/cobra"
 )
 
-var exportCmd = func() *cobra.Command {
-	var formatOption string
+// exportFlags contains flags for import command
+var exportFlags struct {
+	formatOption string
+}
 
+// exportCmd represents the export command
+var exportCmd = func() *cobra.Command {
 	exportCmd := &cobra.Command{
 		Use:   "export",
 		Short: "Export current configuration to stdout",
@@ -28,14 +32,14 @@ var exportCmd = func() *cobra.Command {
 			logger := loggerEntry.WithField("command", "export")
 			conf := configfile.Load()
 
-			logger.Debugf("Export format: %s", formatOption)
-			conf.Display(formatOption, true)
+			logger.Debugf("Export format: %s", exportFlags.formatOption)
+			conf.Display(exportFlags.formatOption, true)
 		},
 	}
 
 	flags := exportCmd.Flags()
 	supportedFormats := strings.Join(configfile.GetListOfSupportedFormats(true), ", ")
-	flags.StringVarP(&formatOption, "format", "f", "yaml", fmt.Sprintf("Change output format, supported formats: [%s]", supportedFormats))
+	flags.StringVarP(&exportFlags.formatOption, "format", "f", "yaml", fmt.Sprintf("Change output format, supported formats: [%s]", supportedFormats))
 
 	return exportCmd
 }()

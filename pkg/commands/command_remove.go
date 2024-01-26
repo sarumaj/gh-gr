@@ -7,9 +7,13 @@ import (
 	cobra "github.com/spf13/cobra"
 )
 
-var removeCmd = func() *cobra.Command {
-	var purge bool
+// removeFlags represents the flags for remove command
+var removeFlags struct {
+	purge bool
+}
 
+// removeCmd represents the remove command
+var removeCmd = func() *cobra.Command {
 	removeCmd := &cobra.Command{
 		Use:     "remove",
 		Aliases: []string{"reset", "rm", "delete", "del"},
@@ -26,13 +30,13 @@ var removeCmd = func() *cobra.Command {
 			logger := loggerEntry.WithField("command", "remove")
 			conf := configfile.Load()
 
-			logger.Debugf("Removing config, purge: %t", purge)
-			conf.Remove(purge)
+			logger.Debugf("Removing config, purge: %t", removeFlags.purge)
+			conf.Remove(removeFlags.purge)
 		},
 	}
 
 	flags := removeCmd.Flags()
-	flags.BoolVar(&purge, "purge", false, "DANGER!!! Purge directory with local repositories")
+	flags.BoolVar(&removeFlags.purge, "purge", false, "DANGER!!! Purge directory with local repositories")
 
 	return removeCmd
 }()

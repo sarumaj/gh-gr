@@ -3,6 +3,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/sarumaj/gh-gr)](https://goreportcard.com/report/github.com/sarumaj/gh-gr)
 [![Maintainability](https://img.shields.io/codeclimate/maintainability-percentage/sarumaj/gh-gr.svg)](https://codeclimate.com/github/sarumaj/gh-gr/maintainability)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/0c9cdd86241d58f97085/test_coverage)](https://codeclimate.com/github/sarumaj/gh-gr/test_coverage)
+[![Go Reference](https://pkg.go.dev/badge/github.com/sarumaj/gh-gr.svg)](https://pkg.go.dev/github.com/sarumaj/gh-gr)
 
 ---
 
@@ -29,33 +30,33 @@ $ gh extension install https://github.com/sarumaj/gh-gr
 ```console
 $ gh gr --help
 
->> gr is a gh cli extension allowing management of multiple repositories at once
->>
->> Usage:
->>   gr [flags]
->>   gr [command]
->>
->> Available Commands:
->>   cleanup     Clean up untracked local repositories
->>   completion  Generate the autocompletion script for the specified shell
->>   export      Export current configuration to stdout
->>   help        Help about any command
->>   import      Import configuration from stdin or a file
->>   init        Initialize repository mirror
->>   pull        Pull all repositories
->>   push        Push all repositories
->>   remove      Remove current configuration
->>   status      Show status for all repositories
->>   update      Update configuration
->>   version     Display version information
->>   view        Display current configuration
->>
->> Flags:
->>   -c, --concurrency uint   Concurrency for concurrent jobs (default 12)
->>   -h, --help               help for gr
->>   -t, --timeout duration   Set timeout for long running jobs (default 10m0s)
->>
->> Use "gr [command] --help" for more information about a command.
+> gr is a gh cli extension allowing management of multiple repositories at once
+>
+> Usage:
+>   gr [flags]
+>   gr [command]
+>
+> Available Commands:
+>   cleanup     Clean up untracked local repositories
+>   completion  Generate the autocompletion script for the specified shell
+>   export      Export current configuration to stdout
+>   help        Help about any command
+>   import      Import configuration from stdin or a file
+>   init        Initialize repository mirror
+>   pull        Pull all repositories
+>   push        Push all repositories
+>   remove      Remove current configuration
+>   status      Show status for all repositories
+>   update      Update configuration
+>   version     Display version information
+>   view        Display current configuration
+>
+> Flags:
+>   -c, --concurrency uint   Concurrency for concurrent jobs (default 12)
+>   -h, --help               help for gr
+>   -t, --timeout duration   Set timeout for long running jobs (default 10m0s)
+>
+> Use "gr [command] --help" for more information about a command.
 ```
 
 First, create the configuration:

@@ -4,6 +4,7 @@ import (
 	cobra "github.com/spf13/cobra"
 )
 
+// initCmd represents the init command
 var initCmd = func() *cobra.Command {
 	initCmd := &cobra.Command{
 		Use:     "init",

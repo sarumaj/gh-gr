@@ -11,6 +11,7 @@ import (
 	util "github.com/sarumaj/gh-gr/pkg/util"
 )
 
+// supportedEncoders contains supported encoder pairs for both encoding and decoding.
 var supportedEncoders = func() map[string]encoderPair {
 	return map[string]encoderPair{
 		"json": {
@@ -54,8 +55,11 @@ var supportedEncoders = func() map[string]encoderPair {
 }()
 
 type (
-	decoder     interface{ Decode(any) error }
-	encoder     interface{ Encode(any) error }
+	// decoder is minimal interface for decoding.
+	decoder interface{ Decode(any) error }
+	// encoder is minimal interface for encoding.
+	encoder interface{ Encode(any) error }
+	// encoderPair is pair of encoder and decoder.
 	encoderPair struct {
 		Encoder func(io.Writer, bool) encoder
 		Decoder func(io.Reader) decoder

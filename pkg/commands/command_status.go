@@ -10,6 +10,7 @@ import (
 	pool "gopkg.in/go-playground/pool.v3"
 )
 
+// statusCmd represents the status command
 var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show status for all repositories",

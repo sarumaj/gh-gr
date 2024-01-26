@@ -10,9 +10,13 @@ import (
 	cobra "github.com/spf13/cobra"
 )
 
+// configFlags is a global variable holding configuration flags
 var configFlags = &configfile.Configuration{}
+
+// loggerEntry is a global variable holding logger entry at package level
 var loggerEntry = util.Logger.WithFields(logrus.Fields{"mod": "commands"})
 
+// rootCmd represents the base command when called without any subcommands
 var rootCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "gr",
@@ -26,13 +30,15 @@ var rootCmd = func() *cobra.Command {
 				configFlags = configfile.Load()
 			}
 
+			logger := util.Logger
 			if util.GetenvBool(util.Verbose) {
-				util.Logger.SetLevel(logrus.DebugLevel)
+				logger.SetLevel(logrus.DebugLevel)
 			}
 
-			util.Logger.Debug("Running in verbose mode")
+			logger.Debugf("Version: %s, build date: %s, executable path: %s", versionFlags.internalVersion, versionFlags.internalBuildDate, util.GetExecutablePath())
+			logger.Debug("Running in verbose mode")
 		},
-		Version: internalVersion,
+		Version: versionFlags.internalVersion,
 	}
 
 	flags := cmd.PersistentFlags()
@@ -46,10 +52,8 @@ var rootCmd = func() *cobra.Command {
 
 // Execute executes the root command.
 func Execute(version, buildDate string) {
-	internalVersion, internalBuildDate = version, buildDate
-
+	versionFlags.internalVersion, versionFlags.internalBuildDate = version, buildDate
 	logger := util.Logger
-	logger.Debugf("Version: %s, build date: %s, executable path: %s", internalVersion, internalBuildDate, util.GetExecutablePath())
 
 	defer util.AcquireProcessIDLock().Unlock()
 
