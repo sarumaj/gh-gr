@@ -13,6 +13,7 @@ import (
 // exportFlags contains flags for import command
 var exportFlags struct {
 	formatOption string
+	output       string
 }
 
 // exportCmd represents the export command
@@ -33,13 +34,14 @@ var exportCmd = func() *cobra.Command {
 			conf := configfile.Load()
 
 			logger.Debugf("Export format: %s", exportFlags.formatOption)
-			conf.Display(exportFlags.formatOption, true)
+			conf.Display(exportFlags.formatOption, exportFlags.output, true, nil)
 		},
 	}
 
 	flags := exportCmd.Flags()
 	supportedFormats := strings.Join(configfile.GetListOfSupportedFormats(true), ", ")
 	flags.StringVarP(&exportFlags.formatOption, "format", "f", "yaml", fmt.Sprintf("Change output format, supported formats: [%s]", supportedFormats))
+	flags.StringVarP(&exportFlags.output, "output", "o", configfile.DefaultExportDestination, "Path to output file or console output (stdout)")
 
 	return exportCmd
 }()
