@@ -1,5 +1,4 @@
 /*
-  Package restclient provides a REST client for the GitHub API.
+Package restclient provides a REST client for the GitHub API.
 */
-
 package restclient

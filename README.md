@@ -3,7 +3,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/sarumaj/gh-gr)](https://goreportcard.com/report/github.com/sarumaj/gh-gr)
 [![Maintainability](https://img.shields.io/codeclimate/maintainability-percentage/sarumaj/gh-gr.svg)](https://codeclimate.com/github/sarumaj/gh-gr/maintainability)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/0c9cdd86241d58f97085/test_coverage)](https://codeclimate.com/github/sarumaj/gh-gr/test_coverage)
-[![Go Reference](https://pkg.go.dev/badge/github.com/sarumaj/gh-gr.svg)](https://pkg.go.dev/github.com/sarumaj/gh-gr)
+[![Go Reference](https://pkg.go.dev/badge/github.com/sarumaj/gh-gr/v2.svg)](https://pkg.go.dev/github.com/sarumaj/gh-gr/v2)
 
 ---
 
