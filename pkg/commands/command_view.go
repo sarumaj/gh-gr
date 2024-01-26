@@ -23,7 +23,16 @@ var viewCmd = func() *cobra.Command {
 		Use:     "view",
 		Short:   "Display current configuration",
 		Long: "Display current configuration.\n\n" +
-			"Different output formats supported.",
+			"Different output formats supported.\n" +
+			"Supports filtering local repositories using glob match:\n\n" +
+			"\t- *\t\t\tmatches any sequence of characters besides '/' or '\\' on Windows\n" +
+			"\t- ?\t\t\tmatches any single character besides '/' or '\\' on Windows\n" +
+			"\t- [ { characters } ]\tcharacter class matching class characters (must be non-empty)\n" +
+			"\t- [^ { characters } ]\tcharacter class matching any characters besides class characters (must be non-empty)\n" +
+			"\t- c\t\t\tmatches character c (c != '*', '?', '\\', '[')\n" +
+			"\t- \\\\c\t\t\tmatches any character c (escaping is disabled on Windows)\n" +
+			"\t- [ 'lo' - 'hi' ]\tmatches character c between lo <= c <= hi\n" +
+			"\t- [^ 'lo' - 'hi' ]\tmatches any character besides character c between lo <= c <= hi\n",
 		Example: "gh pr view -f json",
 		Run: func(*cobra.Command, []string) {
 			if !configfile.ConfigurationExists() {
