@@ -55,3 +55,6 @@ jobs:
         with:
           build_script_override: "scripts/build.sh"
           go_version: ${{ matrix.go }}
+
+      - name: Update code documentation
+        run: curl -fsSL https://proxy.golang.org/github.com/sarumaj/gh-gr/v2/@v/${{ github.ref_name }}.info
