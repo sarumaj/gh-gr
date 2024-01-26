@@ -37,6 +37,10 @@ jobs:
           go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && \
           go install github.com/axw/gocov/gocov@latest
 
+      - name: Export Module Name
+        id: export_module_name
+        run: echo "MODULE_NAME=$(go mod edit -json | jq -r '.Module.Path')" >> "$GITHUB_OUTPUT"
+
       - name: Run linters
         run: gofmt -s -d ./ && golangci-lint run -v
 
@@ -48,4 +52,4 @@ jobs:
           coverageCommand: gocov test ./... -coverprofile=c.out
           coverageLocations: ./c.out:gocov
           debug: true
-          prefix: github.com/${{ github.repository }}/v2
+          prefix: ${{ steps.export_module_name.outputs.MODULE_NAME }}
