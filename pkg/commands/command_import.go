@@ -8,9 +8,13 @@ import (
 	cobra "github.com/spf13/cobra"
 )
 
-var importCmd = func() *cobra.Command {
-	var formatOption string
+// importFlags contains flags for import command
+var importFlags struct {
+	formatOption string
+}
 
+// importCmd represents the import command
+var importCmd = func() *cobra.Command {
 	importCmd := &cobra.Command{
 		Use:   "import",
 		Short: "Import configuration from stdin or a file",
@@ -21,9 +25,9 @@ var importCmd = func() *cobra.Command {
 		Example: "cat export.yaml | gh gr import --format yaml",
 		Run: func(*cobra.Command, []string) {
 			logger := loggerEntry.WithField("command", "import")
-			logger.Debugf("Import format: %s", formatOption)
+			logger.Debugf("Import format: %s", importFlags.formatOption)
 
-			configfile.Import(formatOption)
+			configfile.Import(importFlags.formatOption)
 		},
 		PostRun: func(*cobra.Command, []string) {
 			updateConfigFlags()
@@ -32,7 +36,7 @@ var importCmd = func() *cobra.Command {
 
 	flags := importCmd.Flags()
 	supportedFormats := strings.Join(configfile.GetListOfSupportedFormats(true), ", ")
-	flags.StringVarP(&formatOption, "format", "f", "yaml", fmt.Sprintf("Change input format, supported formats: [%s]", supportedFormats))
+	flags.StringVarP(&importFlags.formatOption, "format", "f", "yaml", fmt.Sprintf("Change input format, supported formats: [%s]", supportedFormats))
 
 	return importCmd
 }()

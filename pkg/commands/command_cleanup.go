@@ -7,6 +7,7 @@ import (
 	cobra "github.com/spf13/cobra"
 )
 
+// cleanupCmd represents the cleanup command
 var cleanupCmd = &cobra.Command{
 	Use:     "cleanup",
 	Aliases: []string{"clean", "cl"},

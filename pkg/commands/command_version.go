@@ -15,13 +15,16 @@ import (
 // Address of remote repository where the newest version of gh-gr is released.
 const remoteRepository = "sarumaj/gh-gr"
 
-// Version holds the application version.
-// It gets filled automatically at build time.
-var internalVersion string
+// versionFlags holds the application version and build date.
+var versionFlags struct {
+	// Version holds the application version.
+	// It gets filled automatically at build time.
+	internalVersion string
 
-// BuildDate holds the date and time at which the application was build.
-// It gets filled automatically at build time.
-var internalBuildDate string
+	// BuildDate holds the date and time at which the application was build.
+	// It gets filled automatically at build time.
+	internalBuildDate string
+}
 
 var versionCmd = &cobra.Command{
 	Use:     "version",
@@ -30,7 +33,7 @@ var versionCmd = &cobra.Command{
 	Run: func(*cobra.Command, []string) {
 		c := util.Console()
 
-		current := supererrors.ExceptFn(supererrors.W(semver.ParseTolerant(internalVersion)))
+		current := supererrors.ExceptFn(supererrors.W(semver.ParseTolerant(versionFlags.internalVersion)))
 		latest, found, err := selfupdate.DetectLatest(context.Background(), selfupdate.ParseSlug(remoteRepository))
 
 		var vSuffix string
@@ -43,8 +46,8 @@ var versionCmd = &cobra.Command{
 
 		}
 
-		_ = supererrors.ExceptFn(supererrors.W(fmt.Fprintln(c.Stdout(), c.CheckColors(color.BlueString, "Version: %s", internalVersion+vSuffix))))
-		_ = supererrors.ExceptFn(supererrors.W(fmt.Fprintln(c.Stdout(), c.CheckColors(color.BlueString, "Built at: %s", internalBuildDate))))
+		_ = supererrors.ExceptFn(supererrors.W(fmt.Fprintln(c.Stdout(), c.CheckColors(color.BlueString, "Version: %s", versionFlags.internalVersion+vSuffix))))
+		_ = supererrors.ExceptFn(supererrors.W(fmt.Fprintln(c.Stdout(), c.CheckColors(color.BlueString, "Built at: %s", versionFlags.internalBuildDate))))
 		_ = supererrors.ExceptFn(supererrors.W(fmt.Fprintln(c.Stdout(), c.CheckColors(color.BlueString, "Executable path: %s", util.GetExecutablePath()))))
 	},
 }

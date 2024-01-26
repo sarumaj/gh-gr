@@ -10,10 +10,14 @@ import (
 	cobra "github.com/spf13/cobra"
 )
 
-var viewCmd = func() *cobra.Command {
-	var formatOption string
-	var filters []string
+// viewFlags represents the flags for view command
+var viewFlags struct {
+	formatOption string
+	filters      []string
+}
 
+// viewCmd represents the view command
+var viewCmd = func() *cobra.Command {
 	viewCmd := &cobra.Command{
 		Aliases: []string{"show", "list", "ls"},
 		Use:     "view",
@@ -31,14 +35,14 @@ var viewCmd = func() *cobra.Command {
 			conf := configfile.Load()
 
 			logger.Debug("Streaming")
-			conf.Display(formatOption, false, filters...)
+			conf.Display(viewFlags.formatOption, false, viewFlags.filters...)
 		},
 	}
 
 	flags := viewCmd.Flags()
 	supportedFormats := strings.Join(configfile.GetListOfSupportedFormats(true), ", ")
-	flags.StringVarP(&formatOption, "format", "f", "yaml", fmt.Sprintf("Change output format, supported formats: [%s]", supportedFormats))
-	flags.StringArrayVarP(&filters, "match", "m", []string{}, "Glob pattern(s) to filter repositories")
+	flags.StringVarP(&viewFlags.formatOption, "format", "f", "yaml", fmt.Sprintf("Change output format, supported formats: [%s]", supportedFormats))
+	flags.StringArrayVarP(&viewFlags.filters, "match", "m", []string{}, "Glob pattern(s) to filter repositories")
 
 	return viewCmd
 }()
