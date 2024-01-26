@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	auth "github.com/cli/go-gh/v2/pkg/auth"
-	util "github.com/sarumaj/gh-gr/pkg/util"
+	util "github.com/sarumaj/gh-gr/v2/pkg/util"
 )
 
 // Retrieve all configured hosts from GitHub CLI.

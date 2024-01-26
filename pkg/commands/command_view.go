@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	color "github.com/fatih/color"
-	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
-	util "github.com/sarumaj/gh-gr/pkg/util"
+	configfile "github.com/sarumaj/gh-gr/v2/pkg/configfile"
+	util "github.com/sarumaj/gh-gr/v2/pkg/util"
 	cobra "github.com/spf13/cobra"
 )
 

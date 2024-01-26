@@ -6,8 +6,8 @@ import (
 
 	git "github.com/go-git/go-git/v5"
 	transport "github.com/go-git/go-git/v5/plumbing/transport"
-	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
-	util "github.com/sarumaj/gh-gr/pkg/util"
+	configfile "github.com/sarumaj/gh-gr/v2/pkg/configfile"
+	util "github.com/sarumaj/gh-gr/v2/pkg/util"
 	cobra "github.com/spf13/cobra"
 	pool "gopkg.in/go-playground/pool.v3"
 )

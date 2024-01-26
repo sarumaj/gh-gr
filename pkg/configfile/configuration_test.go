@@ -10,8 +10,8 @@ import (
 	monkey "bou.ke/monkey"
 	auth "github.com/cli/go-gh/v2/pkg/auth"
 	config "github.com/cli/go-gh/v2/pkg/config"
-	resources "github.com/sarumaj/gh-gr/pkg/restclient/resources"
-	util "github.com/sarumaj/gh-gr/pkg/util"
+	resources "github.com/sarumaj/gh-gr/v2/pkg/restclient/resources"
+	util "github.com/sarumaj/gh-gr/v2/pkg/util"
 	supererrors "github.com/sarumaj/go-super/errors"
 )
 

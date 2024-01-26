@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
+	configfile "github.com/sarumaj/gh-gr/v2/pkg/configfile"
 	cobra "github.com/spf13/cobra"
 )
 

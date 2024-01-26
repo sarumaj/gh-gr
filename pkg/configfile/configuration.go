@@ -17,8 +17,8 @@ import (
 	config "github.com/cli/go-gh/v2/pkg/config"
 	prompter "github.com/cli/go-gh/v2/pkg/prompter"
 	color "github.com/fatih/color"
-	resources "github.com/sarumaj/gh-gr/pkg/restclient/resources"
-	util "github.com/sarumaj/gh-gr/pkg/util"
+	resources "github.com/sarumaj/gh-gr/v2/pkg/restclient/resources"
+	util "github.com/sarumaj/gh-gr/v2/pkg/util"
 	supererrors "github.com/sarumaj/go-super/errors"
 	logrus "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v3"
@@ -54,7 +54,7 @@ var prompt = func() *prompter.Prompter {
 	return prompter.New(c.Stdin(), c.Stdout(), c.Stderr())
 }()
 
-// Related to https://github.com/sarumaj/gh-gr/issues/62
+// Related to https://github.com/sarumaj/gh-gr/v2/issues/62
 var configReader = func() func() (*config.Config, error) {
 	switch read := any(config.Read).(type) {
 	case func() (*config.Config, error):

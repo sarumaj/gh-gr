@@ -7,9 +7,9 @@ import (
 	"time"
 
 	api "github.com/cli/go-gh/v2/pkg/api"
-	configfile "github.com/sarumaj/gh-gr/pkg/configfile"
-	resources "github.com/sarumaj/gh-gr/pkg/restclient/resources"
-	util "github.com/sarumaj/gh-gr/pkg/util"
+	configfile "github.com/sarumaj/gh-gr/v2/pkg/configfile"
+	resources "github.com/sarumaj/gh-gr/v2/pkg/restclient/resources"
+	util "github.com/sarumaj/gh-gr/v2/pkg/util"
 )
 
 // Module logger.

@@ -7,7 +7,7 @@ import (
 	semver "github.com/blang/semver"
 	selfupdate "github.com/creativeprojects/go-selfupdate"
 	color "github.com/fatih/color"
-	util "github.com/sarumaj/gh-gr/pkg/util"
+	util "github.com/sarumaj/gh-gr/v2/pkg/util"
 	supererrors "github.com/sarumaj/go-super/errors"
 	cobra "github.com/spf13/cobra"
 )
