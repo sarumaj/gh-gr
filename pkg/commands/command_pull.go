@@ -18,7 +18,7 @@ var pullCmd = &cobra.Command{
 	Short:   "Pull all repositories",
 	Example: "gh pr pull",
 	Run: func(*cobra.Command, []string) {
-		operationLoop(pullOperation, "Pull")
+		operationLoop(pullOperation, "Pull", nil)
 	},
 }
 
@@ -70,10 +70,6 @@ func pullExistingRepository(repo configfile.Repository, status *operationStatus)
 		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
 	}); {
 
-	case errors.Is(err, git.ErrNonFastForwardUpdate):
-		status.appendRow(repo.Directory, fmt.Errorf("non-fast-forward update"))
-		return nil, nil, fmt.Errorf("repository %s: %w", repo.Directory, err)
-
 	case errors.Is(err, git.NoErrAlreadyUpToDate): // ignore
 
 	case err != nil:
@@ -119,6 +115,7 @@ func pullOperation(_ pool.WorkUnit, args operationContext) {
 
 	logger.Debug("Overwriting repo config")
 	host := util.GetHostnameFromPath(repo.URL)
+	// update remote URL to use current personal access token
 	if err := updateRepoConfig(conf, host, repository); err != nil {
 		logger.Debugf("Failed to update repo config: %v", err)
 		status.appendRow(repo.Directory, err)
@@ -227,53 +224,12 @@ func pullSubmodule(submodule *git.Submodule) error {
 		}
 	}
 
-	if err := worktree.Pull(&git.PullOptions{}); err != nil && !errors.Is(err, git.NoErrAlreadyUpToDate) {
+	switch err := worktree.Pull(&git.PullOptions{}); {
 
-		// Ignore NoErrAlreadyUpToDate
+	case err == nil, errors.Is(err, git.NoErrAlreadyUpToDate): // ignore
+
+	default:
 		return fmt.Errorf("submodule %s: %w", status.Path, err)
-	}
-
-	return nil
-}
-
-// Set username and email in the repository config.
-func updateRepoConfig(conf *configfile.Configuration, host string, repository *git.Repository) error {
-	repoConf, err := repository.Config()
-	if err != nil {
-		return err
-	}
-
-	profilesMap := conf.Profiles.ToMap()
-	profile, ok := profilesMap[host]
-	if !ok {
-		return fmt.Errorf("no profile for host: %q", host)
-	}
-
-	// set user
-	repoConf.User.Name = profile.Fullname
-	repoConf.User.Email = profile.Email
-
-	// update remote "origin" urls to use current authentication context
-	if cfg, ok := repoConf.Remotes["origin"]; ok {
-		for i := range cfg.URLs {
-			conf.AuthenticateURL(&cfg.URLs[i])
-		}
-
-		repoConf.Remotes["origin"] = cfg
-	}
-
-	// update submodules' urls to use current authentication context
-	for name, cfg := range repoConf.Submodules {
-		conf.AuthenticateURL(&cfg.URL)
-		repoConf.Submodules[name] = cfg
-	}
-
-	if err := repoConf.Validate(); err != nil {
-		return err
-	}
-
-	if err := repository.Storer.SetConfig(repoConf); err != nil {
-		return err
 	}
 
 	return nil

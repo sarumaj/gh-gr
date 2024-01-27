@@ -18,7 +18,7 @@ var pushCmd = &cobra.Command{
 	Short:   "Push all repositories",
 	Example: "gh pr push",
 	Run: func(*cobra.Command, []string) {
-		operationLoop(pushOperation, "Push")
+		operationLoop(pushOperation, "Push", nil)
 	},
 }
 
@@ -53,10 +53,6 @@ func pushRepository(repo configfile.Repository, status *operationStatus) error {
 	}
 
 	switch err := repository.Push(&git.PushOptions{}); {
-
-	case errors.Is(err, git.ErrNonFastForwardUpdate):
-		status.appendRow(repo.Directory, fmt.Errorf("non-fast-forward update"))
-		return fmt.Errorf("repository %s: %w", repo.Directory, err)
 
 	case
 		errors.Is(err, transport.ErrAuthenticationRequired),

@@ -1,26 +1,32 @@
 [
   {
     "alias": "wip",
+    "description": "Stage all changes made to tracked files and commit with a WIP message",
     "command": "!git add -u && git commit -m \"WIP\""
   },
   {
     "alias": "undo",
+    "description": "Undo last commit by un-staging the changes but keeping them locally",
     "command": "reset HEAD~1 --mixed"
   },
   {
     "alias": "fup",
-    "command": "!git pull upstream main && git push"
+    "description": "Fast pull upstream from remote head branch to the current branch",
+    "command": "!git pull upstream $(git rev-parse --abbrev-ref HEAD) && git push"
   },
   {
     "alias": "bcl",
-    "command": "!git checkout main && git branch --merged main | grep -v \"main$\" | xargs -n 1 git branch -d"
+    "description": "Delete all local branches that have been merged into the current branch",
+    "command": "\"!f() { branch=$(git rev-parse --abbrev-ref HEAD); git checkout $branch && git branch --merged $branch | grep -v \"$branch$\" | xargs -n 1 git branch -d; }; f\""
   },
   {
     "alias": "nub",
-    "command": "\"!f() { git checkout main && git fup && git checkout -b ${1-main}; }; f\""
+    "description": "Create a new branch from the current branch and pull upstream from remote head branch",
+    "command": "\"!f() { branch=$(git rev-parse --abbrev-ref HEAD); git checkout $branch && git fup && git checkout -b ${1-$branch}; }; f\""
   },
   {
     "alias": "cap",
+    "description": "Append all changes to the last commit and force push to the current branch",
     "command": "!git add . && git commit --amend --no-edit && git push -f"
   }
 ]

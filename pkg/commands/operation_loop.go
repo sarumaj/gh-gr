@@ -10,7 +10,7 @@ import (
 )
 
 // Wrapper for repository operations (e.g. pull, push, status).
-func operationLoop(fn func(pool.WorkUnit, operationContext), verbInfinitive string) {
+func operationLoop(fn func(pool.WorkUnit, operationContext), verbInfinitive string, args operationContextMap) {
 	logger := loggerEntry
 	bar := util.NewProgressbar(100)
 
@@ -39,11 +39,20 @@ func operationLoop(fn func(pool.WorkUnit, operationContext), verbInfinitive stri
 				return nil, wu.Error()
 			}
 
-			fn(wu, newOperationContext(operationContextMap{
-				"conf":   conf,
+			ctx := operationContextMap{
 				"repo":   repo,
 				"status": status,
-			}))
+				"conf":   conf,
+			}
+
+			for k, v := range args {
+				if _, ok := ctx[k]; ok {
+					continue
+				}
+				ctx[k] = v
+			}
+
+			fn(wu, newOperationContext(ctx))
 
 			return repo, nil
 		}

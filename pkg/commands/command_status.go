@@ -10,32 +10,46 @@ import (
 	pool "gopkg.in/go-playground/pool.v3"
 )
 
-// statusCmd represents the status command
-var statusCmd = &cobra.Command{
-	Use:   "status",
-	Short: "Show status for all repositories",
-	Long: "Show status for all repositories.\n\n" +
-		"Additionally, untracked directories will be listed.",
-	Example: "gh gr status",
-	Run: func(*cobra.Command, []string) {
-		operationLoop(statusOperation, "Check")
-
-		conf := configfile.Load()
-		status := newOperationStatus()
-
-		for _, f := range conf.ListUntracked() {
-			status.appendRow(f, fmt.Errorf("untracked"))
-		}
-
-		status.Sort().Print()
-	},
+// statusFlags represents flags for status command
+var statusFlags struct {
+	reset bool
 }
+
+// statusCmd represents the status command
+var statusCmd = func() *cobra.Command {
+	statusCmd := &cobra.Command{
+		Use:   "status",
+		Short: "Show status for all repositories",
+		Long: "Show status for all repositories.\n\n" +
+			"Additionally, untracked directories will be listed.",
+		Example: "gh gr status",
+		Run: func(*cobra.Command, []string) {
+			operationLoop(statusOperation, "Check", operationContextMap{"reset": statusFlags.reset})
+
+			conf := configfile.Load()
+			status := newOperationStatus()
+
+			for _, f := range conf.ListUntracked() {
+				status.appendRow(f, fmt.Errorf("untracked"))
+			}
+
+			status.Sort().Print()
+		},
+	}
+
+	flags := statusCmd.Flags()
+	flags.BoolVar(&statusFlags.reset, "reset-all", false, "Perform hard reset against remote for each dirty local repository "+
+		"(it will discard all not staged and not committed changes)")
+
+	return statusCmd
+}()
 
 // Check status of local repository.
 func statusOperation(_ pool.WorkUnit, args operationContext) {
 	conf := unwrapOperationContext[*configfile.Configuration](args, "conf")
 	repo := unwrapOperationContext[configfile.Repository](args, "repo")
 	status := unwrapOperationContext[*operationStatus](args, "status")
+	reset := unwrapOperationContext[bool](args, "reset")
 
 	logger := loggerEntry.WithField("command", "status").WithField("repository", repo.Directory)
 
@@ -88,6 +102,15 @@ func statusOperation(_ pool.WorkUnit, args operationContext) {
 
 	if repoStatus.IsClean() {
 		ret = append(ret, "clean")
+	} else if reset {
+		if err := resetRepository(workTree, head); err != nil {
+			logger.Debugf("Failed to reset repository worktree: %v", err)
+			status.appendRow(repo.Directory, err)
+			return
+
+		}
+		ret = append(ret, "reset")
+
 	} else {
 		logger.Debug("Repository is dirty")
 		ret = append(ret, fmt.Errorf("dirty"))
