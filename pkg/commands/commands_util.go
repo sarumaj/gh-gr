@@ -11,6 +11,7 @@ import (
 	color "github.com/fatih/color"
 	git "github.com/go-git/go-git/v5"
 	gitconfig "github.com/go-git/go-git/v5/config"
+	plumbing "github.com/go-git/go-git/v5/plumbing"
 	configfile "github.com/sarumaj/gh-gr/v2/pkg/configfile"
 	extras "github.com/sarumaj/gh-gr/v2/pkg/extras"
 	restclient "github.com/sarumaj/gh-gr/v2/pkg/restclient"
@@ -19,11 +20,12 @@ import (
 	logrus "github.com/sirupsen/logrus"
 )
 
-// Write git alias commands into local repository config file.
+// addGitAliases adds git aliases to .gitconfig.
 func addGitAliases() error {
 	var ga []struct {
-		Alias   string `json:"alias"`
-		Command string `json:"command"`
+		Alias       string `json:"alias"`
+		Description string `json:"description"`
+		Command     string `json:"command"`
 	}
 	if err := json.Unmarshal(extras.GitAliasesJSON, &ga); err != nil {
 		return err
@@ -48,6 +50,7 @@ func addGitAliases() error {
 	section := cfg.Raw.Section("alias")
 	for _, alias := range ga {
 		section.SetOption(alias.Alias, alias.Command)
+		section.SetOption(alias.Alias+".description", alias.Description)
 	}
 
 	if err := cfg.Validate(); err != nil {
@@ -66,7 +69,7 @@ func addGitAliases() error {
 	return nil
 }
 
-// Change progressbar description for given repository.
+// changeProgressbarText changes progressbar text.
 func changeProgressbarText(bar *util.Progressbar, conf *configfile.Configuration, verb string, repo configfile.Repository) {
 	if bar != nil && conf != nil {
 		c := util.Console()
@@ -74,7 +77,7 @@ func changeProgressbarText(bar *util.Progressbar, conf *configfile.Configuration
 	}
 }
 
-// Initialize new configuration or update existing one.
+// initializeOrUpdateConfig initializes or updates app configuration.
 func initializeOrUpdateConfig(conf *configfile.Configuration, update bool) {
 	var logger *logrus.Entry
 	if update {
@@ -156,7 +159,7 @@ func initializeOrUpdateConfig(conf *configfile.Configuration, update bool) {
 	conf.Save()
 }
 
-// Open local repository.
+// openRepository opens repository at given path.
 func openRepository(repo configfile.Repository, status *operationStatus) (*git.Repository, error) {
 	switch repository, err := git.PlainOpen(repo.Directory); {
 
@@ -174,7 +177,28 @@ func openRepository(repo configfile.Repository, status *operationStatus) (*git.R
 	}
 }
 
-// Update configFlags from loaded configuration.
+// resetRepository resets repository to given head.
+func resetRepository(workTree *git.Worktree, head *plumbing.Reference) error {
+	if err := workTree.Reset(&git.ResetOptions{
+		Mode:   git.HardReset,
+		Commit: head.Hash(),
+	}); err != nil {
+		return err
+	}
+
+	repoStatus, err := workTree.Status()
+	if err != nil {
+		return err
+	}
+
+	if !repoStatus.IsClean() {
+		return git.ErrWorktreeNotClean
+	}
+
+	return nil
+}
+
+// updateConfigFlags updates global configuration flags.
 func updateConfigFlags() {
 	var conf *configfile.Configuration
 	if configfile.ConfigurationExists() {
@@ -184,4 +208,52 @@ func updateConfigFlags() {
 	if conf != nil {
 		configFlags = conf
 	}
+}
+
+// updateRepoConfig updates repository config.
+// If host is specified, it will update user name and email.
+// It will update remote "origin" and submodules' urls to use current personal access token.
+func updateRepoConfig(conf *configfile.Configuration, host string, repository *git.Repository) error {
+	repoConf, err := repository.Config()
+	if err != nil {
+		return err
+	}
+
+	// set user if host is specified
+	if host != "" {
+		profilesMap := conf.Profiles.ToMap()
+		profile, ok := profilesMap[host]
+		if !ok {
+			return fmt.Errorf("no profile for host: %q", host)
+		}
+
+		// set user
+		repoConf.User.Name = profile.Fullname
+		repoConf.User.Email = profile.Email
+	}
+
+	// update remote "origin" urls to use current authentication context
+	if cfg, ok := repoConf.Remotes["origin"]; ok {
+		for i := range cfg.URLs {
+			conf.AuthenticateURL(&cfg.URLs[i])
+		}
+
+		repoConf.Remotes["origin"] = cfg
+	}
+
+	// update submodules' urls to use current authentication context
+	for name, cfg := range repoConf.Submodules {
+		conf.AuthenticateURL(&cfg.URL)
+		repoConf.Submodules[name] = cfg
+	}
+
+	if err := repoConf.Validate(); err != nil {
+		return err
+	}
+
+	if err := repository.Storer.SetConfig(repoConf); err != nil {
+		return err
+	}
+
+	return nil
 }
