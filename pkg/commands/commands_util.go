@@ -50,7 +50,6 @@ func addGitAliases() error {
 	section := cfg.Raw.Section("alias")
 	for _, alias := range ga {
 		section.SetOption(alias.Alias, alias.Command)
-		section.SetOption(alias.Alias+".description", alias.Description)
 	}
 
 	if err := cfg.Validate(); err != nil {
