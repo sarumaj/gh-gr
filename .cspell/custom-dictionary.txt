@@ -1,5 +1,4 @@
 # Custom Dictionary Words
-adressed
 Aivazis
 blang
 configfile
@@ -7,7 +6,6 @@ creativeprojects
 Cristian
 Debugf
 dlclark
-exluded
 fatih
 fslock
 Fullname
