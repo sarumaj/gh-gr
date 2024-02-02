@@ -7,12 +7,14 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
 	"time"
 
+	survey "github.com/AlecAivazis/survey/v2"
 	terminal "github.com/AlecAivazis/survey/v2/terminal"
 	config "github.com/cli/go-gh/v2/pkg/config"
 	prompter "github.com/cli/go-gh/v2/pkg/prompter"
@@ -79,15 +81,15 @@ var configReader = func() func() (*config.Config, error) {
 type Configuration struct {
 	BaseDirectory         string        `json:"baseDirectory" yaml:"baseDirectory"`
 	AbsoluteDirectoryPath string        `json:"directoryPath" yaml:"directoryPath"`
-	Profiles              Profiles      `json:"profiles" yaml:"profiles"`
+	Profiles              Profiles      `json:"profiles,omitempty" yaml:"profiles,omitempty"`
 	Concurrency           uint          `json:"concurrency" yaml:"concurrency"`
 	SubDirectories        bool          `json:"subDirectories" yaml:"subDirectories"`
 	SizeLimit             uint64        `json:"sizeLimit" yaml:"sizeLimit"`
 	Timeout               time.Duration `json:"timeout" yaml:"timeout"`
-	Excluded              []string      `json:"exluded,omitempty" yaml:"exluded,omitempty"`
+	Excluded              []string      `json:"excluded,omitempty" yaml:"excluded,omitempty"`
 	Included              []string      `json:"included,omitempty" yaml:"included,omitempty"`
-	Total                 int64         `json:"total" yaml:"total"`
-	Repositories          Repositories  `json:"repositories" yaml:"repositories"`
+	Total                 int64         `json:"total,omitempty" yaml:"total,omitempty"`
+	Repositories          Repositories  `json:"repositories,omitempty" yaml:"repositories,omitempty"`
 }
 
 // AppendRepositories appends multiple repositories to the configuration and sorts them alphabetically by Directory.
@@ -331,6 +333,68 @@ func (conf Configuration) Display(format, output string, export bool, filters []
 	}
 }
 
+// Edit configuration.
+func (conf *Configuration) Edit(format, editor string) {
+
+	c := util.Console()
+	enc, ok := supportedEncoders[format]
+	if !ok {
+		supportedEncoders := strings.Join(GetListOfSupportedFormats(true), ", ")
+		util.PrintlnAndExit(c.CheckColors(color.RedString, ConfigInvalidFormat, format, supportedEncoders))
+	}
+
+	clone := conf.Copy()
+	clone.Repositories = nil
+	clone.Profiles = nil
+	clone.Total = 0
+
+	if path, err := exec.LookPath(editor); err == nil && path != "" && c.IsTerminal(true, true, true) {
+		current := bytes.NewBuffer(nil)
+		supererrors.Except(enc.Encoder(current, false).Encode(clone))
+
+		survey.EditorQuestionTemplate = strings.Replace(
+			survey.EditorQuestionTemplate,
+			"[Enter to launch editor]",
+			fmt.Sprintf("[Enter to launch %q editor]", editor),
+			1,
+		)
+
+		var modified string
+		supererrors.Except(
+			survey.AskOne(&survey.Editor{
+				Message:       "Edit current configuration:",
+				FileName:      "*.yaml",
+				Default:       current.String(),
+				AppendDefault: true,
+				HideDefault:   true,
+				Editor:        editor,
+			}, &modified),
+			terminal.InterruptErr,
+		)
+
+		if supererrors.LastErrorWas(terminal.InterruptErr) {
+			os.Exit(0)
+		}
+
+		supererrors.Except(enc.Decoder(strings.NewReader(modified)).Decode(clone))
+
+		conf.Overwrite(clone)
+		conf.Save()
+
+		return
+	}
+
+	f := supererrors.ExceptFn(supererrors.W(os.CreateTemp(os.TempDir(), "gr-config-*.yaml")))
+	supererrors.Except(enc.Encoder(f, false).Encode(clone))
+
+	_ = supererrors.ExceptFn(supererrors.W(
+		fmt.Fprintln(c.Stdout(), c.CheckColors(color.RedString, "Editor not found: %[2]s. "+
+			"Configuration has been saved temporarily to %[1]s. "+
+			"Modify the config file and run 'gr import --input %[1]s && gh update' to apply.",
+			f.Name(), editor)),
+	))
+}
+
 // Filter repositories.
 // Applied filters: included || !excluded || size below x || archived || disabled || !pullPermission || !pushPermission.
 func (conf *Configuration) FilterRepositories(repositories *[]resources.Repository) {
@@ -470,6 +534,31 @@ func (conf Configuration) Remove(purge bool) {
 	))
 }
 
+// Overwrite config.
+func (conf *Configuration) Overwrite(from *Configuration) {
+	if from == nil {
+		return
+	}
+
+	conf.BaseDirectory = from.BaseDirectory
+	conf.AbsoluteDirectoryPath = from.AbsoluteDirectoryPath
+	conf.SubDirectories = from.SubDirectories
+	conf.SizeLimit = from.SizeLimit
+	conf.Concurrency = from.Concurrency
+	conf.Timeout = from.Timeout
+	conf.Excluded = from.Excluded
+	conf.Included = from.Included
+
+	if len(from.Profiles) > 0 {
+		conf.Profiles = from.Profiles
+	}
+
+	if len(from.Repositories) > 0 {
+		conf.Repositories = from.Repositories
+		conf.Total = from.Total
+	}
+}
+
 // Transform base directory into UNIx style path and set absolute directory path.
 func (conf *Configuration) SanitizeDirectory() {
 	if filepath.IsAbs(conf.BaseDirectory) {
@@ -498,7 +587,7 @@ func (conf Configuration) Save() {
 	supererrors.Except(config.Write(ghconf))
 
 	_ = supererrors.ExceptFn(supererrors.W(
-		fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "Configuration saved. You can now pull %d repositories.", conf.Total)),
+		fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "Configuration saved. Run 'gh pull' to pull %d repositories.", conf.Total)),
 	))
 }
 
@@ -588,6 +677,13 @@ func Import(format, input string) {
 
 	var conf Configuration
 	supererrors.Except(enc.Decoder(bytes.NewReader(raw)).Decode(&conf))
+
+	if ConfigurationExists() {
+		current := Load()
+		current.Overwrite(&conf)
+		current.Save()
+		return
+	}
 
 	conf.Save()
 }

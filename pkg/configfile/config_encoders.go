@@ -11,10 +11,16 @@ import (
 	util "github.com/sarumaj/gh-gr/v2/pkg/util"
 )
 
+// json format
+const JSON = "json"
+
+// yaml format
+const YAML = "yaml"
+
 // supportedEncoders contains supported encoder pairs for both encoding and decoding.
 var supportedEncoders = func() map[string]encoderPair {
 	return map[string]encoderPair{
-		"json": {
+		JSON: {
 			Encoder: func(w io.Writer, colored bool) encoder {
 				if colored {
 					e := jc.NewEncoder(w)
@@ -40,7 +46,7 @@ var supportedEncoders = func() map[string]encoderPair {
 				return e
 			},
 		},
-		"yaml": {
+		YAML: {
 			Encoder: func(w io.Writer, colored bool) encoder {
 				if colored {
 					return util.NewColoredYAMLEncoder(w)

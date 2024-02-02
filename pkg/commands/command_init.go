@@ -1,6 +1,7 @@
 package commands
 
 import (
+	supererrors "github.com/sarumaj/go-super/errors"
 	cobra "github.com/spf13/cobra"
 )
 
@@ -44,6 +45,8 @@ var initCmd = func() *cobra.Command {
 	flags.Uint64VarP(&configFlags.SizeLimit, "sizelimit", "l", 0, "Exclude repositories with size exceeded the limit (\"0\": no limit, e.g. limit of 52,428,800 corresponds with 50 MB)")
 	flags.StringArrayVarP(&configFlags.Excluded, "exclude", "e", []string{}, "Regular expressions for repositories to exclude")
 	flags.StringArrayVarP(&configFlags.Included, "include", "i", []string{}, "Regular expressions for repositories to include explicitly")
+
+	supererrors.Except(initCmd.MarkFlagDirname("dir"))
 
 	return initCmd
 }()
