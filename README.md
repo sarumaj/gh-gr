@@ -36,9 +36,13 @@ $ gh gr --help
 >   gr [flags]
 >   gr [command]
 >
+> Examples:
+>   gh gr --concurrency 100 --timeout "20s" <subcommand>
+>
 > Available Commands:
 >   cleanup     Clean up untracked local repositories
 >   completion  Generate the autocompletion script for the specified shell
+>   edit        Edit configuration
 >   export      Export current configuration to stdout
 >   help        Help about any command
 >   import      Import configuration from stdin or a file
