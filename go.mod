@@ -6,7 +6,7 @@ require (
 	bou.ke/monkey v1.0.2
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cli/go-gh/v2 v2.4.0
+	github.com/cli/go-gh/v2 v2.5.0
 	github.com/creativeprojects/go-selfupdate v1.1.3
 	github.com/dlclark/regexp2 v1.10.0
 	github.com/fatih/color v1.16.0
@@ -62,7 +62,7 @@ require (
 	github.com/muesli/termenv v0.15.2 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/rivo/uniseg v0.4.4 // indirect
+	github.com/rivo/uniseg v0.4.6 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/skeema/knownhosts v1.2.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect

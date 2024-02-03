@@ -54,7 +54,7 @@ var supportedEncoders = func() map[string]encoderPair {
 				return yaml.NewEncoder(w)
 			},
 			Decoder: func(r io.Reader) decoder {
-				return yaml.NewDecoder(r)
+				return yaml.NewDecoder(r, yaml.Strict())
 			},
 		},
 	}
