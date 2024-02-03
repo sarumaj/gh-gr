@@ -363,7 +363,7 @@ func (conf *Configuration) Edit(format, editor string) {
 		supererrors.Except(
 			survey.AskOne(&survey.Editor{
 				Message:       "Edit current configuration:",
-				FileName:      "*.yaml",
+				FileName:      "gr-config-*.yaml",
 				Default:       current.String(),
 				AppendDefault: true,
 				HideDefault:   true,
@@ -378,6 +378,12 @@ func (conf *Configuration) Edit(format, editor string) {
 
 		supererrors.Except(enc.Decoder(strings.NewReader(modified)).Decode(clone))
 
+		// make sure to remove repositories and profiles
+		// so that they could not be manipulated by the user
+		clone.Repositories = nil
+		clone.Profiles = nil
+		clone.Total = 0
+
 		conf.Overwrite(clone)
 		conf.Save()
 
@@ -390,7 +396,7 @@ func (conf *Configuration) Edit(format, editor string) {
 	_ = supererrors.ExceptFn(supererrors.W(
 		fmt.Fprintln(c.Stdout(), c.CheckColors(color.RedString, "Editor not found: %[2]s. "+
 			"Configuration has been saved temporarily to %[1]s. "+
-			"Modify the config file and run 'gr import --input %[1]s && gh update' to apply.",
+			"Modify the config file and run 'gr import --input %[1]s && gr update' to apply.",
 			f.Name(), editor)),
 	))
 }
@@ -555,7 +561,7 @@ func (conf *Configuration) Overwrite(from *Configuration) {
 
 	if len(from.Repositories) > 0 {
 		conf.Repositories = from.Repositories
-		conf.Total = from.Total
+		conf.Total = int64(len(from.Repositories))
 	}
 }
 
@@ -587,7 +593,7 @@ func (conf Configuration) Save() {
 	supererrors.Except(config.Write(ghconf))
 
 	_ = supererrors.ExceptFn(supererrors.W(
-		fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "Configuration saved. Run 'gh pull' to pull %d repositories.", conf.Total)),
+		fmt.Fprintln(c.Stdout(), c.CheckColors(color.GreenString, "Configuration saved. Run 'gr pull' to pull %d repositories.", conf.Total)),
 	))
 }
 
