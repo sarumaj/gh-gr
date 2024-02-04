@@ -4,6 +4,12 @@
 [![Maintainability](https://img.shields.io/codeclimate/maintainability-percentage/sarumaj/gh-gr.svg)](https://codeclimate.com/github/sarumaj/gh-gr/maintainability)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/0c9cdd86241d58f97085/test_coverage)](https://codeclimate.com/github/sarumaj/gh-gr/test_coverage)
 [![Go Reference](https://pkg.go.dev/badge/github.com/sarumaj/gh-gr/v2.svg)](https://pkg.go.dev/github.com/sarumaj/gh-gr/v2)
+[![Go version](https://img.shields.io/github/go-mod/go-version/sarumaj/gh-gr?logo=go&label=&labelColor=gray)](https://go.dev)
+[![Release](https://img.shields.io/github/v/release/sarumaj/gh-gr?logo=github)](https://github.com/sarumaj/gh-gr/releases/latest)
+[![Release Date](https://img.shields.io/github/release-date/sarumaj/gh-gr?logo=github)](https://github.com/sarumaj/gh-gr/releases/latest)
+[![Commits since latest release](https://img.shields.io/github/commits-since/sarumaj/gh-gr/latest?logo=github)](https://github.com/sarumaj/gh-gr/releases/latest)
+[![Downloads (all assets, all releases)](https://img.shields.io/github/downloads/sarumaj/gh-gr/total?logo=github)](https://github.com/sarumaj/gh-gr/releases)
+[![Downloads (all assets, latest release)](https://img.shields.io/github/downloads/sarumaj/gh-gr/latest/total?logo=github)](https://github.com/sarumaj/gh-gr/releases/latest)
 
 ---
 
