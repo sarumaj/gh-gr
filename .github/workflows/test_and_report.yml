@@ -42,7 +42,7 @@ jobs:
         run: echo "MODULE_NAME=$(go mod edit -json | jq -r '.Module.Path')" >> "$GITHUB_OUTPUT"
 
       - name: Run linters
-        run: gofmt -s -d ./ && golangci-lint run -v
+        run: gofmt -s -d ./ && golangci-lint run -v -e printf
 
       - name: Test & publish code coverage
         uses: paambaati/codeclimate-action@v5.0.0

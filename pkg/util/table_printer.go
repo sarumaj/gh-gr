@@ -63,7 +63,6 @@ func (t *TablePrinter) AddRowField(field string, colors ...color.Attribute) *Tab
 // End row (new line).
 func (t *TablePrinter) EndRow() *TablePrinter {
 	t.records = append(t.records, nil)
-
 	return t
 }
 

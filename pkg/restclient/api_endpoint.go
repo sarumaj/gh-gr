@@ -6,9 +6,11 @@ import (
 )
 
 const (
-	orgEp       = apiEndpoint("orgs/{org}")
-	orgReposEp  = apiEndpoint("orgs/{org}/repos")
+	orgEp       = apiEndpoint("orgs/{owner}")
+	orgReposEp  = apiEndpoint("orgs/{owner}/repos")
 	orgsEp      = apiEndpoint("organizations")
+	pullEp      = apiEndpoint("repos/{owner}/{repo}/pulls/{number}")
+	pullsEp     = apiEndpoint("repos/{owner}/{repo}/pulls")
 	rateLimitEp = apiEndpoint("rate_limit")
 	userEp      = apiEndpoint("user")
 	userOrgsEp  = apiEndpoint("user/orgs")
@@ -20,10 +22,10 @@ type apiEndpoint string
 
 // Replace the {KEY} placeholders with values from a map.
 func (s apiEndpoint) Format(params map[string]any) apiEndpoint {
-	o := s
+	var replacements []string
 	for k, v := range params {
-		o = apiEndpoint(strings.ReplaceAll(string(s), "{"+k+"}", fmt.Sprint(v)))
+		replacements = append(replacements, fmt.Sprintf("{%s}", k), fmt.Sprintf("%v", v))
 	}
 
-	return o
+	return apiEndpoint(strings.NewReplacer(replacements...).Replace(string(s)))
 }

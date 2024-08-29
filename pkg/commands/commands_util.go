@@ -126,7 +126,7 @@ func initializeOrUpdateConfig(conf *configfile.Configuration, update bool) {
 		client, err := restclient.NewRESTClient(conf, restclient.ClientOptions{
 			AuthToken:   token,
 			Log:         logger.WriterLevel(logrus.DebugLevel),
-			LogColorize: true,
+			LogColorize: util.Console().ColorsEnabled(),
 			Host:        host,
 		})
 		supererrors.Except(err)

@@ -26,6 +26,17 @@ func (l PatternList) GlobMatch(target string) bool {
 	return false
 }
 
+// GlobMatchAny checks if any of the targets match any of the globs in the list.
+func (l PatternList) GlobMatchAny(targets ...string) bool {
+	for _, target := range targets {
+		if l.GlobMatch(target) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // RegexMatch checks if target matches any of the regular expressions in the list.
 func (l PatternList) RegexMatch(target string, timeout time.Duration) bool {
 	for _, pattern := range l {
@@ -39,6 +50,17 @@ func (l PatternList) RegexMatch(target string, timeout time.Duration) bool {
 		}
 
 		if match, err := re.MatchString(target); err == nil && match {
+			return true
+		}
+	}
+
+	return false
+}
+
+// RegexMatchAny checks if any of the targets match any of the regular expressions in the list.
+func (l PatternList) RegexMatchAny(timeout time.Duration, targets ...string) bool {
+	for _, target := range targets {
+		if l.RegexMatch(target, timeout) {
 			return true
 		}
 	}

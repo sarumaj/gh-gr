@@ -83,7 +83,7 @@ func statusOperation(_ pool.WorkUnit, args operationContext) {
 		ret = append(ret, branch)
 	} else {
 		logger.Debugf("Not default branch: %s", branch)
-		ret = append(ret, fmt.Errorf(branch))
+		ret = append(ret, fmt.Errorf("%v", branch))
 	}
 
 	workTree, err := repository.Worktree()

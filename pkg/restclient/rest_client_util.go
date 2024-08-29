@@ -38,14 +38,22 @@ func getLastPage(responseHeader http.Header) (limit int) {
 }
 
 // Retrieve all elements through paginated requests.
-func getPaged[T any](c RESTClient, ep apiEndpoint, ctx context.Context) (result []T, err error) {
+func getPaged[T any](c RESTClient, ep apiEndpoint, ctx context.Context, options ...func(*requestPath)) (result []T, err error) {
+	params := newRequestPath(ep).
+		Add("per_page", "100").
+		Add("page", "1")
+	for _, option := range options {
+		option(params)
+	}
+
+	if err := params.Validate(); err != nil {
+		return nil, err
+	}
+
 	resp, err := c.RequestWithContext(
 		ctx,
 		http.MethodGet,
-		newRequestPath(ep).
-			Add("per_page", "100").
-			Add("page", "1").
-			String(),
+		params.String(),
 		nil,
 	)
 	if err != nil {
