@@ -13,11 +13,26 @@ const RateLimitExceeded = "GitHub REST API quotas have been exhausted. Please, w
 
 // Checks whether the quota of the core API are exceeded.
 func CheckRateLimitAndExit(r *resources.RateLimit) {
-	if r.Resources.Core.Remaining > 0 {
+	if r.Resources.Core.Remaining > 0 && r.Resources.Search.Remaining > 0 {
 		return
 	}
 
-	c := util.Console()
-	resetTime := time.Unix(r.Resources.Core.Reset, 0)
-	util.PrintlnAndExit(c.CheckColors(color.RedString, RateLimitExceeded, resetTime, time.Until(resetTime)))
+	check := func(rate resources.Rate) string {
+		if rate.Remaining > 0 {
+			return ""
+		}
+
+		c := util.Console()
+		resetTime := time.Unix(rate.Reset, 0)
+
+		return c.CheckColors(color.RedString, RateLimitExceeded, resetTime, time.Until(resetTime))
+	}
+
+	if msg := check(r.Resources.Core); msg != "" {
+		util.PrintlnAndExit(msg)
+	}
+
+	if msg := check(r.Resources.Search); msg != "" {
+		util.PrintlnAndExit(msg)
+	}
 }

@@ -4,8 +4,7 @@ import "time"
 
 // PullRequest represents a GitHub pull request.
 type PullRequest struct {
-	Repository         string           `json:"repository"` // Extra property
-	Owner              string           `json:"owner"`      // Extra property
+	Repository         string           `json:"repository"` // This field is not present in the GitHub API response.
 	URL                string           `json:"url"`
 	ID                 int              `json:"id"`
 	NodeID             string           `json:"node_id"`

@@ -1,6 +1,8 @@
 package configfile
 
 import (
+	"net/url"
+	"path/filepath"
 	"strings"
 
 	auth "github.com/cli/go-gh/v2/pkg/auth"
@@ -16,6 +18,12 @@ func GetHosts() []string {
 	}
 
 	return hosts
+}
+
+// GetRepositorySlugFromURL extracts repository slug from URL.
+func GetRepositorySlugFromURL(repo Repository) string {
+	parsed, _ := url.Parse(repo.URL)
+	return strings.TrimSuffix(strings.TrimPrefix(parsed.Path, "/"), filepath.Ext(parsed.Path))
 }
 
 // Retrieve all authentication tokens for each host from GitHub CLI.

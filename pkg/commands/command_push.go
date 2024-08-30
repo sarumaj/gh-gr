@@ -18,14 +18,14 @@ var pushCmd = &cobra.Command{
 	Short:   "Push all repositories",
 	Example: "gh pr push",
 	Run: func(*cobra.Command, []string) {
-		operationLoop(pushOperation, "Push", nil)
+		operationLoop[configfile.Repository](pushOperation, "Push", nil, []string{"Directory", "Status"}, true)
 	},
 }
 
 // Push local repository.
 func pushOperation(_ pool.WorkUnit, args operationContext) {
 	conf := unwrapOperationContext[*configfile.Configuration](args, "conf")
-	repo := unwrapOperationContext[configfile.Repository](args, "repo")
+	repo := unwrapOperationContext[configfile.Repository](args, "object")
 	status := unwrapOperationContext[*operationStatus](args, "status")
 
 	logger := loggerEntry.WithField("command", "push").WithField("repository", repo.Directory)

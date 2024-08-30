@@ -2,6 +2,7 @@ package util
 
 import (
 	"path/filepath"
+	"regexp"
 	"time"
 
 	regexp2 "github.com/dlclark/regexp2"
@@ -66,4 +67,14 @@ func (l PatternList) RegexMatchAny(timeout time.Duration, targets ...string) boo
 	}
 
 	return false
+}
+
+// IsGlobMatch checks if the pattern is a glob pattern.
+func IsGlobMatch(pattern string) bool {
+	return regexp.MustCompile(`[\*\?\[\]\{\}]+`).MatchString(pattern)
+}
+
+// IsRegex checks if the pattern is a regular expression.
+func IsRegex(pattern string) bool {
+	return regexp.MustCompile(`[\^\$\(\)\[\]\{\}\|\.\+\*\\\?]+`).MatchString(pattern)
 }

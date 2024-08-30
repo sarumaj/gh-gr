@@ -69,10 +69,17 @@ func addGitAliases() error {
 }
 
 // changeProgressbarText changes progressbar text.
-func changeProgressbarText(bar *util.Progressbar, conf *configfile.Configuration, verb string, repo configfile.Repository) {
+func changeProgressbarText[U interface {
+	configfile.Repository | configfile.PullRequest
+}](bar *util.Progressbar, conf *configfile.Configuration, verb string, object U) {
 	if bar != nil && conf != nil {
 		c := util.Console()
-		bar.Describe(c.CheckColors(color.BlueString, conf.GetProgressbarDescriptionForVerb(verb, repo)))
+		switch v := any(object).(type) {
+		case configfile.PullRequest:
+			bar.Describe(c.CheckColors(color.BlueString, conf.GetProgressbarDescriptionForVerb(verb, configfile.Repository{Directory: v.Repository})))
+		case configfile.Repository:
+			bar.Describe(c.CheckColors(color.BlueString, conf.GetProgressbarDescriptionForVerb(verb, v)))
+		}
 	}
 }
 
@@ -128,7 +135,7 @@ func initializeOrUpdateConfig(conf *configfile.Configuration, update bool) {
 			Log:         logger.WriterLevel(logrus.DebugLevel),
 			LogColorize: util.Console().ColorsEnabled(),
 			Host:        host,
-		})
+		}, globalNonPersistentFlags.retry)
 		supererrors.Except(err)
 
 		ctx, cancel := context.WithTimeout(context.Background(), conf.Timeout)

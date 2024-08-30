@@ -38,7 +38,7 @@ func getLastPage(responseHeader http.Header) (limit int) {
 }
 
 // Retrieve all elements through paginated requests.
-func getPaged[T any](c RESTClient, ep apiEndpoint, ctx context.Context, options ...func(*requestPath)) (result []T, err error) {
+func getPaged[T any](c *RESTClient, ep apiEndpoint, ctx context.Context, options ...func(*requestPath)) (result []T, err error) {
 	params := newRequestPath(ep).
 		Add("per_page", "100").
 		Add("page", "1")
@@ -94,7 +94,7 @@ func getPaged[T any](c RESTClient, ep apiEndpoint, ctx context.Context, options 
 }
 
 // Worker to send paginated requests.
-func getPagedWorkUnit[T any](c RESTClient, ep apiEndpoint, ctx context.Context, page int) pool.WorkFunc {
+func getPagedWorkUnit[T any](c *RESTClient, ep apiEndpoint, ctx context.Context, page int) pool.WorkFunc {
 	return func(wu pool.WorkUnit) (any, error) {
 		defer c.Inc()
 

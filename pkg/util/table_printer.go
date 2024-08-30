@@ -14,6 +14,7 @@ type TablePrinter struct {
 	isStdErr bool
 	stdOut   tableprinter.TablePrinter
 	stdErr   tableprinter.TablePrinter
+	header   []string
 	records  [][]string
 }
 
@@ -70,6 +71,16 @@ func (t *TablePrinter) EndRow() *TablePrinter {
 func (t *TablePrinter) Print() {
 	current := t.current()
 
+	if len(t.records) > 0 {
+		for _, field := range t.header {
+			current.AddField(field)
+		}
+
+		if len(t.header) > 0 {
+			current.EndRow()
+		}
+	}
+
 	for _, row := range t.records {
 		for _, field := range row {
 			current.AddField(field)
@@ -81,6 +92,12 @@ func (t *TablePrinter) Print() {
 	supererrors.Except(current.Render())
 }
 
+// Set header.
+func (t *TablePrinter) SetHeader(header ...string) *TablePrinter {
+	t.header = header
+	return t
+}
+
 // Print through a buffer to deliver rendered string.
 func (t *TablePrinter) Sprint() string {
 	c := Console()
@@ -89,6 +106,16 @@ func (t *TablePrinter) Sprint() string {
 
 	buffer := bytes.NewBuffer(nil)
 	printer := tableprinter.New(buffer, c.IsTerminalOutput(), width)
+
+	if len(t.records) > 0 {
+		for _, field := range t.header {
+			printer.AddField(field)
+		}
+
+		if len(t.header) > 0 {
+			printer.EndRow()
+		}
+	}
 
 	for _, row := range t.records {
 		for _, field := range row {
@@ -141,5 +168,6 @@ func NewTablePrinter() *TablePrinter {
 		stdOut:  tableprinter.New(c.Stdout(), isTTY, width),
 		stdErr:  tableprinter.New(c.Stderr(), isTTY, width),
 		records: make([][]string, 1),
+		header:  make([]string, 0),
 	}
 }

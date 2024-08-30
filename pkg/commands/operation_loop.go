@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"strings"
 	"time"
 
 	color "github.com/fatih/color"
@@ -10,7 +11,9 @@ import (
 )
 
 // Wrapper for repository operations (e.g. pull, push, status).
-func operationLoop(fn func(pool.WorkUnit, operationContext), verbInfinitive string, args operationContextMap) {
+func operationLoop[U interface {
+	configfile.Repository | configfile.PullRequest
+}](fn func(pool.WorkUnit, operationContext), verbInfinitive string, args operationContextMap, headers []string, flush bool, source ...U) {
 	logger := loggerEntry
 	bar := util.NewProgressbar(100)
 
@@ -31,8 +34,9 @@ func operationLoop(fn func(pool.WorkUnit, operationContext), verbInfinitive stri
 
 	finished := make(chan bool)
 	status := newOperationStatus()
+	status.SetHeader(headers...)
 
-	worker := func(repo configfile.Repository) func(wu pool.WorkUnit) (any, error) {
+	worker := func(object U) func(wu pool.WorkUnit) (any, error) {
 		return func(wu pool.WorkUnit) (any, error) {
 			if wu.IsCancelled() {
 				logger.Warn("work unit has been prematurely canceled")
@@ -40,7 +44,7 @@ func operationLoop(fn func(pool.WorkUnit, operationContext), verbInfinitive stri
 			}
 
 			ctx := operationContextMap{
-				"repo":   repo,
+				"object": object,
 				"status": status,
 				"conf":   conf,
 			}
@@ -54,7 +58,7 @@ func operationLoop(fn func(pool.WorkUnit, operationContext), verbInfinitive stri
 
 			fn(wu, newOperationContext(ctx))
 
-			return repo, nil
+			return object, nil
 		}
 	}
 
@@ -62,8 +66,17 @@ func operationLoop(fn func(pool.WorkUnit, operationContext), verbInfinitive stri
 	defer util.PreventInterrupt().Stop()
 
 	go func(finished chan<- bool) {
-		for _, repo := range conf.Repositories {
-			batch.Queue(worker(repo))
+		var target U
+		switch any(target).(type) {
+		case configfile.Repository:
+			for _, object := range conf.Repositories {
+				batch.Queue(worker(any(object).(U)))
+			}
+
+		default:
+			for _, object := range source {
+				batch.Queue(worker(object))
+			}
 		}
 
 		batch.QueueComplete()
@@ -93,16 +106,22 @@ func operationLoop(fn func(pool.WorkUnit, operationContext), verbInfinitive stri
 			continue
 		}
 
-		repo, ok := value.(configfile.Repository)
+		object, ok := value.(U)
 		if !ok {
 			logger.Warnf("expected configfile.Repository got: %T", value)
 			continue
 		}
 
-		changeProgressbarText(bar, conf, verbInfinitive+"ed", repo)
+		if strings.HasSuffix(verbInfinitive, "e") {
+			changeProgressbarText(bar, conf, verbInfinitive+"d", object)
+		} else {
+			changeProgressbarText(bar, conf, verbInfinitive+"ed", object)
+		}
 		_ = bar.Inc()
 	}
 
 	logger.Debug("Collected workers")
-	status.Sort().Align().Print()
+	if flush {
+		status.Sort().Align().Print()
+	}
 }

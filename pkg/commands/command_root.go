@@ -13,6 +13,10 @@ import (
 // configFlags is a global variable holding configuration flags
 var configFlags = &configfile.Configuration{}
 
+var globalNonPersistentFlags struct {
+	retry bool
+}
+
 // loggerEntry is a global variable holding logger entry at package level
 var loggerEntry = util.Logger.WithFields(logrus.Fields{"mod": "commands"})
 
@@ -43,6 +47,7 @@ var rootCmd = func() *cobra.Command {
 
 	flags := cmd.PersistentFlags()
 	flags.UintVarP(&configFlags.Concurrency, "concurrency", "c", util.GetIdealConcurrency(), "Concurrency for concurrent jobs")
+	flags.BoolVarP(&globalNonPersistentFlags.retry, "retry", "r", false, "Retry rate-limited operations")
 	flags.DurationVarP(&configFlags.Timeout, "timeout", "t", 10*time.Minute, "Set timeout for long running jobs")
 
 	cmd.AddCommand(cleanupCmd, editCmd, exportCmd, initCmd, importCmd, pullCmd, pushCmd, prCmd, removeCmd, statusCmd, updateCmd, versionCmd, viewCmd)

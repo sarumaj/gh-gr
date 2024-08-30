@@ -2,32 +2,35 @@ package commands
 
 import (
 	"context"
+	"fmt"
 	"strings"
+	"time"
 
 	color "github.com/fatih/color"
 	configfile "github.com/sarumaj/gh-gr/v2/pkg/configfile"
 	restclient "github.com/sarumaj/gh-gr/v2/pkg/restclient"
 	util "github.com/sarumaj/gh-gr/v2/pkg/util"
-	supererrors "github.com/sarumaj/go-super/errors"
 	logrus "github.com/sirupsen/logrus"
 	cobra "github.com/spf13/cobra"
+	pool "gopkg.in/go-playground/pool.v3"
 )
 
 // prFlags represents the flags for pr command
 var prFlags struct {
-	base      string
-	head      string
-	state     string
-	sort      string
-	assignees []string
-	authors   []string
-	filters   []string
-	labels    []string
-	titles    []string
-	close     bool
+	base            string
+	closedInLast    time.Duration
+	closedAfterLast time.Duration
+	customQuery     string
+	head            string
+	state           string
+	assignees       []string
+	authors         []string
+	filters         []string
+	labels          []string
+	titles          []string
 }
 
-// initCmd represents the init command
+// prCmd represents the pr command
 var prCmd = func() *cobra.Command {
 	prCmd := &cobra.Command{
 		Use:     "pr",
@@ -48,181 +51,247 @@ var prCmd = func() *cobra.Command {
 			"\t- named back reference \\k'name'\n" +
 			"\t- named ascii character class [[:foo:]]\n" +
 			"\t- conditionals (?(expr)yes|no)\n",
-		Example: "gh gr pr " +
-			"--state open",
+		Example: "gh gr pr --state open",
 		Run: func(*cobra.Command, []string) {
 			c := util.Console()
 			if !configfile.ConfigurationExists() {
 				util.PrintlnAndExit(c.CheckColors(color.RedString, configfile.ConfigNotFound))
 			}
 
-			logger := loggerEntry.WithField("command", "pr")
 			conf := configfile.Load()
 
-			pulls, err := listPullRequests(conf, logger, map[string]string{
-				"state": prFlags.state,
-				"sort":  prFlags.sort,
-				"base":  prFlags.base,
-				"head":  prFlags.head,
-			})
-			supererrors.Except(err)
+			var list configfile.PullRequestList
+			listPullRequests(conf, buildPullSearchQuery(), &list, true)
 
-			if len(pulls) == 0 {
-				util.PrintlnAndExit(c.CheckColors(color.RedString, "No pull requests found"))
+			if len(list) == 0 {
+				util.PrintlnAndExit(c.CheckColors(color.RedString, "No pull requests matching following constraints found"))
 			}
-
-			var filtered []configfile.PullRequest
-			for _, pull := range pulls {
-				switch {
-				case
-					len(prFlags.assignees) > 0 && !util.PatternList(prFlags.assignees).GlobMatchAny(pull.Assignees...),
-					len(prFlags.filters) > 0 && !util.PatternList(prFlags.filters).GlobMatch(pull.Repository),
-					len(prFlags.titles) > 0 && !util.PatternList(prFlags.titles).RegexMatch(pull.Title, conf.Timeout),
-					len(prFlags.authors) > 0 && !util.PatternList(prFlags.authors).RegexMatch(pull.Author, conf.Timeout),
-					len(prFlags.labels) > 0 && !util.PatternList(prFlags.labels).RegexMatchAny(conf.Timeout, pull.Labels...):
-
-					continue
-				}
-
-				filtered = append(filtered, pull)
-			}
-
-			if len(filtered) == 0 {
-				util.PrintlnAndExit(c.CheckColors(color.RedString, "No pull requests matching provided constrains found"))
-			}
-
-			if prFlags.close {
-				filtered = closePullRequests(conf, logger, filtered)
-			}
-
-			status := newOperationStatus()
-			for _, pr := range filtered {
-				if len(pr.Title) > 30 {
-					pr.Title = pr.Title[:27] + "..."
-				}
-				status.appendRow(pr.Title, pr.Number, pr.State, pr.Repository, pr.Author,
-					strings.Join(pr.Assignees, ","),
-					strings.Join(pr.Labels, ","))
-			}
-
-			status.Sort().Print()
 		},
 	}
 
 	flags := prCmd.Flags()
 	flags.StringVar(&prFlags.state, "state", "open", "Filter pull requests by state (\"open\", \"closed\", \"all\")")
-	flags.StringVar(&prFlags.sort, "sort", "created", "Sort pull requests by field (\"created\", \"updated\", \"popularity\", \"long-running\")")
+
+	flags = prCmd.PersistentFlags()
 	flags.StringVar(&prFlags.base, "base", "", "Filter pull requests by base branch")
+	flags.DurationVar(&prFlags.closedInLast, "closed-in-last", 0, "Filter pull requests closed in the last time window")
+	flags.DurationVar(&prFlags.closedAfterLast, "closed-after-last", 0, "Filter pull requests closed after the last time window")
+	flags.StringVar(&prFlags.customQuery, "query", "", "Custom query to filter pull requests")
 	flags.StringVar(&prFlags.head, "head", "", "Filter pull requests by head user or head org in the format \"user:ref-name\" or \"organization:ref-name\"")
-	flags.BoolVar(&prFlags.close, "close", false, "Close pull requests")
 	flags.StringArrayVar(&prFlags.assignees, "assignee", []string{}, "Glob pattern(s) to filter pull request assignees")
-	flags.StringArrayVar(&prFlags.authors, "author", []string{}, "Regular expression(s) to filter pull request authors")
+	flags.StringArrayVar(&prFlags.authors, "author", []string{}, "Glob pattern(s) to filter pull request authors")
 	flags.StringArrayVar(&prFlags.filters, "match", []string{}, "Glob pattern(s) to filter pull request repositories")
-	flags.StringArrayVar(&prFlags.labels, "label", []string{}, "Regular expression(s) to filter pull request labels")
+	flags.StringArrayVar(&prFlags.labels, "label", []string{}, "Glob pattern(s) to filter pull request labels")
 	flags.StringArrayVar(&prFlags.titles, "title", []string{}, "Regular expression(s) to filter pull request titles")
+
+	prCmd.AddCommand(prCloseCmd, prReopenCmd)
 
 	return prCmd
 }()
 
-// closePullRequests closes pull requests.
-func closePullRequests(conf *configfile.Configuration, logger *logrus.Entry, prs []configfile.PullRequest) (out []configfile.PullRequest) {
-	tokens := configfile.GetTokens()
-	logger.Debugf("Retrieved tokens: %d", len(tokens))
+// pullRequestAction represents a singular action on a pull request.
+type pullRequestAction func(*restclient.RESTClient) func(context.Context, string, string, int) error
 
-	ctx, cancel := context.WithTimeout(context.Background(), conf.Timeout)
-	defer cancel()
+// buildPullSearchQuery builds a search query for pull requests.
+func buildPullSearchQuery() string {
+	var fragments []string
 
-	cache := make(map[string]*restclient.RESTClient)
-	for _, pr := range prs {
-		host := util.GetHostnameFromPath(pr.URL)
-		client, ok := cache[host]
-		if !ok {
-			token, ok := tokens[host]
-			if !ok {
-				logger.Warnf("Failed to retrieve token for host: %q", host)
-				pr.State = "failed"
-				out = append(out, pr)
-				continue
-			}
-
-			client, err := restclient.NewRESTClient(conf, restclient.ClientOptions{
-				AuthToken:   token,
-				Log:         logger.WriterLevel(logrus.DebugLevel),
-				LogColorize: util.Console().ColorsEnabled(),
-				Host:        host,
-			})
-			if err != nil {
-				util.PrintlnAndExit("Failed to create REST client: %v", err)
-			}
-
-			cache[host] = client
-		}
-
-		owner, repo, ok := strings.Cut(pr.Repository, "/")
-		if !ok {
-			logger.Warnf("Failed to parse repository: %q", pr.Repository)
-			pr.State = "failed"
-			out = append(out, pr)
-			continue
-		}
-
-		if err := client.ClosePullRequest(ctx, owner, repo, pr.Number); err != nil {
-			logger.Warnf("Failed to close pull request: %v", err)
-			pr.State = "failed"
-			out = append(out, pr)
-		}
+	if prFlags.base != "" {
+		fragments = append(fragments, fmt.Sprintf("base:%s", prFlags.base))
 	}
 
-	return
+	if prFlags.head != "" {
+		fragments = append(fragments, fmt.Sprintf("head:%s", prFlags.head))
+	}
+
+	if prFlags.closedInLast > 0 {
+		fragments = append(fragments, fmt.Sprintf("closed:>=%s", time.Now().Add(-prFlags.closedInLast).Format("2006-01-02T15:04:05Z")))
+	}
+
+	if prFlags.closedAfterLast > 0 {
+		fragments = append(fragments, fmt.Sprintf("closed:<=%s", time.Now().Add(-prFlags.closedAfterLast).Format("2006-01-02T15:04:05Z")))
+	}
+
+	for _, assignee := range prFlags.assignees {
+		if util.IsGlobMatch(assignee) {
+			continue
+		}
+		fragments = append(fragments, fmt.Sprintf("assignee:%s", assignee))
+	}
+
+	for _, author := range prFlags.authors {
+		if util.IsGlobMatch(author) {
+			continue
+		}
+		fragments = append(fragments, fmt.Sprintf("author:%s", author))
+	}
+
+	for _, label := range prFlags.labels {
+		if util.IsGlobMatch(label) {
+			continue
+		}
+		fragments = append(fragments, fmt.Sprintf("label:%s", label))
+	}
+
+	for _, title := range prFlags.titles {
+		if util.IsGlobMatch(title) || util.IsRegex(title) {
+			continue
+		}
+		fragments = append(fragments, fmt.Sprintf("%s in:title", title))
+	}
+
+	if prFlags.state != "" {
+		fragments = append(fragments, fmt.Sprintf("state:%s", prFlags.state))
+	}
+
+	if prFlags.customQuery != "" {
+		fragments = append(fragments, prFlags.customQuery)
+	}
+
+	return strings.Join(fragments, " ")
 }
 
-// listPullRequest lists pull requests.
-func listPullRequests(conf *configfile.Configuration, logger *logrus.Entry, filters map[string]string) ([]configfile.PullRequest, error) {
-	tokens := configfile.GetTokens()
-	logger.Debugf("Retrieved tokens: %d", len(tokens))
+// listPullRequests initializes pull requests.
+func listPullRequests(conf *configfile.Configuration, filter string, list *configfile.PullRequestList, flush bool) {
+	operationLoop[configfile.Repository](prListOperation, "PRs list", operationContextMap{
+		"filter": filter,
+		"cache":  make(map[string]*restclient.RESTClient),
+		"list":   list,
+		"keep": func(pull configfile.PullRequest) bool {
+			switch {
+			case
+				len(prFlags.assignees) > 0 && !util.PatternList(prFlags.assignees).GlobMatchAny(pull.Assignees...),
+				len(prFlags.filters) > 0 && !util.PatternList(prFlags.filters).GlobMatch(pull.Repository),
+				len(prFlags.titles) > 0 && !util.PatternList(prFlags.titles).RegexMatch(pull.Title, conf.Timeout),
+				len(prFlags.authors) > 0 && !util.PatternList(prFlags.authors).GlobMatch(pull.Author),
+				len(prFlags.labels) > 0 && !util.PatternList(prFlags.labels).GlobMatchAny(pull.Labels...),
+				prFlags.closedInLast > 0 && time.Since(pull.ClosedAt) > prFlags.closedInLast,
+				prFlags.closedAfterLast > 0 && time.Since(pull.ClosedAt) < prFlags.closedAfterLast:
 
-	ctx, cancel := context.WithTimeout(context.Background(), conf.Timeout)
-	defer cancel()
+				return false
+			}
+			return true
+		},
+	}, []string{"Title", "Number", "State", "Repository", "Author", "Assignees", "Labels"}, flush)
 
-	var pulls []configfile.PullRequest
-	for host, token := range tokens {
-		client, err := restclient.NewRESTClient(conf, restclient.ClientOptions{
+	if len(*list) == 0 {
+		util.PrintlnAndExit(util.Console().CheckColors(color.RedString, "No pull requests found"))
+	}
+}
+
+func prDoOperation(_ pool.WorkUnit, args operationContext) {
+	conf := unwrapOperationContext[*configfile.Configuration](args, "conf")
+	pr := unwrapOperationContext[configfile.PullRequest](args, "object")
+	status := unwrapOperationContext[*operationStatus](args, "status")
+	cache := unwrapOperationContext[map[string]*restclient.RESTClient](args, "cache")
+	action := unwrapOperationContext[pullRequestAction](args, "action")
+	newState := unwrapOperationContext[string](args, "newState")
+
+	logger := loggerEntry.WithField("command", "pr").WithField("target_state", newState).WithField("repository", pr.Repository)
+
+	if pr.State == newState {
+		status.appendRow(pr.Title, pr.Number, pr.Status(), pr.Author, pr.Assignees, pr.Labels)
+		return
+	}
+
+	host := util.GetHostnameFromPath(pr.URL)
+	client, ok := cache[host]
+
+	if !ok {
+		token, ok := configfile.GetTokens()[host]
+		if !ok {
+			logger.Warnf("Failed to retrieve token for host: %q", host)
+			pr.Error = configfile.PullRequestError("failed to retrieve token")
+			status.appendRow(pr.Title, pr.Number, pr.Status(), pr.Author, pr.Assignees, pr.Labels)
+			return
+		}
+
+		var err error
+		client, err = restclient.NewRESTClient(conf, restclient.ClientOptions{
 			AuthToken:   token,
 			Log:         logger.WriterLevel(logrus.DebugLevel),
 			LogColorize: util.Console().ColorsEnabled(),
 			Host:        host,
-		})
+		}, globalNonPersistentFlags.retry)
 		if err != nil {
-			return nil, err
+			logger.Warnf("Failed to create REST client: %v", err)
+			pr.Error = configfile.PullRequestError("failed to retrieve token")
+			status.appendRow(pr.Title, pr.Number, pr.Status(), pr.Author, pr.Assignees, pr.Labels)
+			return
 		}
 
-		got, err := client.GetAllUserPulls(ctx, conf.Included, conf.Excluded, filters)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, pr := range got {
-			entry := configfile.PullRequest{
-				Number:     pr.Number,
-				Title:      pr.Title,
-				URL:        pr.URL,
-				State:      pr.State,
-				Author:     pr.User.Login,
-				Assignees:  []string{pr.Assignee.Login},
-				Repository: pr.Owner + "/" + pr.Repository,
-			}
-
-			for _, assignee := range pr.Assignees {
-				entry.Assignees = append(entry.Assignees, assignee.Login)
-			}
-
-			for _, label := range pr.Labels {
-				entry.Labels = append(entry.Labels, label.Name)
-			}
-
-			pulls = append(pulls, entry)
-		}
+		cache[host] = client
 	}
 
-	return pulls, nil
+	owner, repo, _ := strings.Cut(pr.Repository, "/")
+	if err := action(client)(args.Context, owner, repo, pr.Number); err != nil {
+		prefix, content, ok := strings.Cut(err.Error(), ": ")
+		if ok {
+			pr.Error = configfile.PullRequestError(content)
+		} else {
+			pr.Error = configfile.PullRequestError(prefix)
+		}
+
+	} else {
+		pr.State = newState
+	}
+
+	status.appendRow(pr.Title, pr.Number, pr.Status(), pr.Author, pr.Assignees, pr.Labels)
+}
+
+func prListOperation(_ pool.WorkUnit, args operationContext) {
+	conf := unwrapOperationContext[*configfile.Configuration](args, "conf")
+	repo := unwrapOperationContext[configfile.Repository](args, "object")
+	status := unwrapOperationContext[*operationStatus](args, "status")
+	keep := unwrapOperationContext[func(configfile.PullRequest) bool](args, "keep")
+	filter := unwrapOperationContext[string](args, "filter")
+	cache := unwrapOperationContext[map[string]*restclient.RESTClient](args, "cache")
+	list := unwrapOperationContext[*configfile.PullRequestList](args, "list")
+
+	logger := loggerEntry.WithField("command", "pr").WithField("repository", repo.Directory)
+
+	host := util.GetHostnameFromPath(repo.URL)
+	client, ok := cache[host]
+	if !ok {
+		token, ok := configfile.GetTokens()[host]
+		if !ok {
+			logger.Warnf("Failed to retrieve token for host: %q", host)
+			status.appendRow("", "", fmt.Errorf("failed to retrieve token"), repo.Directory, "", []string{}, []string{})
+			return
+		}
+
+		var err error
+		client, err = restclient.NewRESTClient(conf, restclient.ClientOptions{
+			AuthToken:   token,
+			Log:         logger.WriterLevel(logrus.DebugLevel),
+			LogColorize: util.Console().ColorsEnabled(),
+			Host:        host,
+		}, globalNonPersistentFlags.retry)
+		if err != nil {
+			logger.Warnf("Failed to create REST client: %v", err)
+			status.appendRow("", "", err, repo.Directory, "", []string{}, []string{})
+			return
+		}
+
+		cache[host] = client
+	}
+
+	slug := configfile.GetRepositorySlugFromURL(repo)
+	owner, repoName, _ := strings.Cut(slug, "/")
+
+	pulls, err := client.GetOrgRepoPulls(args.Context, owner, repoName, filter)
+	if err != nil {
+		status.appendRow("", "", err, repo.Directory, "", []string{}, []string{})
+		return
+	}
+
+	for _, pr := range pulls {
+		entry := configfile.PullRequestFromResponse(pr)
+		if !keep(entry) {
+			continue
+		}
+
+		status.appendRow(entry.Title, entry.Number, entry.Status(), entry.Repository, entry.Author, entry.Assignees, entry.Labels)
+		list.Append(entry)
+	}
 }

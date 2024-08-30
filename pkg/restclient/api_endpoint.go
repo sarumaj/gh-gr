@@ -6,15 +6,16 @@ import (
 )
 
 const (
-	orgEp       = apiEndpoint("orgs/{owner}")
-	orgReposEp  = apiEndpoint("orgs/{owner}/repos")
-	orgsEp      = apiEndpoint("organizations")
-	pullEp      = apiEndpoint("repos/{owner}/{repo}/pulls/{number}")
-	pullsEp     = apiEndpoint("repos/{owner}/{repo}/pulls")
-	rateLimitEp = apiEndpoint("rate_limit")
-	userEp      = apiEndpoint("user")
-	userOrgsEp  = apiEndpoint("user/orgs")
-	userReposEp = apiEndpoint("user/repos")
+	orgEp          = apiEndpoint("orgs/{owner}")
+	orgReposEp     = apiEndpoint("orgs/{owner}/repos")
+	orgsEp         = apiEndpoint("organizations")
+	pullEp         = apiEndpoint("repos/{owner}/{repo}/pulls/{number}")
+	pullsEp        = apiEndpoint("repos/{owner}/{repo}/pulls")
+	rateLimitEp    = apiEndpoint("rate_limit")
+	searchIssuesEp = apiEndpoint("search/issues")
+	userEp         = apiEndpoint("user")
+	userOrgsEp     = apiEndpoint("user/orgs")
+	userReposEp    = apiEndpoint("user/repos")
 )
 
 // Helper for storing API endpoints.

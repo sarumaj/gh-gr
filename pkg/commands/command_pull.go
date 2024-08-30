@@ -18,7 +18,7 @@ var pullCmd = &cobra.Command{
 	Short:   "Pull all repositories",
 	Example: "gh pr pull",
 	Run: func(*cobra.Command, []string) {
-		operationLoop(pullOperation, "Pull", nil)
+		operationLoop[configfile.Repository](pullOperation, "Pull", nil, []string{"Directory", "Status"}, true)
 	},
 }
 
@@ -84,7 +84,7 @@ func pullExistingRepository(repo configfile.Repository, status *operationStatus)
 // Pull remote repository.
 func pullOperation(_ pool.WorkUnit, args operationContext) {
 	conf := unwrapOperationContext[*configfile.Configuration](args, "conf")
-	repo := unwrapOperationContext[configfile.Repository](args, "repo")
+	repo := unwrapOperationContext[configfile.Repository](args, "object")
 	status := unwrapOperationContext[*operationStatus](args, "status")
 
 	logger := loggerEntry.WithField("command", "pull").WithField("repository", repo.Directory)

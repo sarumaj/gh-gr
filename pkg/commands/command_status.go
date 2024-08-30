@@ -24,11 +24,14 @@ var statusCmd = func() *cobra.Command {
 			"Additionally, untracked directories will be listed.",
 		Example: "gh gr status",
 		Run: func(*cobra.Command, []string) {
-			operationLoop(statusOperation, "Check", operationContextMap{"reset": statusFlags.reset})
+			operationLoop[configfile.Repository](statusOperation, "Check", operationContextMap{
+				"reset": statusFlags.reset,
+			}, []string{"Directory", "Branch", "Status", "Remote"}, true)
 
 			conf := configfile.Load()
 			status := newOperationStatus()
 
+			status.SetHeader("Repository", "Status")
 			for _, f := range conf.ListUntracked() {
 				status.appendRow(f, fmt.Errorf("untracked"))
 			}
@@ -47,7 +50,7 @@ var statusCmd = func() *cobra.Command {
 // Check status of local repository.
 func statusOperation(_ pool.WorkUnit, args operationContext) {
 	conf := unwrapOperationContext[*configfile.Configuration](args, "conf")
-	repo := unwrapOperationContext[configfile.Repository](args, "repo")
+	repo := unwrapOperationContext[configfile.Repository](args, "object")
 	status := unwrapOperationContext[*operationStatus](args, "status")
 	reset := unwrapOperationContext[bool](args, "reset")
 
