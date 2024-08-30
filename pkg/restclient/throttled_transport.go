@@ -2,86 +2,150 @@ package restclient
 
 import (
 	"net/http"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
-const primaryRateLimit = 5000     // Maximum number of requests per hour
-const secondaryRateLimit = 100    // Maximum of 100 concurrent points
-const rateLimitWindow = time.Hour // Time window for the primary rate limit
+// Constants for rate limiting.
+const (
+	primaryRateLimit   = 5000      // Maximum number of requests per hour
+	secondaryRateLimit = 100       // Maximum of 100 concurrent points
+	rateLimitWindow    = time.Hour // Time window for the primary rate limit
+)
 
+// Default transport with rate limiting applied.
 var defaultTransport = newThrottledTransport()
 
-// Wrap an http.RoundTripper to throttle requests.
+// throttledTransport wraps an http.RoundTripper to throttle requests.
 type throttledTransport struct {
 	Transport    http.RoundTripper
 	requestTimes []time.Time
 	points       int64
 	mu           sync.Mutex
+	rateReset    time.Time
+	retry        bool
 }
 
-// Implement the RoundTrip method of the http.RoundTripper interface.
-func (t *throttledTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	var pointCost int64
-	switch req.Method {
+// calculatePointCost determines the cost of a request based on its HTTP method.
+func (t *throttledTransport) calculatePointCost(method string) int64 {
+	switch method {
 	case http.MethodGet, http.MethodHead, http.MethodOptions:
-		pointCost = 1
+		return 1
 	case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
-		pointCost = 5
+		return 5
+	default:
+		return 1
 	}
+}
 
-	for {
-		t.mu.Lock()
-		currentPoints := t.points
-		t.mu.Unlock()
-
-		if currentPoints+pointCost < secondaryRateLimit {
-			break
-		}
-		time.Sleep(10 * time.Millisecond) // Sleep to avoid busy-waiting
-	}
-
-	// increment the points counter
-	_ = atomic.AddInt64(&t.points, pointCost)
-
+// handlePrimaryRateLimit enforces the primary rate limit window.
+func (t *throttledTransport) handlePrimaryRateLimit() {
 	t.mu.Lock()
+	defer t.mu.Unlock()
 
-	// count requests within the rate limit window
 	now := time.Now()
 	cutoff := now.Add(-rateLimitWindow)
 	validRequests := 0
+
 	for _, ts := range t.requestTimes {
 		if ts.After(cutoff) {
 			break
 		}
 		validRequests++
 	}
-	// remove requests outside the rate limit window
+
 	t.requestTimes = t.requestTimes[validRequests:]
 
-	// wait if the rate limit is exceeded
 	if len(t.requestTimes) >= primaryRateLimit {
 		sleepDuration := t.requestTimes[0].Add(rateLimitWindow).Sub(now)
 		time.Sleep(sleepDuration)
 	}
 
-	// add the current request to the list
 	t.requestTimes = append(t.requestTimes, time.Now())
-	t.mu.Unlock()
+}
 
-	// perform the request
+// shouldRetry determines if a request should be retried based on rate limit headers.
+func (t *throttledTransport) shouldRetry(req *http.Request) (time.Duration, error) {
+	remainingStr := req.Header.Get("X-RateLimit-Remaining")
+	if remainingStr == "" {
+		return 0, nil
+	}
+
+	remaining, err := strconv.Atoi(remainingStr)
+	if err != nil {
+		return 0, err
+	}
+
+	if remaining > 0 {
+		return 0, nil
+	}
+
+	resetStr := req.Header.Get("X-RateLimit-Reset")
+	if resetStr == "" {
+		return 0, nil
+	}
+
+	reset, err := strconv.Atoi(resetStr)
+	if err != nil {
+		return 0, err
+	}
+
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	t.rateReset = time.Unix(int64(reset), 0).Add(time.Second)
+	return time.Until(t.rateReset), nil
+}
+
+// waitForSecondaryRateLimit waits until the secondary rate limit allows new requests.
+func (t *throttledTransport) waitForSecondaryRateLimit(pointCost int64) {
+	for {
+		t.mu.Lock()
+		if atomic.LoadInt64(&t.points)+pointCost < secondaryRateLimit {
+			t.mu.Unlock()
+			break
+		}
+		t.mu.Unlock()
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+// RoundTrip implements the http.RoundTripper interface, managing request throttling.
+func (t *throttledTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if t.retry {
+		waitDuration, err := t.shouldRetry(req)
+		if err != nil {
+			return nil, err
+		}
+
+		if waitDuration > 0 {
+			time.Sleep(waitDuration)
+		}
+	}
+
+	pointCost := t.calculatePointCost(req.Method)
+	t.waitForSecondaryRateLimit(pointCost)
+	atomic.AddInt64(&t.points, pointCost)
+	t.handlePrimaryRateLimit()
 	resp, err := t.Transport.RoundTrip(req)
+	atomic.AddInt64(&t.points, -pointCost)
 
-	// decrement the points counter
-	_ = atomic.AddInt64(&t.points, -pointCost)
 	return resp, err
 }
 
-// Create a new ThrottledTransport with a specified rate.
+// SetRetry sets the retry flag to enable or disable retrying.
+func (t *throttledTransport) SetRetry(retry bool) {
+	t.mu.Lock()
+	t.retry = retry
+	t.mu.Unlock()
+}
+
+// newThrottledTransport creates a new ThrottledTransport with a default transport.
 func newThrottledTransport() *throttledTransport {
 	return &throttledTransport{
-		Transport: http.DefaultTransport, // You can use custom transports as well
+		Transport: http.DefaultTransport,
 		points:    0,
 	}
 }
