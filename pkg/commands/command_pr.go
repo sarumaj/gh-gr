@@ -9,6 +9,7 @@ import (
 	color "github.com/fatih/color"
 	configfile "github.com/sarumaj/gh-gr/v2/pkg/configfile"
 	restclient "github.com/sarumaj/gh-gr/v2/pkg/restclient"
+	"github.com/sarumaj/gh-gr/v2/pkg/restclient/resources"
 	util "github.com/sarumaj/gh-gr/v2/pkg/util"
 	logrus "github.com/sirupsen/logrus"
 	cobra "github.com/spf13/cobra"
@@ -93,26 +94,33 @@ var prCmd = func() *cobra.Command {
 type pullRequestAction func(*restclient.RESTClient) func(context.Context, string, string, int) error
 
 // buildPullSearchQuery builds a search query for pull requests.
-func buildPullSearchQuery() string {
+func buildPullSearchQuery() map[string]string {
 	var fragments []string
+	var useCustomQuery bool
+	filter := make(map[string]string)
 
 	if prFlags.base != "" {
+		filter["base"] = prFlags.base
 		fragments = append(fragments, fmt.Sprintf("base:%s", prFlags.base))
 	}
 
 	if prFlags.head != "" {
+		filter["head"] = prFlags.head
 		fragments = append(fragments, fmt.Sprintf("head:%s", prFlags.head))
 	}
 
 	if prFlags.closedInLast > 0 {
+		useCustomQuery = true
 		fragments = append(fragments, fmt.Sprintf("closed:>=%s", time.Now().Add(-prFlags.closedInLast).Format("2006-01-02T15:04:05Z")))
 	}
 
 	if prFlags.closedAfterLast > 0 {
+		useCustomQuery = true
 		fragments = append(fragments, fmt.Sprintf("closed:<=%s", time.Now().Add(-prFlags.closedAfterLast).Format("2006-01-02T15:04:05Z")))
 	}
 
 	for _, assignee := range prFlags.assignees {
+		useCustomQuery = true
 		if util.IsGlobMatch(assignee) {
 			continue
 		}
@@ -120,6 +128,7 @@ func buildPullSearchQuery() string {
 	}
 
 	for _, author := range prFlags.authors {
+		useCustomQuery = true
 		if util.IsGlobMatch(author) {
 			continue
 		}
@@ -127,6 +136,7 @@ func buildPullSearchQuery() string {
 	}
 
 	for _, label := range prFlags.labels {
+		useCustomQuery = true
 		if util.IsGlobMatch(label) {
 			continue
 		}
@@ -134,6 +144,7 @@ func buildPullSearchQuery() string {
 	}
 
 	for _, title := range prFlags.titles {
+		useCustomQuery = true
 		if util.IsGlobMatch(title) || util.IsRegex(title) {
 			continue
 		}
@@ -141,18 +152,24 @@ func buildPullSearchQuery() string {
 	}
 
 	if prFlags.state != "" {
+		filter["state"] = prFlags.state
 		fragments = append(fragments, fmt.Sprintf("state:%s", prFlags.state))
 	}
 
 	if prFlags.customQuery != "" {
+		useCustomQuery = true
 		fragments = append(fragments, prFlags.customQuery)
 	}
 
-	return strings.Join(fragments, " ")
+	if useCustomQuery {
+		return map[string]string{"q": strings.Join(fragments, " ")}
+	}
+
+	return filter
 }
 
 // listPullRequests initializes pull requests.
-func listPullRequests(conf *configfile.Configuration, filter string, list *configfile.PullRequestList, flush bool) {
+func listPullRequests(conf *configfile.Configuration, filter map[string]string, list *configfile.PullRequestList, flush bool) {
 	operationLoop[configfile.Repository](prListOperation, "PRs list", operationContextMap{
 		"filter": filter,
 		"cache":  make(map[string]*restclient.RESTClient),
@@ -179,6 +196,7 @@ func listPullRequests(conf *configfile.Configuration, filter string, list *confi
 	}
 }
 
+// prDoOperation performs an operation on a pull request.
 func prDoOperation(_ pool.WorkUnit, args operationContext) {
 	conf := unwrapOperationContext[*configfile.Configuration](args, "conf")
 	pr := unwrapOperationContext[configfile.PullRequest](args, "object")
@@ -239,12 +257,14 @@ func prDoOperation(_ pool.WorkUnit, args operationContext) {
 	status.appendRow(pr.Title, pr.Number, pr.Status(), pr.Author, pr.Assignees, pr.Labels)
 }
 
+// prListOperation lists pull requests.
+// Depending on the filter, it will use either pull requests API endpoint or the search API endpoint.
 func prListOperation(_ pool.WorkUnit, args operationContext) {
 	conf := unwrapOperationContext[*configfile.Configuration](args, "conf")
 	repo := unwrapOperationContext[configfile.Repository](args, "object")
 	status := unwrapOperationContext[*operationStatus](args, "status")
 	keep := unwrapOperationContext[func(configfile.PullRequest) bool](args, "keep")
-	filter := unwrapOperationContext[string](args, "filter")
+	filter := unwrapOperationContext[map[string]string](args, "filter")
 	cache := unwrapOperationContext[map[string]*restclient.RESTClient](args, "cache")
 	list := unwrapOperationContext[*configfile.PullRequestList](args, "list")
 
@@ -279,7 +299,13 @@ func prListOperation(_ pool.WorkUnit, args operationContext) {
 	slug := configfile.GetRepositorySlugFromURL(repo)
 	owner, repoName, _ := strings.Cut(slug, "/")
 
-	pulls, err := client.GetOrgRepoPulls(args.Context, owner, repoName, filter)
+	var pulls []resources.PullRequest
+	var err error
+	if query := filter["q"]; query != "" {
+		pulls, err = client.SearchOrgRepoPulls(args.Context, owner, repoName, query)
+	} else {
+		pulls, err = client.GetOrgRepoPulls(args.Context, owner, repoName, filter)
+	}
 	if err != nil {
 		status.appendRow("", "", err, repo.Directory, "", []string{}, []string{})
 		return

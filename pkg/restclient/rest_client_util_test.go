@@ -3,7 +3,27 @@ package restclient
 import (
 	"net/http"
 	"testing"
+
+	"github.com/sarumaj/gh-gr/v2/pkg/restclient/resources"
 )
+
+func TestConsolidate(t *testing.T) {
+	{
+		got := consolidate[string, []string]([]string{"a", "b"}, []string{"c", "d"})
+		if len(got) != 4 {
+			t.Errorf("consolidate() failed: got: %v, want: %v", got, []string{"a", "b", "c", "d"})
+		}
+	}
+	{
+		got := consolidate[string, resources.SearchResult[string]](
+			resources.SearchResult[string]{Items: []string{"a", "b"}},
+			resources.SearchResult[string]{Items: []string{"c", "d"}},
+		)
+		if len(got.Items) != 4 {
+			t.Errorf("consolidate() failed: got: %v, want: %v", got.Items, []string{"a", "b", "c", "d"})
+		}
+	}
+}
 
 func TestGetLastPage(t *testing.T) {
 	tests := []struct {

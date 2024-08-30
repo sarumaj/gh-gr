@@ -4,18 +4,45 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
 
+	"github.com/sarumaj/gh-gr/v2/pkg/restclient/resources"
 	util "github.com/sarumaj/gh-gr/v2/pkg/util"
 	pool "gopkg.in/go-playground/pool.v3"
 )
 
 // Regular expression used to extract last page information from response header.
 var lastPageLinkRegex = regexp.MustCompile(`<(?P<Link>[^>]+)>;\s*rel="last"`)
+
+// Consolidate two paged results.
+func consolidate[T any, R interface {
+	[]T | resources.SearchResult[T]
+}](target, source R) R {
+	{
+		s, sOK := any(source).(*resources.SearchResult[T])
+		t, tOK := any(target).(*resources.SearchResult[T])
+		if sOK && tOK {
+			t.Items = append(t.Items, s.Items...)
+			target = any(t).(R)
+			return target
+		}
+	}
+
+	{
+		s, sOK := any(source).([]T)
+		t, tOK := any(target).([]T)
+		if sOK && tOK {
+			result := append(t, s...)
+			target = any(result).(R)
+			return target
+		}
+	}
+
+	return target
+}
 
 // Send HTTP request to fetch first page and retrieve number of pages.
 func getLastPage(responseHeader http.Header) (limit int) {
@@ -38,7 +65,9 @@ func getLastPage(responseHeader http.Header) (limit int) {
 }
 
 // Retrieve all elements through paginated requests.
-func getPaged[T any](c *RESTClient, ep apiEndpoint, ctx context.Context, options ...func(*requestPath)) (result []T, err error) {
+func getPaged[T any, R interface {
+	[]T | resources.SearchResult[T]
+}](c *RESTClient, ep apiEndpoint, ctx context.Context, options ...func(*requestPath)) (result R, err error) {
 	params := newRequestPath(ep).
 		Add("per_page", "100").
 		Add("page", "1")
@@ -46,26 +75,29 @@ func getPaged[T any](c *RESTClient, ep apiEndpoint, ctx context.Context, options
 		option(params)
 	}
 
-	if err := params.Validate(); err != nil {
-		return nil, err
+	err = params.Validate()
+	if err != nil {
+		return
 	}
 
-	resp, err := c.RequestWithContext(
+	var resp *http.Response
+	resp, err = c.RequestWithContext(
 		ctx,
 		http.MethodGet,
 		params.String(),
 		nil,
 	)
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	paged, err := unmarshalListHead[T](resp)
+	var paged R
+	paged, err = unmarshalListHead[T, R](resp)
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	result = append(result, paged...)
+	result = consolidate[T](result, paged)
 
 	p := pool.NewLimited(c.Concurrency)
 	defer p.Close()
@@ -77,28 +109,32 @@ func getPaged[T any](c *RESTClient, ep apiEndpoint, ctx context.Context, options
 		_ = c.ChangeMax(last)
 		for page := 2; page <= last; page++ {
 			util.Logger.Debugf("Dispatching request for page %d", page)
-			batch.Queue(getPagedWorkUnit[T](c, ep, ctx, page))
+			batch.Queue(getPagedWorkUnit[T, R](c, ep, ctx, page))
 		}
 
 		batch.QueueComplete()
 	}()
 
 	for items := range batch.Results() {
-		if err := items.Error(); err != nil {
-			return nil, err
+		err = items.Error()
+		if err != nil {
+			return
 		}
-		result = append(result, items.Value().([]T)...)
+
+		result = consolidate[T](result, items.Value().(R))
 	}
 
 	return
 }
 
 // Worker to send paginated requests.
-func getPagedWorkUnit[T any](c *RESTClient, ep apiEndpoint, ctx context.Context, page int) pool.WorkFunc {
+func getPagedWorkUnit[T any, R interface {
+	[]T | resources.SearchResult[T]
+}](c *RESTClient, ep apiEndpoint, ctx context.Context, page int) pool.WorkFunc {
 	return func(wu pool.WorkUnit) (any, error) {
 		defer c.Inc()
 
-		var paged []T
+		var paged R
 		err := c.DoWithContext(
 			ctx,
 			http.MethodGet,
@@ -125,22 +161,13 @@ func getPagedWorkUnit[T any](c *RESTClient, ep apiEndpoint, ctx context.Context,
 }
 
 // Unmarshal first page of paginated response.
-func unmarshalListHead[T any](response *http.Response) ([]T, error) {
+func unmarshalListHead[T any, R interface {
+	[]T | resources.SearchResult[T]
+}](response *http.Response) (head R, err error) {
 	if response.Body == nil {
-		return nil, nil
-	}
-	defer response.Body.Close()
-
-	b, err := io.ReadAll(response.Body)
-	if err != nil {
-		return nil, err
+		return
 	}
 
-	var head []T
-	err = json.Unmarshal(b, &head)
-	if err != nil {
-		return nil, err
-	}
-
-	return head, nil
+	err = json.NewDecoder(response.Body).Decode(&head)
+	return
 }
