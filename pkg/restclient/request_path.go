@@ -97,10 +97,10 @@ func newRequestPath(ep apiEndpoint) *requestPath {
 }
 
 // Make new request path with validations.
-func newRequestPathWithValidations(ep apiEndpoint, validaions map[string][]string) *requestPath {
+func newRequestPathWithValidations(ep apiEndpoint, validations map[string][]string) *requestPath {
 	return &requestPath{
 		Endpoint:    ep,
 		Querystring: make(url.Values),
-		Validations: validaions,
+		Validations: validations,
 	}
 }

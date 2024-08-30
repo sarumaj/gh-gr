@@ -9,3 +9,5 @@ dictionaries:
 words: []
 ignoreWords: []
 import: []
+enableFiletypes:
+  - "!json"

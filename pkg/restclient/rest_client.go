@@ -125,7 +125,10 @@ func (c *RESTClient) GetRateLimit(ctx context.Context) (rate *resources.RateLimi
 // Get all pull requests for given organization and repository.
 func (c *RESTClient) GetOrgRepoPulls(ctx context.Context, name, repo string, filter map[string]string) (out []resources.PullRequest, err error) {
 	c.Describe(fmt.Sprintf("Retrieving pull requests for GitHub repository: %s/%s...", name, repo))
-	pulls, err := getPaged[resources.PullRequest, []resources.PullRequest](c, pullsEp.Format(map[string]any{"owner": name, "repo": repo}), ctx, func(params *requestPath) {
+	pulls, err := getPaged[resources.PullRequest, []resources.PullRequest](c, pullsEp.Format(map[string]any{
+		"owner": name,
+		"repo":  repo,
+	}), ctx, func(params *requestPath) {
 		params.
 			Register("state", "open", "closed", "all").
 			Register("sort", "created", "updated", "popularity", "long-running")
@@ -141,7 +144,11 @@ func (c *RESTClient) GetOrgRepoPulls(ctx context.Context, name, repo string, fil
 	}
 
 	for i, pull := range pulls {
-		if err := c.DoWithContext(ctx, http.MethodGet, pull.URL, nil, &pulls[i]); err != nil {
+		if err := c.DoWithContext(ctx, http.MethodGet, newRequestPath(pullEp.Format(map[string]any{
+			"owner":  name,
+			"repo":   repo,
+			"number": pull.Number,
+		})).String(), nil, &pulls[i]); err != nil {
 			return nil, err
 		}
 		pulls[i].Repository = name + "/" + repo
@@ -213,6 +220,7 @@ func (c *RESTClient) SearchOrgRepoPulls(ctx context.Context, name, repo string, 
 // The rate limit of the API will be checked upfront.
 func NewRESTClient(conf *configfile.Configuration, options ClientOptions, retry bool) (*RESTClient, error) {
 	defaultTransport.SetRetry(retry)
+	defaultTransport.SetTransport(options.Transport)
 	options.Transport = defaultTransport
 	loggerEntry.Debugf("Creating client with options: %+v", options)
 

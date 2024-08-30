@@ -142,6 +142,17 @@ func (t *throttledTransport) SetRetry(retry bool) {
 	t.mu.Unlock()
 }
 
+// SetTransport sets the underlying transport.
+func (t *throttledTransport) SetTransport(rt http.RoundTripper) {
+	if rt == nil {
+		return
+	}
+
+	t.mu.Lock()
+	t.Transport = rt
+	t.mu.Unlock()
+}
+
 // newThrottledTransport creates a new ThrottledTransport with a default transport.
 func newThrottledTransport() *throttledTransport {
 	return &throttledTransport{
