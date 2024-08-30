@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	api "github.com/cli/go-gh/v2/pkg/api"
@@ -28,9 +26,6 @@ type RESTClient struct {
 	*api.RESTClient
 	*configfile.Configuration
 	*util.Progressbar
-	rateMutex sync.Mutex // Rate limit mutex used to synchronize rate limit checks
-	rateReset time.Time  // Rate limit reset time if necessary
-	retry     bool       // Retry rate-limited operations
 }
 
 // Close a pull request.
@@ -183,37 +178,7 @@ func (c *RESTClient) ReopenPullRequest(ctx context.Context, owner, repo string, 
 
 // Overwrites RequestWithContext method.
 func (c *RESTClient) RequestWithContext(ctx context.Context, method, path string, body io.Reader) (*http.Response, error) {
-	c.rateMutex.Lock()
-	if timeUntilReset := time.Until(c.rateReset); timeUntilReset > 0 && c.retry {
-		time.Sleep(timeUntilReset)
-	}
-	c.rateMutex.Unlock()
-
-	resp, err := c.RESTClient.RequestWithContext(ctx, method, path, body)
-	if err != nil {
-		return nil, err
-	}
-
-	remaining, err := strconv.Atoi(resp.Header.Get("X-RateLimit-Remaining"))
-	if err != nil {
-		return nil, err
-	}
-
-	reset, err := strconv.Atoi(resp.Header.Get("X-RateLimit-Reset"))
-	if err != nil {
-		return nil, err
-	}
-
-	c.rateMutex.Lock()
-	if remaining == 0 && c.retry {
-		c.rateReset = time.Unix(int64(reset), 0).Add(time.Second)
-		c.rateMutex.Unlock()
-		c.Describe(fmt.Sprintf("Rate limit exceeded, waiting for %s...", time.Until(c.rateReset)))
-		return c.RequestWithContext(ctx, method, path, body)
-	}
-
-	c.rateMutex.Unlock()
-	return resp, nil
+	return c.RESTClient.RequestWithContext(ctx, method, path, body)
 }
 
 // Search for pull requests in a repository.
@@ -247,10 +212,9 @@ func (c *RESTClient) SearchOrgRepoPulls(ctx context.Context, name, repo string, 
 // Create new REST API client.
 // The rate limit of the API will be checked upfront.
 func NewRESTClient(conf *configfile.Configuration, options ClientOptions, retry bool) (*RESTClient, error) {
+	defaultTransport.SetRetry(retry)
+	options.Transport = defaultTransport
 	loggerEntry.Debugf("Creating client with options: %+v", options)
-	if options.Transport == nil {
-		options.Transport = defaultTransport
-	}
 
 	client, err := api.NewRESTClient(options)
 	if err != nil {
@@ -261,7 +225,6 @@ func NewRESTClient(conf *configfile.Configuration, options ClientOptions, retry 
 		RESTClient:    client,
 		Configuration: conf,
 		Progressbar:   util.NewProgressbar(-1),
-		retry:         retry,
 	}
 
 	rate, _, err := wrapClient.GetRateLimit(context.Background())
