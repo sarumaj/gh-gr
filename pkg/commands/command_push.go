@@ -18,7 +18,9 @@ var pushCmd = &cobra.Command{
 	Short:   "Push all repositories",
 	Example: "gh pr push",
 	Run: func(*cobra.Command, []string) {
-		operationLoop[configfile.Repository](pushOperation, "Push", nil, []string{"Directory", "Status"}, true)
+		operationLoop[configfile.Repository](pushOperation, "Push", operationContextMap{
+			"headers": []string{"Repository", "Status"},
+		})
 	},
 }
 

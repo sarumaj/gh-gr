@@ -62,7 +62,7 @@ var prCmd = func() *cobra.Command {
 			conf := configfile.Load()
 
 			var list configfile.PullRequestList
-			listPullRequests(conf, buildPullSearchQuery(), &list, true)
+			listPullRequests(conf, buildPullSearchQuery(), &list, false)
 
 			if len(list) == 0 {
 				util.PrintlnAndExit(c.CheckColors(color.RedString, "No pull requests matching following constraints found"))
@@ -120,34 +120,34 @@ func buildPullSearchQuery() map[string]string {
 	}
 
 	for _, assignee := range prFlags.assignees {
-		useCustomQuery = true
 		if util.IsGlobMatch(assignee) {
 			continue
 		}
+		useCustomQuery = true
 		fragments = append(fragments, fmt.Sprintf("assignee:%s", assignee))
 	}
 
 	for _, author := range prFlags.authors {
-		useCustomQuery = true
 		if util.IsGlobMatch(author) {
 			continue
 		}
+		useCustomQuery = true
 		fragments = append(fragments, fmt.Sprintf("author:%s", author))
 	}
 
 	for _, label := range prFlags.labels {
-		useCustomQuery = true
 		if util.IsGlobMatch(label) {
 			continue
 		}
+		useCustomQuery = true
 		fragments = append(fragments, fmt.Sprintf("label:%s", label))
 	}
 
 	for _, title := range prFlags.titles {
-		useCustomQuery = true
 		if util.IsGlobMatch(title) || util.IsRegex(title) {
 			continue
 		}
+		useCustomQuery = true
 		fragments = append(fragments, fmt.Sprintf("%s in:title", title))
 	}
 
@@ -169,7 +169,7 @@ func buildPullSearchQuery() map[string]string {
 }
 
 // listPullRequests initializes pull requests.
-func listPullRequests(conf *configfile.Configuration, filter map[string]string, list *configfile.PullRequestList, flush bool) {
+func listPullRequests(conf *configfile.Configuration, filter map[string]string, list *configfile.PullRequestList, silent bool) {
 	operationLoop[configfile.Repository](prListOperation, "PRs list", operationContextMap{
 		"filter": filter,
 		"cache":  make(map[string]*restclient.RESTClient),
@@ -189,7 +189,9 @@ func listPullRequests(conf *configfile.Configuration, filter map[string]string, 
 			}
 			return true
 		},
-	}, []string{"Title", "Number", "State", "Repository", "Author", "Assignees", "Labels"}, flush)
+		"headers": []string{"Title", "Number", "State", "Repository", "Author", "Assignees", "Labels"},
+		"silent":  silent,
+	})
 
 	if len(*list) == 0 {
 		util.PrintlnAndExit(util.Console().CheckColors(color.RedString, "No pull requests found"))
@@ -307,6 +309,7 @@ func prListOperation(_ pool.WorkUnit, args operationContext) {
 		pulls, err = client.GetOrgRepoPulls(args.Context, owner, repoName, filter)
 	}
 	if err != nil {
+		loggerEntry.Warnf("Failed to retrieve pull requests: %v", err)
 		status.appendRow("", "", err, repo.Directory, "", []string{}, []string{})
 		return
 	}

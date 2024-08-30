@@ -13,6 +13,8 @@ import (
 // configFlags is a global variable holding configuration flags
 var configFlags = &configfile.Configuration{}
 
+// globalNonPersistentFlags is a global variable holding global non-persistent flags,
+// which are not stored in configuration file
 var globalNonPersistentFlags struct {
 	retry bool
 }

@@ -1,6 +1,7 @@
 package progressbar
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -26,11 +27,14 @@ type ProgressBar struct {
 
 // State is the basic properties of the bar
 type State struct {
+	Max            int64
+	CurrentNum     int64
 	CurrentPercent float64
 	CurrentBytes   float64
 	SecondsSince   float64
 	SecondsLeft    float64
 	KBsPerSecond   float64
+	Description    string
 }
 
 type state struct {
@@ -118,6 +122,8 @@ type config struct {
 
 	// showDescriptionAtLineEnd specifies whether description should be written at line end instead of line start
 	showDescriptionAtLineEnd bool
+
+	stdBuffer bytes.Buffer
 }
 
 // Theme defines the elements of the bar
@@ -320,7 +326,7 @@ func NewOptions64(max int64, options ...Option) *ProgressBar {
 			width:            40,
 			max:              max,
 			throttleDuration: 0 * time.Nanosecond,
-			elapsedTime:      true,
+			elapsedTime:      max == -1,
 			predictTime:      true,
 			spinnerType:      9,
 			invisible:        false,
@@ -468,6 +474,9 @@ func (p *ProgressBar) String() string {
 
 // RenderBlank renders the current bar state, you can use this to render a 0% state
 func (p *ProgressBar) RenderBlank() error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
 	if p.config.invisible {
 		return nil
 	}
@@ -490,6 +499,9 @@ func (p *ProgressBar) Reset() {
 func (p *ProgressBar) Finish() error {
 	p.lock.Lock()
 	p.state.currentNum = p.config.max
+	if !p.config.ignoreLength {
+		p.state.currentBytes = float64(p.config.max)
+	}
 	p.lock.Unlock()
 	return p.Add(0)
 }
@@ -609,11 +621,17 @@ func New64(max int64) *ProgressBar {
 
 // GetMax returns the max of a bar
 func (p *ProgressBar) GetMax() int {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
 	return int(p.config.max)
 }
 
 // GetMax64 returns the current max
 func (p *ProgressBar) GetMax64() int64 {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
 	return p.config.max
 }
 
@@ -629,6 +647,8 @@ func (p *ProgressBar) ChangeMax(newMax int) {
 // but takes in a int64
 // to avoid casting
 func (p *ProgressBar) ChangeMax64(newMax int64) {
+	p.lock.Lock()
+
 	p.config.max = newMax
 
 	if p.config.showBytes {
@@ -636,11 +656,16 @@ func (p *ProgressBar) ChangeMax64(newMax int64) {
 			p.config.useIECUnits)
 	}
 
+	p.lock.Unlock() // so p.Add can lock
+
 	p.Add(0) // re-render
 }
 
 // IsFinished returns true if progress bar is completed
 func (p *ProgressBar) IsFinished() bool {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
 	return p.state.finished
 }
 
@@ -667,6 +692,7 @@ func (p *ProgressBar) render() error {
 	if !p.state.finished && p.state.currentNum >= p.config.max {
 		p.state.finished = true
 		if !p.config.clearOnFinish {
+			io.Copy(p.config.writer, &p.config.stdBuffer)
 			renderProgressBar(p.config, &p.state)
 		}
 		if p.config.onCompletion != nil {
@@ -685,6 +711,7 @@ func (p *ProgressBar) render() error {
 	}
 
 	// then, re-render the current progress bar
+	io.Copy(p.config.writer, &p.config.stdBuffer)
 	w, err := renderProgressBar(p.config, &p.state)
 	if err != nil {
 		return err
@@ -704,6 +731,11 @@ func (p *ProgressBar) State() State {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	s := State{}
+	s.CurrentNum = p.state.currentNum
+	s.Max = p.config.max
+	if p.config.ignoreLength {
+		s.Max = -1
+	}
 	s.CurrentPercent = float64(p.state.currentNum) / float64(p.config.max)
 	s.CurrentBytes = p.state.currentBytes
 	s.SecondsSince = time.Since(p.state.startTime).Seconds()
@@ -711,6 +743,7 @@ func (p *ProgressBar) State() State {
 		s.SecondsLeft = s.SecondsSince / float64(p.state.currentNum) * (float64(p.config.max) - float64(p.state.currentNum))
 	}
 	s.KBsPerSecond = float64(p.state.currentBytes) / 1024.0 / s.SecondsSince
+	s.Description = p.config.description
 	return s
 }
 
@@ -825,7 +858,7 @@ func renderProgressBar(c config, s *state) (int, error) {
 		}
 		rightBrac = rightBracNum.String()
 		fallthrough
-	case c.elapsedTime:
+	case c.elapsedTime || c.showElapsedTimeOnFinish:
 		leftBrac = (time.Duration(time.Since(s.startTime).Seconds()) * time.Second).String()
 	}
 
@@ -929,8 +962,7 @@ func renderProgressBar(c config, s *state) (int, error) {
 			strings.Repeat(c.theme.SaucerPadding, repeatAmount),
 			c.theme.BarEnd,
 			sb.String())
-
-		if s.currentPercent == 100 && c.showElapsedTimeOnFinish {
+		if (s.currentPercent == 100 && c.showElapsedTimeOnFinish) || c.elapsedTime {
 			str = fmt.Sprintf("%s [%s]", str, leftBrac)
 		}
 
@@ -1054,19 +1086,19 @@ func (r *Reader) Close() (err error) {
 // Write implement io.Writer
 func (p *ProgressBar) Write(b []byte) (n int, err error) {
 	n = len(b)
-	p.Add(n)
+	err = p.Add(n)
 	return
 }
 
 // Read implement io.Reader
 func (p *ProgressBar) Read(b []byte) (n int, err error) {
 	n = len(b)
-	p.Add(n)
+	err = p.Add(n)
 	return
 }
 
 func (p *ProgressBar) Close() (err error) {
-	p.Finish()
+	err = p.Finish()
 	return
 }
 
@@ -1114,4 +1146,24 @@ var termWidth = func() (width int, err error) {
 	}
 
 	return 0, err
+}
+
+func shouldCacheOutput(pb *ProgressBar) bool {
+	return !pb.state.finished && !pb.state.exit && !pb.config.invisible
+}
+
+func Bprintln(pb *ProgressBar, a ...interface{}) (int, error) {
+	if !shouldCacheOutput(pb) {
+		return fmt.Fprintln(pb.config.writer, a...)
+	} else {
+		return fmt.Fprintln(&pb.config.stdBuffer, a...)
+	}
+}
+
+func Bprintf(pb *ProgressBar, format string, a ...interface{}) (int, error) {
+	if !shouldCacheOutput(pb) {
+		return fmt.Fprintf(pb.config.writer, format, a...)
+	} else {
+		return fmt.Fprintf(&pb.config.stdBuffer, format, a...)
+	}
 }

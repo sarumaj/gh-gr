@@ -25,8 +25,9 @@ var statusCmd = func() *cobra.Command {
 		Example: "gh gr status",
 		Run: func(*cobra.Command, []string) {
 			operationLoop[configfile.Repository](statusOperation, "Check", operationContextMap{
-				"reset": statusFlags.reset,
-			}, []string{"Directory", "Branch", "Status", "Remote"}, true)
+				"reset":   statusFlags.reset,
+				"headers": []string{"Repository", "Branch", "Status", "Remote"},
+			})
 
 			conf := configfile.Load()
 			status := newOperationStatus()

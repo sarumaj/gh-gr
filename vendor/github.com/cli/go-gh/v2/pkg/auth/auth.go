@@ -3,6 +3,7 @@
 package auth
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"strconv"
@@ -61,7 +62,7 @@ func TokenFromEnvOrConfig(host string) (string, string) {
 
 func tokenForHost(cfg *config.Config, host string) (string, string) {
 	host = normalizeHostname(host)
-	if isEnterprise(host) {
+	if IsEnterprise(host) {
 		if token := os.Getenv(ghEnterpriseToken); token != "" {
 			return token, ghEnterpriseToken
 		}
@@ -148,8 +149,21 @@ func defaultHost(cfg *config.Config) (string, string) {
 	return github, defaultSource
 }
 
-func isEnterprise(host string) bool {
-	return host != github && host != localhost
+// TenancyHost is the domain name of a tenancy GitHub instance.
+const tenancyHost = "ghe.com"
+
+// IsEnterprise determines if a provided host is a GitHub Enterprise Server instance,
+// rather than GitHub.com or a tenancy GitHub instance.
+func IsEnterprise(host string) bool {
+	normalizedHost := normalizeHostname(host)
+	return normalizedHost != github && normalizedHost != localhost && !IsTenancy(normalizedHost)
+}
+
+// IsTenancy determines if a provided host is a tenancy GitHub instance,
+// rather than GitHub.com or a GitHub Enterprise Server instance.
+func IsTenancy(host string) bool {
+	normalizedHost := normalizeHostname(host)
+	return strings.HasSuffix(normalizedHost, "."+tenancyHost)
 }
 
 func normalizeHostname(host string) string {
@@ -160,5 +174,21 @@ func normalizeHostname(host string) string {
 	if strings.HasSuffix(hostname, "."+localhost) {
 		return localhost
 	}
+	// This has been copied over from the cli/cli NormalizeHostname function
+	// to ensure compatible behaviour but we don't fully understand when or
+	// why it would be useful here. We can't see what harm will come of
+	// duplicating the logic.
+	if before, found := cutSuffix(hostname, "."+tenancyHost); found {
+		idx := strings.LastIndex(before, ".")
+		return fmt.Sprintf("%s.%s", before[idx+1:], tenancyHost)
+	}
 	return hostname
+}
+
+// Backport strings.CutSuffix from Go 1.20.
+func cutSuffix(s, suffix string) (string, bool) {
+	if !strings.HasSuffix(s, suffix) {
+		return s, false
+	}
+	return s[:len(s)-len(suffix)], true
 }

@@ -22,8 +22,8 @@ func consolidate[T any, R interface {
 	[]T | resources.SearchResult[T]
 }](target, source R) R {
 	{
-		s, sOK := any(source).(*resources.SearchResult[T])
-		t, tOK := any(target).(*resources.SearchResult[T])
+		s, sOK := any(source).(resources.SearchResult[T])
+		t, tOK := any(target).(resources.SearchResult[T])
 		if sOK && tOK {
 			t.Items = append(t.Items, s.Items...)
 			target = any(t).(R)

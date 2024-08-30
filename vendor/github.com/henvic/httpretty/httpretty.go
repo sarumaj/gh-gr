@@ -5,51 +5,49 @@
 // DumpRequest, DumpRequestOut, and DumpResponse heavy debugging functions.
 //
 // You can use the logger quickly to log requests you are opening. For example:
+// 	package main
 //
-//	package main
+// 	import (
+// 		"fmt"
+// 		"net/http"
+// 		"os"
 //
-//	import (
-//		"fmt"
-//		"net/http"
-//		"os"
+// 		"github.com/henvic/httpretty"
+// 	)
 //
-//		"github.com/henvic/httpretty"
-//	)
+// 	func main() {
+// 		logger := &httpretty.Logger{
+// 			Time:           true,
+// 			TLS:            true,
+// 			RequestHeader:  true,
+// 			RequestBody:    true,
+// 			ResponseHeader: true,
+// 			ResponseBody:   true,
+// 			Colors:         true,
+// 			Formatters:     []httpretty.Formatter{&httpretty.JSONFormatter{}},
+// 		}
 //
-//	func main() {
-//		logger := &httpretty.Logger{
-//			Time:           true,
-//			TLS:            true,
-//			RequestHeader:  true,
-//			RequestBody:    true,
-//			ResponseHeader: true,
-//			ResponseBody:   true,
-//			Colors:         true,
-//			Formatters:     []httpretty.Formatter{&httpretty.JSONFormatter{}},
-//		}
+// 		http.DefaultClient.Transport = logger.RoundTripper(http.DefaultClient.Transport) // tip: you can use it on any *http.Client
 //
-//		http.DefaultClient.Transport = logger.RoundTripper(http.DefaultClient.Transport) // tip: you can use it on any *http.Client
-//
-//		if _, err := http.Get("https://www.google.com/"); err != nil {
-//			fmt.Fprintf(os.Stderr, "%+v\n", err)
-//			os.Exit(1)
-//		}
-//	}
+// 		if _, err := http.Get("https://www.google.com/"); err != nil {
+// 			fmt.Fprintf(os.Stderr, "%+v\n", err)
+// 			os.Exit(1)
+// 		}
+// 	}
 //
 // If you pass nil to the logger.RoundTripper it is going to fallback to http.DefaultTransport.
 //
 // You can use the logger quickly to log requests on your server. For example:
+// 	logger := &httpretty.Logger{
+// 		Time:           true,
+// 		TLS:            true,
+// 		RequestHeader:  true,
+// 		RequestBody:    true,
+// 		ResponseHeader: true,
+// 		ResponseBody:   true,
+// 	}
 //
-//	logger := &httpretty.Logger{
-//		Time:           true,
-//		TLS:            true,
-//		RequestHeader:  true,
-//		RequestBody:    true,
-//		ResponseHeader: true,
-//		ResponseBody:   true,
-//	}
-//
-//	logger.Middleware(handler)
+// 	logger.Middleware(handler)
 //
 // Note: server logs don't include response headers set by the server.
 // Client logs don't include request headers set by the HTTP client.
@@ -65,7 +63,6 @@ import (
 	"net/http"
 	"net/textproto"
 	"os"
-	"regexp"
 	"sync"
 
 	"github.com/henvic/httpretty/internal/color"
@@ -264,60 +261,65 @@ func (l *Logger) RoundTripper(rt http.RoundTripper) http.RoundTripper {
 // RoundTrip implements the http.RoundTrip interface.
 func (r roundTripper) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 	tripper := r.rt
+
 	if tripper == nil {
 		// BUG(henvic): net/http data race condition when the client
 		// does concurrent requests using the very same HTTP transport.
 		// See Go standard library issue https://golang.org/issue/30597
 		tripper = http.RoundTripper(http.DefaultTransport)
 	}
+
 	l := r.logger
 	p := newPrinter(l)
 	defer p.flush()
+
 	if hide := req.Context().Value(contextHide{}); hide != nil || p.checkFilter(req) {
 		return tripper.RoundTrip(req)
 	}
+
 	var tlsClientConfig *tls.Config
+
 	if l.Time {
 		defer p.printTimeRequest()()
 	}
+
 	if !l.SkipRequestInfo {
 		p.printRequestInfo(req)
 	}
-	// Try to get some information from transport
-	transport, ok := tripper.(*http.Transport)
-	// If proxy is used, then print information about proxy server
-	if ok && transport.Proxy != nil {
-		proxyUrl, err := transport.Proxy(req)
-		if proxyUrl != nil && err == nil {
-			p.printf("* Using proxy: %s\n", p.format(color.FgBlue, proxyUrl.String()))
-		}
-	}
-	if ok && transport.TLSClientConfig != nil {
+
+	if transport, ok := tripper.(*http.Transport); ok && transport.TLSClientConfig != nil {
 		tlsClientConfig = transport.TLSClientConfig
+
 		if tlsClientConfig.InsecureSkipVerify {
 			p.printf("* Skipping TLS verification: %s\n",
 				p.format(color.FgRed, "connection is susceptible to man-in-the-middle attacks."))
 		}
 	}
-	// Maybe print outgoing TLS information.
+
 	if l.TLS && tlsClientConfig != nil {
 		// please remember http.Request.TLS is ignored by the HTTP client.
 		p.printOutgoingClientTLS(tlsClientConfig)
 	}
+
 	p.printRequest(req)
+
 	defer func() {
 		if err != nil {
 			p.printf("* %s\n", p.format(color.FgRed, err.Error()))
+
 			if resp == nil {
 				return
 			}
 		}
+
 		if l.TLS {
 			p.printTLSInfo(resp.TLS, false)
 			p.printTLSServer(req.Host, resp.TLS)
 		}
+
 		p.printResponse(resp)
 	}()
+
 	return tripper.RoundTrip(req)
 }
 
@@ -339,27 +341,36 @@ func (h httpHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	l := h.logger
 	p := newPrinter(l)
 	defer p.flush()
+
 	if hide := req.Context().Value(contextHide{}); hide != nil || p.checkFilter(req) {
 		h.next.ServeHTTP(w, req)
 		return
 	}
+
 	if p.logger.Time {
 		defer p.printTimeRequest()()
 	}
+
 	if !p.logger.SkipRequestInfo {
 		p.printRequestInfo(req)
 	}
+
 	if p.logger.TLS {
 		p.printTLSInfo(req.TLS, true)
 		p.printIncomingClientTLS(req.TLS)
 	}
+
 	p.printRequest(req)
+
 	rec := &responseRecorder{
-		ResponseWriter:  w,
-		statusCode:      http.StatusOK,
+		ResponseWriter: w,
+
+		statusCode: http.StatusOK,
+
 		maxReadableBody: l.MaxResponseBody,
 		buf:             &bytes.Buffer{},
 	}
+
 	defer p.printServerResponse(req, rec)
 	h.next.ServeHTTP(rec, req)
 }
@@ -369,9 +380,11 @@ func (h httpHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 // It doesn't log TLS connection details or request duration.
 func (l *Logger) PrintRequest(req *http.Request) {
 	var p = printer{logger: l}
+
 	if skip := p.checkFilter(req); skip {
 		return
 	}
+
 	p.printRequest(req)
 }
 
@@ -388,15 +401,9 @@ func (l *Logger) PrintResponse(resp *http.Response) {
 // your own formatter using it or anything else. See Formatter.
 type JSONFormatter struct{}
 
-// jsonTypeRE can be used to identify JSON media types, such as
-// application/json or application/vnd.api+json.
-//
-// Source: https://github.com/cli/cli/blob/63a4319f6caedccbadf1bf0317d70b6f0cb1b5b9/internal/authflow/flow.go#L27
-var jsonTypeRE = regexp.MustCompile(`[/+]json($|;)`)
-
 // Match JSON media type.
 func (j *JSONFormatter) Match(mediatype string) bool {
-	return jsonTypeRE.MatchString(mediatype)
+	return mediatype == "application/json"
 }
 
 // Format JSON content.
@@ -408,6 +415,7 @@ func (j *JSONFormatter) Format(w io.Writer, src []byte) error {
 			return err
 		}
 	}
+
 	// avoiding allocation as we use *bytes.Buffer to store the formatted body before printing
 	dst, ok := w.(*bytes.Buffer)
 	if !ok {

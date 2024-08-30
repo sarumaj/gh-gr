@@ -9,18 +9,18 @@ import (
 
 func TestConsolidate(t *testing.T) {
 	{
-		got := consolidate[string, []string]([]string{"a", "b"}, []string{"c", "d"})
+		got := consolidate[string]([]string{"a", "b"}, []string{"c", "d"})
 		if len(got) != 4 {
-			t.Errorf("consolidate() failed: got: %v, want: %v", got, []string{"a", "b", "c", "d"})
+			t.Errorf("consolidate[string, []string]() failed: got: %v, want: %v", got, []string{"a", "b", "c", "d"})
 		}
 	}
 	{
-		got := consolidate[string, resources.SearchResult[string]](
+		got := consolidate[string](
 			resources.SearchResult[string]{Items: []string{"a", "b"}},
 			resources.SearchResult[string]{Items: []string{"c", "d"}},
 		)
 		if len(got.Items) != 4 {
-			t.Errorf("consolidate() failed: got: %v, want: %v", got.Items, []string{"a", "b", "c", "d"})
+			t.Errorf("consolidate[string, resources.SearchResult[string]]() failed: got: %v, want: %v", got.Items, []string{"a", "b", "c", "d"})
 		}
 	}
 }

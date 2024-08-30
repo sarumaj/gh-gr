@@ -28,9 +28,9 @@ type RESTClient struct {
 	*api.RESTClient
 	*configfile.Configuration
 	*util.Progressbar
-	rateMutex sync.Mutex
-	rateReset time.Time
-	retry     bool
+	rateMutex sync.Mutex // Rate limit mutex used to synchronize rate limit checks
+	rateReset time.Time  // Rate limit reset time if necessary
+	retry     bool       // Retry rate-limited operations
 }
 
 // Close a pull request.
@@ -46,6 +46,10 @@ func (c *RESTClient) DoWithContext(ctx context.Context, method string, path stri
 	resp, err := c.RequestWithContext(ctx, method, path, body)
 	if err != nil {
 		return err
+	}
+
+	if response == nil {
+		return nil
 	}
 
 	return json.NewDecoder(resp.Body).Decode(response)
@@ -181,9 +185,7 @@ func (c *RESTClient) ReopenPullRequest(ctx context.Context, owner, repo string, 
 func (c *RESTClient) RequestWithContext(ctx context.Context, method, path string, body io.Reader) (*http.Response, error) {
 	c.rateMutex.Lock()
 	if timeUntilReset := time.Until(c.rateReset); timeUntilReset > 0 && c.retry {
-		if timeUntilReset > 0 {
-			time.Sleep(timeUntilReset)
-		}
+		time.Sleep(timeUntilReset)
 	}
 	c.rateMutex.Unlock()
 
@@ -246,6 +248,9 @@ func (c *RESTClient) SearchOrgRepoPulls(ctx context.Context, name, repo string, 
 // The rate limit of the API will be checked upfront.
 func NewRESTClient(conf *configfile.Configuration, options ClientOptions, retry bool) (*RESTClient, error) {
 	loggerEntry.Debugf("Creating client with options: %+v", options)
+	if options.Transport == nil {
+		options.Transport = defaultTransport
+	}
 
 	client, err := api.NewRESTClient(options)
 	if err != nil {

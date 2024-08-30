@@ -18,7 +18,9 @@ var pullCmd = &cobra.Command{
 	Short:   "Pull all repositories",
 	Example: "gh pr pull",
 	Run: func(*cobra.Command, []string) {
-		operationLoop[configfile.Repository](pullOperation, "Pull", nil, []string{"Directory", "Status"}, true)
+		operationLoop[configfile.Repository](pullOperation, "Pull", operationContextMap{
+			"headers": []string{"Directory", "Status"},
+		})
 	},
 }
 

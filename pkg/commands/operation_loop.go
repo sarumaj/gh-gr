@@ -13,7 +13,7 @@ import (
 // Wrapper for repository operations (e.g. pull, push, status).
 func operationLoop[U interface {
 	configfile.Repository | configfile.PullRequest
-}](fn func(pool.WorkUnit, operationContext), verbInfinitive string, args operationContextMap, headers []string, flush bool, source ...U) {
+}](fn func(pool.WorkUnit, operationContext), verbInfinitive string, args operationContextMap, source ...U) {
 	logger := loggerEntry
 	bar := util.NewProgressbar(100)
 
@@ -34,7 +34,10 @@ func operationLoop[U interface {
 
 	finished := make(chan bool)
 	status := newOperationStatus()
-	status.SetHeader(headers...)
+
+	if headers, ok := args["headers"].([]string); ok {
+		status.SetHeader(headers...)
+	}
 
 	worker := func(object U) func(wu pool.WorkUnit) (any, error) {
 		return func(wu pool.WorkUnit) (any, error) {
@@ -121,7 +124,9 @@ func operationLoop[U interface {
 	}
 
 	logger.Debug("Collected workers")
-	if flush {
-		status.Sort().Align().Print()
+	if silent, ok := args["silent"].(bool); ok && silent {
+		return
 	}
+
+	status.Sort().Align().Print()
 }

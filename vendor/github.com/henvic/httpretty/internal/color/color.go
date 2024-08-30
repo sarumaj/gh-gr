@@ -91,6 +91,7 @@ func Format(s ...interface{}) string {
 
 	params := []Attribute{}
 	in := -1
+
 	for i, v := range s {
 		switch vt := v.(type) {
 		case []Attribute:
@@ -111,6 +112,7 @@ func Format(s ...interface{}) string {
 			}
 		}
 	}
+
 	if in == -1 || len(s[in:]) == 0 {
 		return ""
 	}

@@ -26,7 +26,7 @@ var prReopenCmd = func() *cobra.Command {
 			conf := configfile.Load()
 
 			var list configfile.PullRequestList
-			listPullRequests(conf, buildPullSearchQuery(), &list, false)
+			listPullRequests(conf, buildPullSearchQuery(), &list, true)
 
 			if len(list) == 0 {
 				util.PrintlnAndExit(c.CheckColors(color.RedString, "No pull requests matching provided constrains found"))
@@ -38,7 +38,8 @@ var prReopenCmd = func() *cobra.Command {
 					return client.ReopenPullRequest
 				}),
 				"newState": "open",
-			}, []string{"Title", "Number", "State", "Repository", "Author", "Assignees", "Labels"}, true, list...)
+				"headers":  []string{"Title", "Number", "State", "Repository", "Author", "Assignees", "Labels"},
+			}, list...)
 		},
 	}
 

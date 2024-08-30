@@ -71,13 +71,13 @@ func (t *TablePrinter) EndRow() *TablePrinter {
 func (t *TablePrinter) Print() {
 	current := t.current()
 
-	if len(t.records) > 0 {
-		for _, field := range t.header {
+	if len(t.records) > 0 && len(t.records[0]) > 0 {
+		for i, field := range t.header {
 			current.AddField(field)
-		}
 
-		if len(t.header) > 0 {
-			current.EndRow()
+			if i == len(t.header)-1 {
+				current.EndRow()
+			}
 		}
 	}
 
@@ -107,13 +107,13 @@ func (t *TablePrinter) Sprint() string {
 	buffer := bytes.NewBuffer(nil)
 	printer := tableprinter.New(buffer, c.IsTerminalOutput(), width)
 
-	if len(t.records) > 0 {
-		for _, field := range t.header {
+	if len(t.records) > 0 && len(t.records[0]) > 0 {
+		for i, field := range t.header {
 			printer.AddField(field)
-		}
 
-		if len(t.header) > 0 {
-			printer.EndRow()
+			if i == len(t.header)-1 {
+				printer.EndRow()
+			}
 		}
 	}
 
