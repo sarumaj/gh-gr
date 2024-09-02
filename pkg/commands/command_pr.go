@@ -9,7 +9,7 @@ import (
 	color "github.com/fatih/color"
 	configfile "github.com/sarumaj/gh-gr/v2/pkg/configfile"
 	restclient "github.com/sarumaj/gh-gr/v2/pkg/restclient"
-	"github.com/sarumaj/gh-gr/v2/pkg/restclient/resources"
+	resources "github.com/sarumaj/gh-gr/v2/pkg/restclient/resources"
 	util "github.com/sarumaj/gh-gr/v2/pkg/util"
 	logrus "github.com/sirupsen/logrus"
 	cobra "github.com/spf13/cobra"
@@ -29,6 +29,7 @@ var prFlags struct {
 	filters         []string
 	labels          []string
 	titles          []string
+	web             bool
 }
 
 // prCmd represents the pr command
@@ -67,11 +68,16 @@ var prCmd = func() *cobra.Command {
 			if len(list) == 0 {
 				util.PrintlnAndExit(c.CheckColors(color.RedString, "No pull requests matching following constraints found"))
 			}
+
+			if prFlags.web {
+				list.Browse()
+			}
 		},
 	}
 
 	flags := prCmd.Flags()
 	flags.StringVar(&prFlags.state, "state", "open", "Filter pull requests by state (\"open\", \"closed\", \"all\")")
+	flags.BoolVar(&prFlags.web, "web", false, "Open pull requests in a web browser")
 
 	flags = prCmd.PersistentFlags()
 	flags.StringVar(&prFlags.base, "base", "", "Filter pull requests by base branch")

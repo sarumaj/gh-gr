@@ -2,11 +2,15 @@ package configfile
 
 import (
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 
+	terminal "github.com/AlecAivazis/survey/v2/terminal"
 	auth "github.com/cli/go-gh/v2/pkg/auth"
+	browser "github.com/cli/go-gh/v2/pkg/browser"
 	util "github.com/sarumaj/gh-gr/v2/pkg/util"
+	supererrors "github.com/sarumaj/go-super/errors"
 )
 
 // Retrieve all configured hosts from GitHub CLI.
@@ -71,4 +75,27 @@ func newBinaryProgressbar() *util.Progressbar {
 		util.ClearOnFinish(),
 		util.ShowCount(),
 	)
+}
+
+// Open links in browser.
+func OpenLins(links []string) {
+	c := util.Console()
+	client := browser.New("", c.Stdout(), c.Stderr())
+	for {
+		choice := supererrors.ExceptFn(supererrors.W(
+			prompt.Select(
+				"Select a link to open:",
+				links[0],
+				links,
+			),
+		), terminal.InterruptErr)
+
+		if supererrors.LastErrorWas(terminal.InterruptErr) || choice >= len(links) {
+			os.Exit(0)
+		}
+
+		supererrors.Except(client.Browse(links[choice]))
+		links = append(links[:choice], links[choice+1:]...)[: len(links)-1 : len(links)-1]
+	}
+
 }

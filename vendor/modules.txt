@@ -52,6 +52,9 @@ github.com/charmbracelet/lipgloss
 ## explicit; go 1.18
 github.com/charmbracelet/x/exp/term/ansi
 github.com/charmbracelet/x/exp/term/ansi/parser
+# github.com/cli/browser v1.3.0
+## explicit; go 1.21
+github.com/cli/browser
 # github.com/cli/go-gh/v2 v2.9.0
 ## explicit; go 1.21
 github.com/cli/go-gh/v2/internal/set
@@ -59,6 +62,7 @@ github.com/cli/go-gh/v2/internal/yamlmap
 github.com/cli/go-gh/v2/pkg/api
 github.com/cli/go-gh/v2/pkg/asciisanitizer
 github.com/cli/go-gh/v2/pkg/auth
+github.com/cli/go-gh/v2/pkg/browser
 github.com/cli/go-gh/v2/pkg/config
 github.com/cli/go-gh/v2/pkg/jsonpretty
 github.com/cli/go-gh/v2/pkg/prompter
@@ -211,6 +215,9 @@ github.com/google/go-github/v30/github
 # github.com/google/go-querystring v1.1.0
 ## explicit; go 1.10
 github.com/google/go-querystring/query
+# github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
+## explicit; go 1.13
+github.com/google/shlex
 # github.com/hashicorp/go-cleanhttp v0.5.2
 ## explicit; go 1.13
 github.com/hashicorp/go-cleanhttp

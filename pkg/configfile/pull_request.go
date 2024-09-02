@@ -41,6 +41,16 @@ func (prl *PullRequestList) Append(pr PullRequest) {
 	}
 }
 
+// Browse allows to open the URLs of the PullRequests in the default browser.
+func (prl PullRequestList) Browse() {
+	links := make([]string, len(prl))
+	for i, pr := range prl {
+		links[i] = pr.URL
+	}
+
+	OpenLins(links)
+}
+
 // Has returns true if the PullRequestList contains the given PullRequest.
 func (prl PullRequestList) Has(pr PullRequest) bool {
 	for _, own := range prl {
@@ -73,7 +83,7 @@ func PullRequestFromResponse(response resources.PullRequest) PullRequest {
 		Repository: response.Repository,
 		State:      response.State,
 		Title:      response.Title,
-		URL:        response.URL,
+		URL:        response.HTMLURL,
 	}
 
 	if len(pr.Title) > 40 {
