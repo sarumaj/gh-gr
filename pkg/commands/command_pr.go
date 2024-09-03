@@ -22,6 +22,7 @@ var prFlags struct {
 	closedInLast    time.Duration
 	closedAfterLast time.Duration
 	customQuery     string
+	searchQuery     bool
 	head            string
 	state           string
 	assignees       []string
@@ -84,6 +85,7 @@ var prCmd = func() *cobra.Command {
 	flags.DurationVar(&prFlags.closedInLast, "closed-in-last", 0, "Filter pull requests closed in the last time window")
 	flags.DurationVar(&prFlags.closedAfterLast, "closed-after-last", 0, "Filter pull requests closed after the last time window")
 	flags.StringVar(&prFlags.customQuery, "query", "", "Custom query to filter pull requests")
+	flags.BoolVar(&prFlags.searchQuery, "search", false, "Use search API to filter pull requests")
 	flags.StringVar(&prFlags.head, "head", "", "Filter pull requests by head user or head org in the format \"user:ref-name\" or \"organization:ref-name\"")
 	flags.StringArrayVar(&prFlags.assignees, "assignee", []string{}, "Glob pattern(s) to filter pull request assignees")
 	flags.StringArrayVar(&prFlags.authors, "author", []string{}, "Glob pattern(s) to filter pull request authors")
@@ -102,72 +104,70 @@ type pullRequestAction func(*restclient.RESTClient) func(context.Context, string
 // buildPullSearchQuery builds a search query for pull requests.
 func buildPullSearchQuery() map[string]string {
 	var fragments []string
-	var useCustomQuery bool
 	filter := make(map[string]string)
 
 	if prFlags.base != "" {
 		filter["base"] = prFlags.base
-		fragments = append(fragments, fmt.Sprintf("base:%s", prFlags.base))
+		if prFlags.searchQuery {
+			fragments = append(fragments, fmt.Sprintf("base:%s", prFlags.base))
+		}
 	}
 
 	if prFlags.head != "" {
 		filter["head"] = prFlags.head
-		fragments = append(fragments, fmt.Sprintf("head:%s", prFlags.head))
+		if prFlags.searchQuery {
+			fragments = append(fragments, fmt.Sprintf("head:%s", prFlags.head))
+		}
 	}
 
-	if prFlags.closedInLast > 0 {
-		useCustomQuery = true
+	if prFlags.closedInLast > 0 && prFlags.searchQuery {
 		fragments = append(fragments, fmt.Sprintf("closed:>=%s", time.Now().Add(-prFlags.closedInLast).Format("2006-01-02T15:04:05Z")))
 	}
 
-	if prFlags.closedAfterLast > 0 {
-		useCustomQuery = true
+	if prFlags.closedAfterLast > 0 && prFlags.searchQuery {
 		fragments = append(fragments, fmt.Sprintf("closed:<=%s", time.Now().Add(-prFlags.closedAfterLast).Format("2006-01-02T15:04:05Z")))
 	}
 
 	for _, assignee := range prFlags.assignees {
-		if util.IsGlobMatch(assignee) {
+		if !prFlags.searchQuery {
 			continue
 		}
-		useCustomQuery = true
 		fragments = append(fragments, fmt.Sprintf("assignee:%s", assignee))
 	}
 
 	for _, author := range prFlags.authors {
-		if util.IsGlobMatch(author) {
+		if !prFlags.searchQuery {
 			continue
 		}
-		useCustomQuery = true
 		fragments = append(fragments, fmt.Sprintf("author:%s", author))
 	}
 
 	for _, label := range prFlags.labels {
-		if util.IsGlobMatch(label) {
+		if !prFlags.searchQuery {
 			continue
 		}
-		useCustomQuery = true
 		fragments = append(fragments, fmt.Sprintf("label:%s", label))
 	}
 
 	for _, title := range prFlags.titles {
-		if util.IsGlobMatch(title) || util.IsRegex(title) {
+		if !prFlags.searchQuery {
 			continue
 		}
-		useCustomQuery = true
 		fragments = append(fragments, fmt.Sprintf("%s in:title", title))
 	}
 
 	if prFlags.state != "" {
 		filter["state"] = prFlags.state
-		fragments = append(fragments, fmt.Sprintf("state:%s", prFlags.state))
+		if prFlags.searchQuery {
+			fragments = append(fragments, fmt.Sprintf("state:%s", prFlags.state))
+		}
 	}
 
-	if prFlags.customQuery != "" {
-		useCustomQuery = true
+	if prFlags.searchQuery && prFlags.customQuery != "" {
 		fragments = append(fragments, prFlags.customQuery)
 	}
 
-	if useCustomQuery {
+	if prFlags.searchQuery && len(fragments) > 0 {
 		return map[string]string{"q": strings.Join(fragments, " ")}
 	}
 

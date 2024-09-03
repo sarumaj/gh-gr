@@ -82,6 +82,10 @@ func OpenLins(links []string) {
 	c := util.Console()
 	client := browser.New("", c.Stdout(), c.Stderr())
 	for {
+		if supererrors.LastErrorWas(terminal.InterruptErr) || len(links) == 0 {
+			os.Exit(0)
+		}
+
 		choice := supererrors.ExceptFn(supererrors.W(
 			prompt.Select(
 				"Select a link to open:",
@@ -89,10 +93,6 @@ func OpenLins(links []string) {
 				links,
 			),
 		), terminal.InterruptErr)
-
-		if supererrors.LastErrorWas(terminal.InterruptErr) || choice >= len(links) {
-			os.Exit(0)
-		}
 
 		supererrors.Except(client.Browse(links[choice]))
 		links = append(links[:choice], links[choice+1:]...)[: len(links)-1 : len(links)-1]
