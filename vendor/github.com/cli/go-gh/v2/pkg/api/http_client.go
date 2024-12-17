@@ -134,21 +134,6 @@ func isGarage(host string) bool {
 	return strings.EqualFold(host, "garage.github.com")
 }
 
-func isEnterprise(host string) bool {
-	return host != github && host != localhost
-}
-
-func normalizeHostname(hostname string) string {
-	hostname = strings.ToLower(hostname)
-	if strings.HasSuffix(hostname, "."+github) {
-		return github
-	}
-	if strings.HasSuffix(hostname, "."+localhost) {
-		return localhost
-	}
-	return hostname
-}
-
 type headerRoundTripper struct {
 	headers map[string]string
 	host    string
