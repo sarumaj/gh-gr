@@ -89,6 +89,11 @@ func AccessLevel(v AccessLevelValue) *AccessLevelValue {
 	return Ptr(v)
 }
 
+type AccessLevelDetails struct {
+	IntegerValue AccessLevelValue `json:"integer_value"`
+	StringValue  string           `json:"string_value"`
+}
+
 // UserIDValue represents a user ID value within GitLab.
 type UserIDValue string
 
@@ -435,6 +440,26 @@ func GenericPackageStatus(v GenericPackageStatusValue) *GenericPackageStatusValu
 	return Ptr(v)
 }
 
+// GroupHookTrigger represents the type of event to trigger for a group
+// hook test.
+type GroupHookTrigger string
+
+// List of available group hook trigger types.
+const (
+	GroupHookTriggerPush                GroupHookTrigger = "push_events"
+	GroupHookTriggerTagPush             GroupHookTrigger = "tag_push_events"
+	GroupHookTriggerIssue               GroupHookTrigger = "issues_events"
+	GroupHookTriggerConfidentialIssue   GroupHookTrigger = "confidential_issues_events"
+	GroupHookTriggerNote                GroupHookTrigger = "note_events"
+	GroupHookTriggerMergeRequest        GroupHookTrigger = "merge_requests_events"
+	GroupHookTriggerJob                 GroupHookTrigger = "job_events"
+	GroupHookTriggerPipeline            GroupHookTrigger = "pipeline_events"
+	GroupHookTriggerWikiPage            GroupHookTrigger = "wiki_page_events"
+	GroupHookTriggerRelease             GroupHookTrigger = "releases_events"
+	GroupHookTriggerEmoji               GroupHookTrigger = "emoji_events"
+	GroupHookTriggerResourceAccessToken GroupHookTrigger = "resource_access_token_events"
+)
+
 // ISOTime represents an ISO 8601 formatted date.
 type ISOTime time.Time
 
@@ -697,6 +722,29 @@ func ProjectCreationLevel(v ProjectCreationLevelValue) *ProjectCreationLevelValu
 	return Ptr(v)
 }
 
+// ProjectHookEvent represents a project hook event.
+//
+// GitLab API docs: https://docs.gitlab.com/ee/api/projects.html#hook-events
+type ProjectHookEvent string
+
+// List of available project hook events.
+//
+// GitLab API docs: https://docs.gitlab.com/ee/api/projects.html#hook-events
+const (
+	ProjectHookEventPush                ProjectHookEvent = "push_events"
+	ProjectHookEventTagPush             ProjectHookEvent = "tag_push_events"
+	ProjectHookEventIssues              ProjectHookEvent = "issues_events"
+	ProjectHookEventConfidentialIssues  ProjectHookEvent = "confidential_issues_events"
+	ProjectHookEventNote                ProjectHookEvent = "note_events"
+	ProjectHookEventMergeRequests       ProjectHookEvent = "merge_requests_events"
+	ProjectHookEventJob                 ProjectHookEvent = "job_events"
+	ProjectHookEventPipeline            ProjectHookEvent = "pipeline_events"
+	ProjectHookEventWiki                ProjectHookEvent = "wiki_page_events"
+	ProjectHookEventReleases            ProjectHookEvent = "releases_events"
+	ProjectHookEventEmoji               ProjectHookEvent = "emoji_events"
+	ProjectHookEventResourceAccessToken ProjectHookEvent = "resource_access_token_events"
+)
+
 // ResourceGroupProcessMode represents a process mode for a resource group
 // within a GitLab project.
 //
@@ -954,3 +1002,19 @@ func (t *BoolValue) UnmarshalJSON(b []byte) error {
 		return err
 	}
 }
+
+// CIPipelineVariablesMinimumOverrideRoleValue represents an access control
+// value used for managing access to the CI Pipeline Variable Override feature.
+//
+// GitLab API docs: https://docs.gitlab.com/ee/api/projects.html
+type CIPipelineVariablesMinimumOverrideRoleValue = string
+
+// List of available CIPipelineVariablesMinimumOverrideRoleValue values.
+//
+// GitLab API docs: https://docs.gitlab.com/ee/api/projects.html
+const (
+	CIPipelineVariablesNoOneAllowedRole CIPipelineVariablesMinimumOverrideRoleValue = "no_one_allowed"
+	CiPipelineVariablesOwnerRole        CIPipelineVariablesMinimumOverrideRoleValue = "owner"
+	CiPipelineVariablesMaintainerRole   CIPipelineVariablesMinimumOverrideRoleValue = "maintainer"
+	CIPipelineVariablesDeveloperRole    CIPipelineVariablesMinimumOverrideRoleValue = "developer"
+)

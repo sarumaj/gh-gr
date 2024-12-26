@@ -4,6 +4,11 @@ Self-Update library for Github, Gitea and Gitlab hosted applications in Go
 [![Godoc reference](https://godoc.org/github.com/creativeprojects/go-selfupdate?status.svg)](http://godoc.org/github.com/creativeprojects/go-selfupdate)
 [![Build](https://github.com/creativeprojects/go-selfupdate/workflows/Build/badge.svg)](https://github.com/creativeprojects/go-selfupdate/actions)
 [![codecov](https://codecov.io/gh/creativeprojects/go-selfupdate/branch/main/graph/badge.svg?token=3FejM0fkw2)](https://codecov.io/gh/creativeprojects/go-selfupdate)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=creativeprojects_go-selfupdate&metric=bugs)](https://sonarcloud.io/summary/new_code?id=creativeprojects_go-selfupdate)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=creativeprojects_go-selfupdate&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=creativeprojects_go-selfupdate)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=creativeprojects_go-selfupdate&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=creativeprojects_go-selfupdate)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=creativeprojects_go-selfupdate&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=creativeprojects_go-selfupdate)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=creativeprojects_go-selfupdate&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=creativeprojects_go-selfupdate)
 
 <!--ts-->
 * [Self\-Update library for Github, Gitea and Gitlab hosted applications in Go](#self-update-library-for-github-gitea-and-gitlab-hosted-applications-in-go)
@@ -30,6 +35,8 @@ Self-Update library for Github, Gitea and Gitlab hosted applications in Go
 * [Other providers than Github](#other-providers-than-github)
 * [GitLab](#gitlab)
   * [Example:](#example-1)
+* [Http Based Repository](#http-based-repository)
+  * [Example:](#example-2)
 * [Copyright](#copyright)
 
 <!--te-->
@@ -359,6 +366,52 @@ func update() {
 		log.Fatal(err)
 	}
 	release, found, err := updater.DetectLatest(context.Background(), selfupdate.NewRepositorySlug("owner", "cli-tool"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	if !found {
+		log.Print("Release not found")
+		return
+	}
+	fmt.Printf("found release %s\n", release.Version())
+
+	exe, err := selfupdate.ExecutablePath()
+	if err != nil {
+		return errors.New("could not locate executable path")
+	}
+	err = updater.UpdateTo(context.Background(), release, exe)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+# Http Based Repository
+
+Support for http based repositories landed in version 1.4.0.
+
+The HttpSource is designed to work with repositories built using [goreleaser-http-repo-builder](https://github.com/GRMrGecko/goreleaser-http-repo-builder?tab=readme-ov-file). This provides a simple way to add self-update support to software that is not open source, allowing you to host your own updates. It requires that you still use the owner/project url style, and you can set custom headers to be used with requests to authenticate.
+
+## Example:
+
+If your repository is at example.com/repo/project, then you'd use the following example.
+
+```go
+func update() {
+	source, err := selfupdate.NewHttpSource(selfupdate.HttpConfig{
+		BaseURL: "https://example.com/",
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	updater, err := selfupdate.NewUpdater(selfupdate.Config{
+		Source:    source,
+		Validator: &selfupdate.ChecksumValidator{UniqueFilename: "checksums.txt"}, // checksum from goreleaser
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	release, found, err := updater.DetectLatest(context.Background(), selfupdate.NewRepositorySlug("repo", "project"))
 	if err != nil {
 		log.Fatal(err)
 	}
