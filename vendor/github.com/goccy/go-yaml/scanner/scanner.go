@@ -98,6 +98,11 @@ func (s *Scanner) progressColumn(ctx *Context, num int) {
 	s.progress(ctx, num)
 }
 
+func (s *Scanner) progressOnly(ctx *Context, num int) {
+	s.offset += num
+	s.progress(ctx, num)
+}
+
 func (s *Scanner) progressLine(ctx *Context) {
 	s.prevLineIndentNum = s.indentNum
 	s.column = 1
@@ -962,6 +967,12 @@ func (s *Scanner) scanMapDelim(ctx *Context) (bool, error) {
 		// like http://
 		return false, nil
 	}
+	if s.startedFlowMapNum > 0 {
+		tk := ctx.lastToken()
+		if tk != nil && tk.Type == token.MappingValueType {
+			return false, nil
+		}
+	}
 
 	if strings.HasPrefix(strings.TrimPrefix(string(ctx.obuf), " "), "\t") && !strings.HasPrefix(string(ctx.buf), "\t") {
 		invalidTk := token.Invalid("tab character cannot use as a map key directly", string(ctx.obuf), s.pos())
@@ -1430,13 +1441,13 @@ func (s *Scanner) scan(ctx *Context) error {
 				// tab indent for plain text (yaml-test-suite's spec-example-7-12-plain-lines).
 				s.indentNum++
 				ctx.addOriginBuf(c)
-				s.progressColumn(ctx, 1)
+				s.progressOnly(ctx, 1)
 				continue
 			}
 			if s.lastDelimColumn < s.column {
 				s.indentNum++
 				ctx.addOriginBuf(c)
-				s.progressColumn(ctx, 1)
+				s.progressOnly(ctx, 1)
 				continue
 			}
 			if err := s.scanTab(ctx, c); err != nil {

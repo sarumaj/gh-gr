@@ -50,7 +50,7 @@ func Validator(v StructValidator) DecodeOption {
 	}
 }
 
-// Strict enable DisallowUnknownField and DisallowDuplicateKey
+// Strict enable DisallowUnknownField
 func Strict() DecodeOption {
 	return func(d *Decoder) error {
 		d.disallowUnknownField = true
@@ -114,7 +114,7 @@ type EncodeOption func(e *Encoder) error
 // Indent change indent number
 func Indent(spaces int) EncodeOption {
 	return func(e *Encoder) error {
-		e.indent = spaces
+		e.indentNum = spaces
 		return nil
 	}
 }
@@ -139,6 +139,18 @@ func UseSingleQuote(sq bool) EncodeOption {
 func Flow(isFlowStyle bool) EncodeOption {
 	return func(e *Encoder) error {
 		e.isFlowStyle = isFlowStyle
+		return nil
+	}
+}
+
+// WithSmartAnchor when multiple map values share the same pointer,
+// an anchor is automatically assigned to the first occurrence, and aliases are used for subsequent elements.
+// The map key name is used as the anchor name by default.
+// If key names conflict, a suffix is automatically added to avoid collisions.
+// This is an experimental feature and cannot be used simultaneously with anchor tags.
+func WithSmartAnchor() EncodeOption {
+	return func(e *Encoder) error {
+		e.enableSmartAnchor = true
 		return nil
 	}
 }
@@ -190,6 +202,15 @@ func CustomMarshaler[T any](marshaler func(T) ([]byte, error)) EncodeOption {
 		e.customMarshalerMap[reflect.TypeOf(typ)] = func(v interface{}) ([]byte, error) {
 			return marshaler(v.(T))
 		}
+		return nil
+	}
+}
+
+// AutoInt automatically converts floating-point numbers to integers when the fractional part is zero.
+// For example, a value of 1.0 will be encoded as 1.
+func AutoInt() EncodeOption {
+	return func(e *Encoder) error {
+		e.autoInt = true
 		return nil
 	}
 }
