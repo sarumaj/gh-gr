@@ -618,7 +618,7 @@ func Load() *Configuration {
 	c := util.Console()
 	bar := newBinaryProgressbar().Describe(c.CheckColors(color.BlueString, "Loading..."))
 	supererrors.Except(yaml.NewDecoder(io.TeeReader(strings.NewReader(content), bar)).Decode(&conf))
-	_ = bar.Clear()
+	_ = bar.Close()
 
 	return &conf
 }
@@ -680,6 +680,7 @@ func Import(format, input string) {
 
 	bar := newBinaryProgressbar().Describe(c.CheckColors(color.BlueString, "Importing..."))
 	raw := supererrors.ExceptFn(supererrors.W(io.ReadAll(io.TeeReader(reader, bar))))
+	_ = bar.Close()
 
 	var conf Configuration
 	supererrors.Except(enc.Decoder(bytes.NewReader(raw)).Decode(&conf))

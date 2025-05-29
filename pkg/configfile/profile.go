@@ -29,7 +29,7 @@ func NewProfile(user *resources.User, host string) *Profile {
 	}
 
 	if profile.Email == "" {
-		profile.Email = fmt.Sprintf("%d-%s@users.noreply.github.com", user.ID, user.Login)
+		profile.Email = fmt.Sprintf("%d+%s@users.noreply.github.com", user.ID, user.Login)
 	}
 
 	return profile
