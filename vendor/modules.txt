@@ -72,7 +72,7 @@ github.com/charmbracelet/x/term
 # github.com/cli/browser v1.3.0
 ## explicit; go 1.21
 github.com/cli/browser
-# github.com/cli/go-gh/v2 v2.12.0
+# github.com/cli/go-gh/v2 v2.12.1
 ## explicit; go 1.23.0
 github.com/cli/go-gh/v2/internal/set
 github.com/cli/go-gh/v2/internal/yamlmap
