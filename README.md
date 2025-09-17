@@ -2,7 +2,7 @@
 [![build_and_release](https://github.com/sarumaj/gh-gr/actions/workflows/build_and_release.yml/badge.svg)](https://github.com/sarumaj/gh-gr/actions/workflows/build_and_release.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/sarumaj/gh-gr)](https://goreportcard.com/report/github.com/sarumaj/gh-gr)
 [![Maintainability](https://img.shields.io/codeclimate/maintainability-percentage/sarumaj/gh-gr.svg)](https://codeclimate.com/github/sarumaj/gh-gr/maintainability)
-[![Test Coverage](https://api.codeclimate.com/v1/badges/0c9cdd86241d58f97085/test_coverage)](https://codeclimate.com/github/sarumaj/gh-gr/test_coverage)
+[![Code Coverage](https://qlty.sh/gh/sarumaj/projects/gh-gr/coverage.svg)](https://qlty.sh/gh/sarumaj/projects/gh-gr)
 [![Go Reference](https://pkg.go.dev/badge/github.com/sarumaj/gh-gr/v2.svg)](https://pkg.go.dev/github.com/sarumaj/gh-gr/v2)
 [![Go version](https://img.shields.io/github/go-mod/go-version/sarumaj/gh-gr?logo=go&label=&labelColor=gray)](https://go.dev)
 [![Release](https://img.shields.io/github/v/release/sarumaj/gh-gr?logo=github)](https://github.com/sarumaj/gh-gr/releases/latest)

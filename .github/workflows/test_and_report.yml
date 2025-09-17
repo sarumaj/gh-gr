@@ -34,8 +34,7 @@ jobs:
       - name: Install go tools
         run: |
           go install golang.org/x/tools/gopls@latest && \
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && \
-          go install github.com/axw/gocov/gocov@latest
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
       - name: Export Module Name
         id: export_module_name
@@ -44,12 +43,13 @@ jobs:
       - name: Run linters
         run: gofmt -s -d ./ && golangci-lint run -v -e printf
 
-      - name: Test & publish code coverage
-        uses: paambaati/codeclimate-action@v9.0.0
-        env:
-          CC_TEST_REPORTER_ID: ${{ secrets.CODECLIMATE_REPORTER_ID }}
+      - name: Run tests with coverage
+        run: go test ./... -coverprofile=coverage.out
+
+      - name: Publish code coverage
+        uses: qltysh/qlty-action/coverage@v1
         with:
-          coverageCommand: gocov test ./... -coverprofile=c.out
-          coverageLocations: ./c.out:gocov
-          debug: true
-          prefix: ${{ steps.export_module_name.outputs.MODULE_NAME }}
+          files: coverage.out
+          add-prefix: ${{ steps.export_module_name.outputs.MODULE_NAME }}
+          verbose: true
+          token: ${{ secrets.QLTY_COVERAGE_TOKEN }}
