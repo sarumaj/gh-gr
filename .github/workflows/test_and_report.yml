@@ -47,7 +47,7 @@ jobs:
         run: go test ./... -coverprofile=coverage.out
 
       - name: Publish code coverage
-        uses: qltysh/qlty-action/coverage@v1
+        uses: qltysh/qlty-action/coverage@v2
         with:
           files: coverage.out
           add-prefix: ${{ steps.export_module_name.outputs.MODULE_NAME }}
