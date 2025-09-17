@@ -21,7 +21,7 @@ func operationLoop[U interface {
 	logger.Debugf("Config exists: %t", exists)
 	if !exists {
 		c := util.Console()
-		util.PrintlnAndExit(c.CheckColors(color.RedString, configfile.ConfigNotFound))
+		util.PrintlnAndExit("%s", c.CheckColors(color.RedString, configfile.ConfigNotFound))
 	}
 
 	conf := configfile.Load()

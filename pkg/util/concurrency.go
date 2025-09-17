@@ -42,7 +42,7 @@ func (i *blocker) Fire() {
 
 			case <-interrupt:
 				_ = supererrors.ExceptFn(supererrors.W(
-					fmt.Fprintln(c.Stderr(), c.CheckColors(color.RedString, c.CheckColors(color.RedString, "Current execution cannot be interrupted!"))),
+					fmt.Fprintln(c.Stderr(), c.CheckColors(color.RedString, "Current execution cannot be interrupted!")),
 				))
 
 			case <-quit:

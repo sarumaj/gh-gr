@@ -164,7 +164,7 @@ func (conf Configuration) AuthenticateURL(targetURL *string) {
 		}
 	}
 
-	util.PrintlnAndExit(util.Console().CheckColors(color.RedString, AuthenticationFailed, *targetURL, hostname))
+	util.PrintlnAndExit("%s", util.Console().CheckColors(color.RedString, AuthenticationFailed, *targetURL, hostname))
 }
 
 // Remove local repositories which are not enlisted.
@@ -229,7 +229,7 @@ func (conf Configuration) Cleanup() {
 
 	bar := util.NewProgressbar(len(tmp.Repositories))
 	for _, repo := range tmp.Repositories {
-		_ = bar.Describe(c.CheckColors(color.RedString, tmp.GetProgressbarDescriptionForVerb("Removing", repo)))
+		_ = bar.Describe("%s", c.CheckColors(color.RedString, "%s", tmp.GetProgressbarDescriptionForVerb("Removing", repo)))
 		supererrors.Except(os.RemoveAll(repo.Directory), os.ErrNotExist)
 		_ = bar.Inc()
 	}
@@ -272,7 +272,7 @@ func (conf Configuration) Display(format, output string, export bool, filters []
 	enc, ok := supportedEncoders[format]
 	if !ok {
 		supportedEncoders := strings.Join(GetListOfSupportedFormats(true), ", ")
-		util.PrintlnAndExit(c.CheckColors(color.RedString, ConfigInvalidFormat, format, supportedEncoders))
+		util.PrintlnAndExit("%s", c.CheckColors(color.RedString, ConfigInvalidFormat, format, supportedEncoders))
 	}
 
 	if export { // prevent flood of logs into stdout
@@ -340,7 +340,7 @@ func (conf *Configuration) Edit(format, editor string) {
 	enc, ok := supportedEncoders[format]
 	if !ok {
 		supportedEncoders := strings.Join(GetListOfSupportedFormats(true), ", ")
-		util.PrintlnAndExit(c.CheckColors(color.RedString, ConfigInvalidFormat, format, supportedEncoders))
+		util.PrintlnAndExit("%s", c.CheckColors(color.RedString, ConfigInvalidFormat, format, supportedEncoders))
 	}
 
 	clone := conf.Copy()
@@ -517,7 +517,7 @@ func (conf Configuration) Remove(purge bool) {
 	bar := util.NewProgressbar(len(conf.Repositories))
 	subDirectories := make(map[string]bool)
 	for _, repo := range conf.Repositories {
-		_ = bar.Describe(c.CheckColors(color.RedString, conf.GetProgressbarDescriptionForVerb("Removing", repo)))
+		_ = bar.Describe("%s", c.CheckColors(color.RedString, "%s", conf.GetProgressbarDescriptionForVerb("Removing", repo)))
 		supererrors.Except(os.RemoveAll(repo.Directory), os.ErrNotExist)
 		_ = bar.Inc()
 
@@ -585,7 +585,7 @@ func (conf Configuration) Save() {
 
 	c := util.Console()
 	buffer := bytes.NewBuffer(nil)
-	bar := newBinaryProgressbar().Describe(c.CheckColors(color.BlueString, "Saving..."))
+	bar := newBinaryProgressbar().Describe("%s", c.CheckColors(color.BlueString, "Saving..."))
 	supererrors.Except(yaml.NewEncoder(io.MultiWriter(buffer, bar)).Encode(conf))
 	_ = bar.Clear()
 
@@ -616,7 +616,7 @@ func Load() *Configuration {
 
 	var conf Configuration
 	c := util.Console()
-	bar := newBinaryProgressbar().Describe(c.CheckColors(color.BlueString, "Loading..."))
+	bar := newBinaryProgressbar().Describe("%s", c.CheckColors(color.BlueString, "Loading..."))
 	supererrors.Except(yaml.NewDecoder(io.TeeReader(strings.NewReader(content), bar)).Decode(&conf))
 	_ = bar.Close()
 
@@ -675,10 +675,10 @@ func Import(format, input string) {
 	enc, ok := supportedEncoders[format]
 	if !ok {
 		supportedEncoders := strings.Join(GetListOfSupportedFormats(true), ", ")
-		util.PrintlnAndExit(c.CheckColors(color.RedString, ConfigInvalidFormat, format, supportedEncoders))
+		util.PrintlnAndExit("%s", c.CheckColors(color.RedString, ConfigInvalidFormat, format, supportedEncoders))
 	}
 
-	bar := newBinaryProgressbar().Describe(c.CheckColors(color.BlueString, "Importing..."))
+	bar := newBinaryProgressbar().Describe("%s", c.CheckColors(color.BlueString, "Importing..."))
 	raw := supererrors.ExceptFn(supererrors.W(io.ReadAll(io.TeeReader(reader, bar))))
 	_ = bar.Close()
 

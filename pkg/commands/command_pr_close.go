@@ -20,7 +20,7 @@ var prCloseCmd = func() *cobra.Command {
 		Run: func(*cobra.Command, []string) {
 			c := util.Console()
 			if !configfile.ConfigurationExists() {
-				util.PrintlnAndExit(c.CheckColors(color.RedString, configfile.ConfigNotFound))
+				util.PrintlnAndExit("%s", c.CheckColors(color.RedString, configfile.ConfigNotFound))
 			}
 
 			conf := configfile.Load()
@@ -29,7 +29,7 @@ var prCloseCmd = func() *cobra.Command {
 			listPullRequests(conf, buildPullSearchQuery(), &list, true)
 
 			if len(list) == 0 {
-				util.PrintlnAndExit(c.CheckColors(color.RedString, "No pull requests matching provided constrains found"))
+				util.PrintlnAndExit("%s", c.CheckColors(color.RedString, "No pull requests matching provided constrains found"))
 			}
 
 			operationLoop(prDoOperation, "Close", operationContextMap{

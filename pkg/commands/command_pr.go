@@ -57,7 +57,7 @@ var prCmd = func() *cobra.Command {
 		Run: func(*cobra.Command, []string) {
 			c := util.Console()
 			if !configfile.ConfigurationExists() {
-				util.PrintlnAndExit(c.CheckColors(color.RedString, configfile.ConfigNotFound))
+				util.PrintlnAndExit("%s", c.CheckColors(color.RedString, configfile.ConfigNotFound))
 			}
 
 			conf := configfile.Load()
@@ -66,7 +66,7 @@ var prCmd = func() *cobra.Command {
 			listPullRequests(conf, buildPullSearchQuery(), &list, false)
 
 			if len(list) == 0 {
-				util.PrintlnAndExit(c.CheckColors(color.RedString, "No pull requests matching following constraints found"))
+				util.PrintlnAndExit("%s", c.CheckColors(color.RedString, "No pull requests matching following constraints found"))
 			}
 
 			if prFlags.web {
@@ -200,7 +200,7 @@ func listPullRequests(conf *configfile.Configuration, filter map[string]string, 
 	})
 
 	if len(*list) == 0 {
-		util.PrintlnAndExit(util.Console().CheckColors(color.RedString, "No pull requests found"))
+		util.PrintlnAndExit("%s", util.Console().CheckColors(color.RedString, "No pull requests found"))
 	}
 }
 

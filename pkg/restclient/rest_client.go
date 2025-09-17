@@ -30,7 +30,7 @@ type RESTClient struct {
 
 // Close a pull request.
 func (c *RESTClient) ClosePullRequest(ctx context.Context, owner, repo string, number int) error {
-	c.Describe(fmt.Sprintf("Closing pull request %d for GitHub repository: %s/%s...", number, owner, repo))
+	c.Describe("Closing pull request %d for GitHub repository: %s/%s...", number, owner, repo)
 	return c.DoWithContext(ctx, http.MethodPatch,
 		newRequestPath(pullEp.Format(map[string]any{"owner": owner, "repo": repo, "number": number})).String(),
 		strings.NewReader(`{"state":"closed"}`), nil)
@@ -124,7 +124,7 @@ func (c *RESTClient) GetRateLimit(ctx context.Context) (rate *resources.RateLimi
 
 // Get all pull requests for given organization and repository.
 func (c *RESTClient) GetOrgRepoPulls(ctx context.Context, name, repo string, filter map[string]string) (out []resources.PullRequest, err error) {
-	c.Describe(fmt.Sprintf("Retrieving pull requests for GitHub repository: %s/%s...", name, repo))
+	c.Describe("Retrieving pull requests for GitHub repository: %s/%s...", name, repo)
 	pulls, err := getPaged[resources.PullRequest, []resources.PullRequest](c, pullsEp.Format(map[string]any{
 		"owner": name,
 		"repo":  repo,
@@ -177,7 +177,7 @@ func (c *RESTClient) GetUserOrgs(ctx context.Context) ([]resources.Organization,
 
 // Reopen a pull request.
 func (c *RESTClient) ReopenPullRequest(ctx context.Context, owner, repo string, number int) error {
-	c.Describe(fmt.Sprintf("Reopening pull request %d for GitHub repository: %s/%s...", number, owner, repo))
+	c.Describe("Reopening pull request %d for GitHub repository: %s/%s...", number, owner, repo)
 	return c.DoWithContext(ctx, http.MethodPatch,
 		newRequestPath(pullEp.Format(map[string]any{"owner": owner, "repo": repo, "number": number})).String(),
 		strings.NewReader(`{"state":"open"}`), nil)
@@ -190,7 +190,7 @@ func (c *RESTClient) RequestWithContext(ctx context.Context, method, path string
 
 // Search for pull requests in a repository.
 func (c *RESTClient) SearchOrgRepoPulls(ctx context.Context, name, repo string, filter string) (out []resources.PullRequest, err error) {
-	c.Describe(fmt.Sprintf("Retrieving pull requests for GitHub repository: %s/%s...", name, repo))
+	c.Describe("Retrieving pull requests for GitHub repository: %s/%s...", name, repo)
 	searchQuery := fmt.Sprintf("is:pr repo:%s/%s", name, repo)
 	if filter != "" {
 		searchQuery += " " + filter

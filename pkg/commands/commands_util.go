@@ -76,9 +76,9 @@ func changeProgressbarText[U interface {
 		c := util.Console()
 		switch v := any(object).(type) {
 		case configfile.PullRequest:
-			bar.Describe(c.CheckColors(color.BlueString, conf.GetProgressbarDescriptionForVerb(verb, configfile.Repository{Directory: v.Repository})))
+			bar.Describe("%s", c.CheckColors(color.BlueString, "%s", conf.GetProgressbarDescriptionForVerb(verb, configfile.Repository{Directory: v.Repository})))
 		case configfile.Repository:
-			bar.Describe(c.CheckColors(color.BlueString, conf.GetProgressbarDescriptionForVerb(verb, v)))
+			bar.Describe("%s", c.CheckColors(color.BlueString, "%s", conf.GetProgressbarDescriptionForVerb(verb, v)))
 		}
 	}
 }
@@ -99,10 +99,10 @@ func initializeOrUpdateConfig(conf *configfile.Configuration, update bool) {
 	switch {
 
 	case exists && !update:
-		util.PrintlnAndExit(c.CheckColors(color.RedString, configfile.ConfigShouldNotExist))
+		util.PrintlnAndExit("%s", c.CheckColors(color.RedString, configfile.ConfigShouldNotExist))
 
 	case !exists && update:
-		util.PrintlnAndExit(c.CheckColors(color.RedString, configfile.ConfigNotFound))
+		util.PrintlnAndExit("%s", c.CheckColors(color.RedString, configfile.ConfigNotFound))
 
 	}
 
@@ -112,7 +112,7 @@ func initializeOrUpdateConfig(conf *configfile.Configuration, update bool) {
 		conf = configfile.Load()
 
 	case conf == nil:
-		util.PrintlnAndExit(c.CheckColors(color.RedString, configfile.ConfigNotFound))
+		util.PrintlnAndExit("%s", c.CheckColors(color.RedString, configfile.ConfigNotFound))
 
 	}
 

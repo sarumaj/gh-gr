@@ -24,7 +24,7 @@ var removeCmd = func() *cobra.Command {
 		Run: func(*cobra.Command, []string) {
 			if !configfile.ConfigurationExists() {
 				c := util.Console()
-				util.PrintlnAndExit(c.CheckColors(color.RedString, configfile.ConfigNotFound))
+				util.PrintlnAndExit("%s", c.CheckColors(color.RedString, configfile.ConfigNotFound))
 			}
 
 			logger := loggerEntry.WithField("command", "remove")

@@ -29,10 +29,10 @@ func CheckRateLimitAndExit(r *resources.RateLimit) {
 	}
 
 	if msg := check(r.Resources.Core); msg != "" {
-		util.PrintlnAndExit(msg)
+		util.PrintlnAndExit("%s", msg)
 	}
 
 	if msg := check(r.Resources.Search); msg != "" {
-		util.PrintlnAndExit(msg)
+		util.PrintlnAndExit("%s", msg)
 	}
 }
