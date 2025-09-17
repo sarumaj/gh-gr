@@ -27,7 +27,7 @@ jobs:
           install-only: true
 
       - name: Install go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go }}
 
