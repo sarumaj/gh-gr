@@ -11,7 +11,7 @@ require (
 	github.com/creativeprojects/go-selfupdate v1.5.1
 	github.com/dlclark/regexp2 v1.11.5
 	github.com/fatih/color v1.18.0
-	github.com/go-git/go-git/v5 v5.16.2
+	github.com/go-git/go-git/v5 v5.16.3
 	github.com/goccy/go-json v0.10.5
 	github.com/goccy/go-yaml v1.18.0
 	github.com/neilotoole/jsoncolor v0.7.1
