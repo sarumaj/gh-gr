@@ -1,13 +1,13 @@
 module github.com/sarumaj/gh-gr/v2
 
-go 1.24.6
+go 1.25.0
 
-toolchain go1.25.3
+toolchain go1.25.4
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cli/go-gh/v2 v2.12.2
+	github.com/cli/go-gh/v2 v2.13.0
 	github.com/creativeprojects/go-selfupdate v1.5.1
 	github.com/dlclark/regexp2 v1.11.5
 	github.com/fatih/color v1.18.0
