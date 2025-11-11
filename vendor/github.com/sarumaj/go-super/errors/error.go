@@ -5,10 +5,10 @@ import (
 	"sync"
 )
 
-// Storer for last occurred error
+// Storer for last occurred error.
 var lastError = &errorKeeper{}
 
-// Store last error (thread-safe)
+// Store last error (thread-safe).
 type errorKeeper struct {
 	err error
 	sync.RWMutex
@@ -23,7 +23,7 @@ func (k *errorKeeper) read() error {
 	return k.err
 }
 
-// Store error
+// Store error.
 func (k *errorKeeper) store(err error) {
 	for !k.TryLock() {
 	}
@@ -31,12 +31,12 @@ func (k *errorKeeper) store(err error) {
 	k.Unlock()
 }
 
-// Retrieve last error
+// Retrieve last error.
 func LastError() error {
 	return lastError.read()
 }
 
-// Check if last error was of this kind
+// Check if last error was of this kind.
 func LastErrorWas(err error) bool {
 	return errors.Is(lastError.read(), err)
 }
