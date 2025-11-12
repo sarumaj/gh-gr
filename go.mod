@@ -15,7 +15,7 @@ require (
 	github.com/goccy/go-json v0.10.5
 	github.com/goccy/go-yaml v1.18.0
 	github.com/neilotoole/jsoncolor v0.7.1
-	github.com/sarumaj/go-super v1.0.0
+	github.com/sarumaj/go-super v1.0.1
 	github.com/schollz/progressbar/v3 v3.18.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.10.1

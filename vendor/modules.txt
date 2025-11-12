@@ -305,7 +305,7 @@ github.com/pmezard/go-difflib/difflib
 # github.com/rivo/uniseg v0.4.7
 ## explicit; go 1.18
 github.com/rivo/uniseg
-# github.com/sarumaj/go-super v1.0.0
+# github.com/sarumaj/go-super v1.0.1
 ## explicit; go 1.21.0
 github.com/sarumaj/go-super/errors
 # github.com/schollz/progressbar/v3 v3.18.0
