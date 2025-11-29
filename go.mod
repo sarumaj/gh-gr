@@ -13,7 +13,7 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/go-git/go-git/v5 v5.16.4
 	github.com/goccy/go-json v0.10.5
-	github.com/goccy/go-yaml v1.18.0
+	github.com/goccy/go-yaml v1.19.0
 	github.com/neilotoole/jsoncolor v0.7.1
 	github.com/sarumaj/go-super v1.0.2
 	github.com/schollz/progressbar/v3 v3.18.0
