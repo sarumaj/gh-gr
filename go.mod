@@ -2,7 +2,7 @@ module github.com/sarumaj/gh-gr/v2
 
 go 1.25.0
 
-toolchain go1.25.4
+toolchain go1.25.5
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
@@ -18,7 +18,7 @@ require (
 	github.com/sarumaj/go-super v1.0.2
 	github.com/schollz/progressbar/v3 v3.18.0
 	github.com/sirupsen/logrus v1.9.3
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/ztrue/tracerr v0.4.0
 	gopkg.in/go-playground/pool.v3 v3.1.1
 	gopkg.in/yaml.v3 v3.0.1
