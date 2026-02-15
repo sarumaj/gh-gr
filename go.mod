@@ -14,7 +14,7 @@ require (
 	github.com/go-git/go-git/v5 v5.16.5
 	github.com/goccy/go-json v0.10.5
 	github.com/goccy/go-yaml v1.19.2
-	github.com/neilotoole/jsoncolor v0.7.1
+	github.com/neilotoole/jsoncolor v0.7.2
 	github.com/sarumaj/go-super v1.0.2
 	github.com/schollz/progressbar/v3 v3.19.0
 	github.com/sirupsen/logrus v1.9.4
