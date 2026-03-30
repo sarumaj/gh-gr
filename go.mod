@@ -11,7 +11,7 @@ require (
 	github.com/creativeprojects/go-selfupdate v1.5.2
 	github.com/dlclark/regexp2 v1.11.5
 	github.com/fatih/color v1.18.0
-	github.com/go-git/go-git/v5 v5.16.5
+	github.com/go-git/go-git/v5 v5.17.1
 	github.com/goccy/go-json v0.10.5
 	github.com/goccy/go-yaml v1.19.2
 	github.com/neilotoole/jsoncolor v0.7.1
@@ -40,7 +40,7 @@ require (
 	github.com/cli/browser v1.3.0 // indirect
 	github.com/cli/safeexec v1.0.1 // indirect
 	github.com/cli/shurcooL-graphql v0.0.4 // indirect
-	github.com/cloudflare/circl v1.6.1 // indirect
+	github.com/cloudflare/circl v1.6.3 // indirect
 	github.com/creack/pty v1.1.23 // indirect
 	github.com/cyphar/filepath-securejoin v0.4.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -48,7 +48,7 @@ require (
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/go-fed/httpsig v1.1.0 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
-	github.com/go-git/go-billy/v5 v5.6.2 // indirect
+	github.com/go-git/go-billy/v5 v5.8.0 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/google/go-github/v30 v30.1.0 // indirect
 	github.com/google/go-github/v74 v74.0.0 // indirect
