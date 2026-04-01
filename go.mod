@@ -2,7 +2,7 @@ module github.com/sarumaj/gh-gr/v2
 
 go 1.25.0
 
-toolchain go1.26.0
+toolchain go1.26.1
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
@@ -10,11 +10,11 @@ require (
 	github.com/cli/go-gh/v2 v2.13.0
 	github.com/creativeprojects/go-selfupdate v1.5.2
 	github.com/dlclark/regexp2 v1.11.5
-	github.com/fatih/color v1.18.0
-	github.com/go-git/go-git/v5 v5.17.1
-	github.com/goccy/go-json v0.10.5
+	github.com/fatih/color v1.19.0
+	github.com/go-git/go-git/v5 v5.17.2
+	github.com/goccy/go-json v0.10.6
 	github.com/goccy/go-yaml v1.19.2
-	github.com/neilotoole/jsoncolor v0.7.1
+	github.com/neilotoole/jsoncolor v0.7.2
 	github.com/sarumaj/go-super v1.0.2
 	github.com/schollz/progressbar/v3 v3.19.0
 	github.com/sirupsen/logrus v1.9.4
@@ -87,7 +87,7 @@ require (
 	golang.org/x/crypto v0.46.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/oauth2 v0.34.0 // indirect
-	golang.org/x/sys v0.39.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/term v0.38.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
