@@ -19,7 +19,7 @@ From the example [`jc`](./cmd/jc/main.go) app:
 
 ## Usage
 
-Get the package per the normal mechanism (requires Go 1.16+):
+Get the package per the normal mechanism (requires Go 1.17+):
 
 ```shell
 go get -u github.com/neilotoole/jsoncolor
@@ -214,6 +214,13 @@ History: this package is an extract of [`sq`](https://github.com/neilotoole/sq)'
 [`segmentio/encoding`](https://github.com/segmentio/encoding) JSON encoding package. Note that the
 original `sq` JSON encoder was forked from Segment's codebase at `v0.1.14`, so
 the codebases have drifted significantly by now.
+
+### [v0.7.2](https://github.com/neilotoole/jsoncolor/releases/tag/v0.7.2)
+
+- [#38](https://github.com/neilotoole/jsoncolor/issues/38): Fix `TestCodec` failure on Go 1.22+ and update CI.
+  - Use semantic JSON comparison in `TestCodec` to handle stdlib escape sequence changes.
+  - Bump minimum Go version from 1.16 to 1.17.
+  - Update CI workflows: expand test matrix to Go 1.17/1.24/1.26, fix `golangci-lint` workflow.
 
 ### [v0.7.1](https://github.com/neilotoole/jsoncolor/releases/tag/v0.7.1)
 
