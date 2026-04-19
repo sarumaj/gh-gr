@@ -7,7 +7,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cli/go-gh/v2 v2.13.0
 	github.com/creativeprojects/go-selfupdate v1.5.2
-	github.com/dlclark/regexp2 v1.11.5
+	github.com/dlclark/regexp2 v1.12.0
 	github.com/fatih/color v1.19.0
 	github.com/go-git/go-git/v5 v5.17.2
 	github.com/goccy/go-json v0.10.6
