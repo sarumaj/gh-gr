@@ -10,7 +10,7 @@ require (
 	github.com/dlclark/regexp2 v1.11.0
 	github.com/dlclark/regexp2/v2 v2.0.1
 	github.com/fatih/color v1.19.0
-	github.com/go-git/go-git/v5 v5.17.2
+	github.com/go-git/go-git/v5 v5.18.0
 	github.com/goccy/go-json v0.10.6
 	github.com/goccy/go-yaml v1.19.2
 	github.com/neilotoole/jsoncolor v0.7.2
