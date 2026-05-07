@@ -58,7 +58,7 @@ jobs:
           token: ${{ secrets.QLTY_COVERAGE_TOKEN }}
 
       - name: Precompile binaries and upload assets
-        uses: cli/gh-extension-precompile@v1
+        uses: cli/gh-extension-precompile@v2.1.0
         with:
           build_script_override: "scripts/build.sh"
           go_version: ${{ matrix.go }}
