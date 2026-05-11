@@ -9,20 +9,20 @@ need to write very complex patterns or require compatibility with .NET.
 package regexp2
 
 import (
+	"container/list"
 	"errors"
+	"log"
 	"math"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/dlclark/regexp2/syntax"
+	"github.com/dlclark/regexp2/v2/syntax"
 )
 
 var (
 	// DefaultMatchTimeout used when running regexp matches -- "forever"
 	DefaultMatchTimeout = time.Duration(math.MaxInt64)
-	// DefaultUnmarshalOptions used when unmarshaling a regex from text
-	DefaultUnmarshalOptions = None
 )
 
 // Regexp is the representation of a compiled regular expression.
@@ -38,6 +38,7 @@ type Regexp struct {
 	// read-only after Compile
 	pattern string       // as passed to Compile
 	options RegexOptions // options
+	debug   bool
 
 	caps     map[int]int    // capnum->index
 	capnames map[string]int //capture group name -> index
@@ -46,18 +47,40 @@ type Regexp struct {
 
 	code *syntax.Code // compiled program
 
+	optimizations OptimizationOptions
+
 	// cache of machines for running regexp
-	muRun  *sync.Mutex
-	runner []*runner
+	runnerPool *sync.Pool
+
+	replaceCache *replacerDataCache
+
+	// hook points to override runner functions
+	findFirstChar      func(r *Runner) bool
+	execute            func(r *Runner) error
+	stringPrefixFilter StringPrefixFilter
 }
 
 // Compile parses a regular expression and returns, if successful,
 // a Regexp object that can be used to match against text.
-func Compile(expr string, opt RegexOptions) (*Regexp, error) {
+func Compile(expr string, options ...CompileOption) (*Regexp, error) {
+	c := newCompileConfig(options)
+	return compile(expr, c)
+}
+
+func compile(expr string, c compileConfig) (*Regexp, error) {
 	// parse it
-	tree, err := syntax.Parse(expr, syntax.RegexOptions(opt))
+	parseOptions := syntax.ParseOptions{
+		RegexOptions:         syntax.RegexOptions(c.regexOptions),
+		MaintainCaptureOrder: c.maintainCaptureOrder,
+		CodeGen:              c.codeGen,
+	}
+	tree, err := syntax.Parse(expr, parseOptions)
 	if err != nil {
 		return nil, err
+	}
+
+	if c.debug {
+		log.Print(tree.Dump())
 	}
 
 	// translate it to code
@@ -65,28 +88,46 @@ func Compile(expr string, opt RegexOptions) (*Regexp, error) {
 	if err != nil {
 		return nil, err
 	}
+	if c.debug {
+		log.Print(code.Dump())
+	}
+	if !c.optimizations.DisableCharClassASCIIBitmap {
+		code.PrepareCharSetASCIIBitmaps()
+	}
 
 	// return it
-	return &Regexp{
-		pattern:      expr,
-		options:      opt,
-		caps:         code.Caps,
-		capnames:     tree.Capnames,
-		capslist:     tree.Caplist,
-		capsize:      code.Capsize,
-		code:         code,
-		MatchTimeout: DefaultMatchTimeout,
-		muRun:        &sync.Mutex{},
-	}, nil
+	re := &Regexp{
+		pattern:       expr,
+		options:       c.regexOptions,
+		debug:         c.debug,
+		caps:          code.Caps,
+		capnames:      tree.Capnames,
+		capslist:      tree.Caplist,
+		capsize:       code.Capsize,
+		code:          code,
+		MatchTimeout:  DefaultMatchTimeout,
+		optimizations: c.optimizations,
+	}
+	re.stringPrefixFilter = newStringPrefixFilter(code)
+	re.initCaches()
+	return re, nil
 }
 
 // MustCompile is like Compile but panics if the expression cannot be parsed.
 // It simplifies safe initialization of global variables holding compiled regular
 // expressions.
-func MustCompile(str string, opt RegexOptions) *Regexp {
-	regexp, error := Compile(str, opt)
-	if error != nil {
-		panic(`regexp2: Compile(` + quote(str) + `): ` + error.Error())
+func MustCompile(str string, options ...CompileOption) *Regexp {
+	c := newCompileConfig(options)
+
+	// lookup if we have a pre-built state machine for this pattern and options
+	regexp := getEngineRegexp(str, c)
+	if regexp != nil {
+		return regexp
+	}
+
+	regexp, err := compile(str, c)
+	if err != nil {
+		panic(`regexp2: Compile(` + quote(str) + `): ` + err.Error())
 	}
 	return regexp
 }
@@ -126,32 +167,12 @@ func quote(s string) string {
 	return strconv.Quote(s)
 }
 
-// RegexOptions impact the runtime and parsing behavior
-// for each specific regex.  They are setable in code as well
-// as in the regex pattern itself.
-type RegexOptions int32
-
-const (
-	None                    RegexOptions = 0x0
-	IgnoreCase                           = 0x0001 // "i"
-	Multiline                            = 0x0002 // "m"
-	ExplicitCapture                      = 0x0004 // "n"
-	Compiled                             = 0x0008 // "c"
-	Singleline                           = 0x0010 // "s"
-	IgnorePatternWhitespace              = 0x0020 // "x"
-	RightToLeft                          = 0x0040 // "r"
-	Debug                                = 0x0080 // "d"
-	ECMAScript                           = 0x0100 // "e"
-	RE2                                  = 0x0200 // RE2 (regexp package) compatibility mode
-	Unicode                              = 0x0400 // "u"
-)
-
 func (re *Regexp) RightToLeft() bool {
 	return re.options&RightToLeft != 0
 }
 
 func (re *Regexp) Debug() bool {
-	return re.options&Debug != 0
+	return re.debug
 }
 
 // Replace searches the input string and replaces each match found with the replacement text.
@@ -159,13 +180,30 @@ func (re *Regexp) Debug() bool {
 // us to skip past possible matches at the start of the input (left or right depending on RightToLeft option).
 // Set startAt and count to -1 to go through the whole string
 func (re *Regexp) Replace(input, replacement string, startAt, count int) (string, error) {
-	data, err := syntax.NewReplacerData(replacement, re.caps, re.capsize, re.capnames, syntax.RegexOptions(re.options))
+	data, err := re.getReplacerData(replacement)
 	if err != nil {
 		return "", err
 	}
-	//TODO: cache ReplacerData
 
 	return replace(re, data, nil, input, startAt, count)
+}
+
+func (re *Regexp) getReplacerData(replacement string) (*syntax.ReplacerData, error) {
+	shouldCache := re.replaceCache != nil && re.optimizations.cacheReplacerData(replacement)
+	if shouldCache {
+		if data, ok := re.replaceCache.get(replacement); ok {
+			return data, nil
+		}
+	}
+
+	data, err := syntax.NewReplacerData(replacement, re.caps, re.capsize, re.capnames, syntax.RegexOptions(re.options))
+	if err != nil {
+		return nil, err
+	}
+	if shouldCache {
+		re.replaceCache.add(replacement, data)
+	}
+	return data, nil
 }
 
 // ReplaceFunc searches the input string and replaces each match found using the string from the evaluator
@@ -178,32 +216,48 @@ func (re *Regexp) ReplaceFunc(input string, evaluator MatchEvaluator, startAt, c
 
 // FindStringMatch searches the input string for a Regexp match
 func (re *Regexp) FindStringMatch(s string) (*Match, error) {
-	// convert string to runes
-	return re.run(false, -1, getRunes(s))
+	startAt, ok, err := re.findStringMatchStart(s, -1)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+
+	r, runeStart := re.getRunesAndStart(s, startAt)
+	if runeStart < 0 {
+		runeStart = 0
+	}
+	return re.run(false, runeStart, r, newStringMatchText(s, r))
 }
 
 // FindRunesMatch searches the input rune slice for a Regexp match
 func (re *Regexp) FindRunesMatch(r []rune) (*Match, error) {
-	return re.run(false, -1, r)
+	return re.run(false, -1, r, newMatchText(r))
 }
 
 // FindStringMatchStartingAt searches the input string for a Regexp match starting at the startAt index
 func (re *Regexp) FindStringMatchStartingAt(s string, startAt int) (*Match, error) {
-	if startAt > len(s) {
-		return nil, errors.New("startAt must be less than the length of the input string")
+	startAt, ok, err := re.findStringMatchStart(s, startAt)
+	if err != nil {
+		return nil, err
 	}
+	if !ok {
+		return nil, nil
+	}
+
 	r, startAt := re.getRunesAndStart(s, startAt)
 	if startAt == -1 {
 		// we didn't find our start index in the string -- that's a problem
 		return nil, errors.New("startAt must align to the start of a valid rune in the input string")
 	}
 
-	return re.run(false, startAt, r)
+	return re.run(false, startAt, r, newStringMatchText(s, r))
 }
 
 // FindRunesMatchStartingAt searches the input rune slice for a Regexp match starting at the startAt index
 func (re *Regexp) FindRunesMatchStartingAt(r []rune, startAt int) (*Match, error) {
-	return re.run(false, startAt, r)
+	return re.run(false, startAt, r, newMatchText(r))
 }
 
 // FindNextMatch returns the next match in the same input string as the match parameter.
@@ -216,24 +270,88 @@ func (re *Regexp) FindNextMatch(m *Match) (*Match, error) {
 	// If previous match was empty, advance by one before matching to prevent
 	// infinite loop
 	startAt := m.textpos
-	if m.Length == 0 {
-		if m.textpos == len(m.text) {
-			return nil, nil
-		}
-
+	if m.RuneLength == 0 {
 		if re.RightToLeft() {
-			startAt--
+			if m.textpos == 0 {
+				return nil, nil
+			}
+			if startAt == m.textstart {
+				startAt--
+			}
 		} else {
-			startAt++
+			if m.textpos == len(m.text.runes) {
+				return nil, nil
+			}
+
+			if startAt == m.textstart {
+				startAt++
+			}
+
 		}
 	}
-	return re.run(false, startAt, m.text)
+	return re.run(false, startAt, m.text.runes, m.text)
 }
 
 // MatchString return true if the string matches the regex
 // error will be set if a timeout occurs
 func (re *Regexp) MatchString(s string) (bool, error) {
-	m, err := re.run(true, -1, getRunes(s))
+	if re.stringPrefixFilter == nil {
+		return re.matchString(s)
+	}
+
+	startAt, ok, err := re.findStringMatchStart(s, -1)
+	if err != nil {
+		return false, err
+	}
+	if !ok {
+		return false, nil
+	}
+
+	runner := re.getRunner()
+	var input []rune
+	var pooledInput *[]rune
+	runeStart := 0
+	if startAt == 0 {
+		input, pooledInput = runner.decodeString(s)
+	} else {
+		input, runeStart, pooledInput = runner.decodeStringWithStart(s, startAt)
+	}
+	defer func() {
+		re.putRunner(runner)
+		if pooledInput != nil {
+			*pooledInput = input
+			pooledRuneBuffers.put(pooledInput)
+		}
+	}()
+
+	if runeStart < 0 {
+		runeStart = 0
+	}
+
+	m, err := runner.scan(input, nil, runeStart, true, re.MatchTimeout)
+	if err != nil {
+		return false, err
+	}
+	return m != nil, nil
+}
+
+func (re *Regexp) matchString(s string) (bool, error) {
+	runner := re.getRunner()
+	input, pooledInput := runner.decodeString(s)
+	defer func() {
+		re.putRunner(runner)
+		if pooledInput != nil {
+			*pooledInput = input
+			pooledRuneBuffers.put(pooledInput)
+		}
+	}()
+
+	textstart := 0
+	if re.RightToLeft() {
+		textstart = len(input)
+	}
+
+	m, err := runner.scan(input, nil, textstart, true, re.MatchTimeout)
 	if err != nil {
 		return false, err
 	}
@@ -271,7 +389,7 @@ func getRunes(s string) []rune {
 // MatchRunes return true if the runes matches the regex
 // error will be set if a timeout occurs
 func (re *Regexp) MatchRunes(r []rune) (bool, error) {
-	m, err := re.run(true, -1, r)
+	m, err := re.run(true, -1, r, nil)
 	if err != nil {
 		return false, err
 	}
@@ -318,8 +436,9 @@ func (re *Regexp) GetGroupNumbers() []int {
 }
 
 // GroupNameFromNumber retrieves a group name that corresponds to a group number.
-// It will return "" for and unknown group number.  Unnamed groups automatically
-// receive a name that is the decimal string equivalent of its number.
+// It will return "" for an unknown group number. Unnamed groups automatically
+// receive a name that is the decimal string equivalent of its number, except in
+// ECMAScript mode where unnamed groups have no name.
 func (re *Regexp) GroupNameFromNumber(i int) string {
 	if re.capslist == nil {
 		if i >= 0 && i < re.capsize {
@@ -344,8 +463,9 @@ func (re *Regexp) GroupNameFromNumber(i int) string {
 }
 
 // GroupNumberFromName returns a group number that corresponds to a group name.
-// Returns -1 if the name is not a recognized group name.  Numbered groups
-// automatically get a group name that is the decimal string equivalent of its number.
+// Returns -1 if the name is not a recognized group name. Numbered groups
+// automatically get a group name that is the decimal string equivalent of its
+// number, except in ECMAScript mode where unnamed groups have no name.
 func (re *Regexp) GroupNumberFromName(name string) int {
 	// look up name if we have a hashtable of names
 	if re.capnames != nil {
@@ -392,4 +512,70 @@ func (re *Regexp) UnmarshalText(text []byte) error {
 	}
 	*re = *newRE
 	return nil
+}
+
+func (re *Regexp) initCaches() {
+	re.runnerPool = &sync.Pool{
+		New: func() any {
+			return &Runner{
+				re:   re,
+				code: re.code,
+			}
+		},
+	}
+	if re.optimizations.MaxCachedReplacerDataEntries > 0 {
+		re.replaceCache = newReplacerDataCache(re.optimizations.MaxCachedReplacerDataEntries)
+	}
+}
+
+type replacerDataCache struct {
+	mu      sync.Mutex
+	maxSize int
+	ll      *list.List
+	cache   map[string]*list.Element
+}
+
+type replacerDataCacheEntry struct {
+	key  string
+	data *syntax.ReplacerData
+}
+
+func newReplacerDataCache(maxSize int) *replacerDataCache {
+	return &replacerDataCache{
+		maxSize: maxSize,
+		ll:      list.New(),
+		cache:   make(map[string]*list.Element),
+	}
+}
+
+func (c *replacerDataCache) get(key string) (*syntax.ReplacerData, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if ele, ok := c.cache[key]; ok {
+		c.ll.MoveToFront(ele)
+		return ele.Value.(*replacerDataCacheEntry).data, true
+	}
+	return nil, false
+}
+
+func (c *replacerDataCache) add(key string, data *syntax.ReplacerData) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if ele, ok := c.cache[key]; ok {
+		ele.Value.(*replacerDataCacheEntry).data = data
+		c.ll.MoveToFront(ele)
+		return
+	}
+
+	ele := c.ll.PushFront(&replacerDataCacheEntry{key: key, data: data})
+	c.cache[key] = ele
+	if c.maxSize > 0 && c.ll.Len() > c.maxSize {
+		oldest := c.ll.Back()
+		if oldest != nil {
+			c.ll.Remove(oldest)
+			delete(c.cache, oldest.Value.(*replacerDataCacheEntry).key)
+		}
+	}
 }

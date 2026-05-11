@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"time"
 
-	regexp2 "github.com/dlclark/regexp2"
+	regexp2 "github.com/dlclark/regexp2/v2"
 )
 
 // PatternList is a list of regular expressions.
