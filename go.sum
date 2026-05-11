@@ -62,6 +62,8 @@ github.com/davidmz/go-pageant v1.0.2 h1:bPblRCh5jGU+Uptpz6LgMZGD5hJoOt7otgT454Wv
 github.com/davidmz/go-pageant v1.0.2/go.mod h1:P2EDDnMqIwG5Rrp05dTRITj9z2zpGcD9efWSkTNKLIE=
 github.com/dlclark/regexp2/v2 v2.0.1 h1:eaQ7GE11jgSwLMM5BQ9BerbAXI3TLq+Y6o53V6z2tlw=
 github.com/dlclark/regexp2/v2 v2.0.1/go.mod h1:Bz5TMy5d8fPK0ximH0Yi9KvsRHNnvXqUx9XG6a4wB+I=
+github.com/dlclark/regexp2/v2 v2.0.2 h1:2wqyuetE2L4JkwDaEBL255hSNFE/MNcss4sn0DReFc4=
+github.com/dlclark/regexp2/v2 v2.0.2/go.mod h1:Bz5TMy5d8fPK0ximH0Yi9KvsRHNnvXqUx9XG6a4wB+I=
 github.com/elazarl/goproxy v1.7.2 h1:Y2o6urb7Eule09PjlhQRGNsqRfPmYI3KKQLFpCAV3+o=
 github.com/elazarl/goproxy v1.7.2/go.mod h1:82vkLNir0ALaW14Rc399OTTjyNREgmdL2cVoIbS6XaE=
 github.com/emirpasic/gods v1.18.1 h1:FXtiHYKDGKCW2KzwZKx0iC0PQmdlorYgdFG9jPXJ1Bc=
