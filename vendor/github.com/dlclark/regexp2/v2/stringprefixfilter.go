@@ -9,6 +9,8 @@ import (
 	"github.com/dlclark/regexp2/v2/syntax"
 )
 
+const maxStringFilterLiteralLen = 8
+
 var (
 	errStringStartAtTooLarge        = errors.New("startAt must be less than the length of the input string")
 	errStringStartAtNotRuneBoundary = errors.New("startAt must align to the start of a valid rune in the input string")
@@ -37,6 +39,12 @@ func newStringPrefixFilter(code *syntax.Code) StringPrefixFilter {
 		return stringIndexPrefixesFilter(opts.LeadingPrefixes, false, minRequiredLength)
 	case syntax.LeadingStrings_OrdinalIgnoreCase_LeftToRight:
 		return stringIndexPrefixesFilter(opts.LeadingPrefixes, true, minRequiredLength)
+	case syntax.FixedDistanceChar_LeftToRight:
+		return stringFixedDistanceCharFilter(opts.FixedDistanceLiteral.C, opts.FixedDistanceLiteral.Distance, minRequiredLength)
+	case syntax.FixedDistanceString_LeftToRight:
+		return stringFixedDistanceStringFilter(opts.FixedDistanceLiteral.S, opts.FixedDistanceLiteral.Distance, minRequiredLength)
+	case syntax.LiteralAfterLoop_LeftToRight:
+		return stringLiteralAfterLoopFilter(opts.LiteralAfterLoop, minRequiredLength)
 	default:
 		return nil
 	}
@@ -80,30 +88,222 @@ func stringIndexPrefixesFilter(prefixes []string, ignoreCase bool, minRequiredLe
 		}
 	}
 
-	prefixes = append([]string(nil), prefixes...)
+	if filter, ok := compileASCIIStringSetPrefixFilter(prefixes, ignoreCase, minRequiredLength); ok {
+		return filter.index
+	}
+
+	return func(input string, startAt int) (candidateByteIndex int, ok bool) {
+		return indexAnyPrefixFallback(input, startAt, prefixes, ignoreCase, minRequiredLength)
+	}
+}
+
+func indexAnyPrefixFallback(input string, startAt int, prefixes []string, ignoreCase bool, minRequiredLength int) (candidateByteIndex int, ok bool) {
+	if !hasMinRequiredBytes(input, startAt, minRequiredLength) {
+		return 0, false
+	}
+
+	best := -1
+	remaining := input[startAt:]
+	for _, prefix := range prefixes {
+		var offset int
+		if ignoreCase {
+			offset = helpers.IndexStringIgnoreCaseASCII(remaining, prefix)
+		} else {
+			offset = strings.Index(remaining, prefix)
+		}
+		if offset >= 0 && (best < 0 || offset < best) {
+			best = offset
+		}
+	}
+	if best < 0 {
+		return 0, false
+	}
+	return startAt + best, true
+}
+
+type asciiStringSetPrefixFilter struct {
+	firstChars       string
+	prefixesByFirst  [256][]string
+	minRequiredBytes int
+}
+
+// compileASCIIStringSetPrefixFilter builds a byte-oriented multi-prefix scanner
+// for the narrow shape where it beats running strings.Index once per prefix:
+// case-sensitive ASCII prefixes with at least two prefixes sharing a first byte.
+// It indexes possible first bytes with strings.IndexAny, then verifies only the
+// bucket for the byte found. Other shapes fall back to the old implementation.
+func compileASCIIStringSetPrefixFilter(prefixes []string, ignoreCase bool, minRequiredLength int) (*asciiStringSetPrefixFilter, bool) {
+	if ignoreCase {
+		return nil, false
+	}
+
+	filter := &asciiStringSetPrefixFilter{
+		minRequiredBytes: minRequiredLength,
+	}
+	var firstChars [256]bool
+	var hasSharedFirst bool
+	for _, prefix := range prefixes {
+		if prefix == "" || !isASCIIString(prefix) {
+			return nil, false
+		}
+
+		first := prefix[0]
+		filter.prefixesByFirst[first] = append(filter.prefixesByFirst[first], prefix)
+		if len(filter.prefixesByFirst[first]) > 1 {
+			hasSharedFirst = true
+		}
+		firstChars[first] = true
+	}
+
+	if !hasSharedFirst {
+		return nil, false
+	}
+
+	firstBytes := make([]byte, 0, len(prefixes)*2)
+	for i, ok := range firstChars {
+		if ok {
+			firstBytes = append(firstBytes, byte(i))
+		}
+	}
+	if len(firstBytes) == 0 {
+		return nil, false
+	}
+	filter.firstChars = string(firstBytes)
+	return filter, true
+}
+
+func (f *asciiStringSetPrefixFilter) index(input string, startAt int) (candidateByteIndex int, ok bool) {
+	if !hasMinRequiredBytes(input, startAt, f.minRequiredBytes) {
+		return 0, false
+	}
+
+	for searchAt := startAt; searchAt < len(input); {
+		offset := strings.IndexAny(input[searchAt:], f.firstChars)
+		if offset < 0 {
+			return 0, false
+		}
+		i := searchAt + offset
+		first := input[i]
+		for _, prefix := range f.prefixesByFirst[first] {
+			if len(input)-i >= len(prefix) && strings.HasPrefix(input[i:], prefix) {
+				return i, true
+			}
+		}
+		searchAt = i + 1
+	}
+	return 0, false
+}
+
+func stringFixedDistanceCharFilter(ch rune, distance, minRequiredLength int) StringPrefixFilter {
+	if distance < 0 {
+		return nil
+	}
+
 	return func(input string, startAt int) (candidateByteIndex int, ok bool) {
 		if !hasMinRequiredBytes(input, startAt, minRequiredLength) {
 			return 0, false
 		}
 
-		best := -1
-		remaining := input[startAt:]
-		for _, prefix := range prefixes {
-			var offset int
-			if ignoreCase {
-				offset = helpers.IndexStringIgnoreCaseASCII(remaining, prefix)
-			} else {
-				offset = strings.Index(remaining, prefix)
+		searchAt := startAt
+		for {
+			offset := strings.IndexRune(input[searchAt:], ch)
+			if offset < 0 {
+				return 0, false
 			}
-			if offset >= 0 && (best < 0 || offset < best) {
-				best = offset
+			byteIndex := searchAt + offset
+			candidateByteIndex, ok := stringFixedDistanceCandidateStart(input, startAt, byteIndex, distance)
+			if ok && hasMinRequiredBytes(input, candidateByteIndex, minRequiredLength) {
+				return candidateByteIndex, true
 			}
+			if ok {
+				return 0, false
+			}
+			_, size := utf8.DecodeRuneInString(input[byteIndex:])
+			if size == 0 {
+				return 0, false
+			}
+			searchAt = byteIndex + size
 		}
-		if best < 0 {
+	}
+}
+
+func stringFixedDistanceStringFilter(literal string, distance, minRequiredLength int) StringPrefixFilter {
+	if literal == "" || distance < 0 || len(literal) > maxStringFilterLiteralLen {
+		return nil
+	}
+
+	return func(input string, startAt int) (candidateByteIndex int, ok bool) {
+		if !hasMinRequiredBytes(input, startAt, minRequiredLength) {
 			return 0, false
 		}
-		return startAt + best, true
+
+		searchAt := startAt
+		for searchAt <= len(input)-len(literal) {
+			offset := strings.Index(input[searchAt:], literal)
+			if offset < 0 {
+				return 0, false
+			}
+			literalIndex := searchAt + offset
+			candidateByteIndex, ok := stringFixedDistanceCandidateStart(input, startAt, literalIndex, distance)
+			if ok && hasMinRequiredBytes(input, candidateByteIndex, minRequiredLength) {
+				return candidateByteIndex, true
+			}
+			if ok {
+				return 0, false
+			}
+			searchAt = literalIndex + 1
+		}
+		return 0, false
 	}
+}
+
+func stringLiteralAfterLoopFilter(literal *syntax.LiteralAfterLoop, minRequiredLength int) StringPrefixFilter {
+	if literal == nil || literal.LoopNode == nil || literal.LoopNode.Set == nil {
+		return nil
+	}
+	if literal.StringIgnoreCase && (literal.String == "" || !isASCIIString(literal.String)) {
+		return nil
+	}
+
+	return func(input string, startAt int) (candidateByteIndex int, ok bool) {
+		if !hasMinRequiredBytes(input, startAt, minRequiredLength) {
+			return 0, false
+		}
+		if !stringHasLiteralAfterLoop(input, startAt, literal) {
+			return 0, false
+		}
+		return startAt, true
+	}
+}
+
+func stringHasLiteralAfterLoop(input string, searchAt int, literal *syntax.LiteralAfterLoop) bool {
+	switch {
+	case literal.String != "":
+		if literal.StringIgnoreCase {
+			return helpers.IndexStringIgnoreCaseASCII(input[searchAt:], literal.String) >= 0
+		}
+		return strings.Contains(input[searchAt:], literal.String)
+	case len(literal.Chars) > 0:
+		needle := string(literal.Chars)
+		return strings.ContainsAny(input[searchAt:], needle)
+	default:
+		return strings.ContainsRune(input[searchAt:], literal.Char)
+	}
+}
+
+func stringFixedDistanceCandidateStart(input string, startAt, byteIndex, distance int) (int, bool) {
+	candidateByteIndex := byteIndex
+	for i := 0; i < distance; i++ {
+		if candidateByteIndex <= startAt {
+			return 0, false
+		}
+		_, size := utf8.DecodeLastRuneInString(input[:candidateByteIndex])
+		if size == 0 {
+			return 0, false
+		}
+		candidateByteIndex -= size
+	}
+	return candidateByteIndex, true
 }
 
 func (re *Regexp) findStringPrefixCandidate(input string, startAt int) (candidateByteIndex int, ok bool) {

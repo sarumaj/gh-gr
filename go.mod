@@ -7,12 +7,12 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cli/go-gh/v2 v2.13.0
 	github.com/creativeprojects/go-selfupdate v1.5.2
-	github.com/dlclark/regexp2/v2 v2.0.3
+	github.com/dlclark/regexp2/v2 v2.2.1
 	github.com/fatih/color v1.19.0
 	github.com/go-git/go-git/v5 v5.19.1
 	github.com/goccy/go-json v0.10.6
 	github.com/goccy/go-yaml v1.19.2
-	github.com/neilotoole/jsoncolor v0.7.2
+	github.com/neilotoole/jsoncolor v0.9.1
 	github.com/sarumaj/go-super v1.0.2
 	github.com/schollz/progressbar/v3 v3.19.0
 	github.com/sirupsen/logrus v1.9.4
@@ -62,7 +62,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
@@ -83,8 +83,8 @@ require (
 	golang.org/x/crypto v0.50.0 // indirect
 	golang.org/x/net v0.53.0 // indirect
 	golang.org/x/oauth2 v0.34.0 // indirect
-	golang.org/x/sys v0.43.0 // indirect
-	golang.org/x/term v0.42.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
+	golang.org/x/term v0.43.0 // indirect
 	golang.org/x/text v0.36.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
