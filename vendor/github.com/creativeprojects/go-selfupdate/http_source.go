@@ -162,13 +162,13 @@ func (s *HttpSource) DownloadReleaseAsset(ctx context.Context, rel *Release, ass
 	}
 
 	// Determine download url based on asset id.
-	var downloadUrl string
+	var downloadURL string
 	if rel.AssetID == assetID {
-		downloadUrl = rel.AssetURL
+		downloadURL = rel.AssetURL
 	} else if rel.ValidationAssetID == assetID {
-		downloadUrl = rel.ValidationAssetURL
+		downloadURL = rel.ValidationAssetURL
 	}
-	if downloadUrl == "" {
+	if downloadURL == "" {
 		return nil, fmt.Errorf("asset ID %d: %w", assetID, ErrAssetNotFound)
 	}
 
@@ -176,7 +176,7 @@ func (s *HttpSource) DownloadReleaseAsset(ctx context.Context, rel *Release, ass
 	client := &http.Client{Transport: s.transport}
 
 	// Make request.
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadUrl, http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, http.NoBody)
 	if err != nil {
 		return nil, err
 	}

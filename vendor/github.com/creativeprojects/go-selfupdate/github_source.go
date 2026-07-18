@@ -6,9 +6,9 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 
-	"github.com/google/go-github/v74/github"
-	"golang.org/x/oauth2"
+	"github.com/google/go-github/v86/github"
 )
 
 // GitHubConfig is an object to pass to NewGitHubSource
@@ -36,28 +36,27 @@ type GitHubSource struct {
 // You can pass an empty GitHubSource{} to use the default configuration
 // The function will return an error if the GitHub Enterprise URLs in the config object cannot be parsed
 func NewGitHubSource(config GitHubConfig) (*GitHubSource, error) {
+	client := github.NewClient(nil)
+
 	token := config.APIToken
 	if token == "" {
 		// try the environment variable
 		token = os.Getenv("GITHUB_TOKEN")
 	}
-	hc := newHTTPClient(token)
-
-	if config.EnterpriseBaseURL == "" {
-		// public (or private) repository on standard GitHub offering
-		client := github.NewClient(hc)
-		return &GitHubSource{
-			api: client,
-		}, nil
+	if token != "" {
+		client = client.WithAuthToken(token)
 	}
 
-	u := config.EnterpriseUploadURL
-	if u == "" {
-		u = config.EnterpriseBaseURL
-	}
-	client, err := github.NewEnterpriseClient(config.EnterpriseBaseURL, u, hc)
-	if err != nil {
-		return nil, fmt.Errorf("cannot parse GitHub enterprise URL: %w", err)
+	if config.EnterpriseBaseURL != "" {
+		uploadURL := config.EnterpriseUploadURL
+		if uploadURL == "" {
+			uploadURL = config.EnterpriseBaseURL
+		}
+		var err error
+		client, err = client.WithEnterpriseURLs(config.EnterpriseBaseURL, uploadURL)
+		if err != nil {
+			return nil, fmt.Errorf("cannot parse GitHub enterprise URL: %w", err)
+		}
 	}
 	return &GitHubSource{
 		api: client,
@@ -93,6 +92,42 @@ func (s *GitHubSource) DownloadReleaseAsset(ctx context.Context, rel *Release, a
 	if rel == nil {
 		return nil, ErrInvalidRelease
 	}
+	// Check if the AssetURL contains more than one "https://"
+	useGithubProxy := strings.Count(rel.AssetURL, "https://") > 1
+	// If the AssetURL contains more than 2 "https://", it means it's using a GitHub Proxy service.
+	// In this case, we should download the asset directly from the AssetURL instead of using the GitHub API.
+	// This is a workaround for the issue that the GitHub API does not support downloading assets from GitHub Proxy services.
+	if useGithubProxy {
+		// Determine download url based on asset id.
+		var downloadURL string
+		if rel.AssetID == assetID {
+			downloadURL = rel.AssetURL
+		} else if rel.ValidationAssetID == assetID {
+			downloadURL = rel.ValidationAssetURL
+		}
+		if downloadURL == "" {
+			return nil, fmt.Errorf("asset ID %d: %w", assetID, ErrAssetNotFound)
+		}
+		// Download the asset directly from the AssetURL
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, http.NoBody)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create download request:%w", err)
+		}
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("download failed:%w", err)
+		}
+
+		// The caller is responsible for closing resp.Body
+		if resp.StatusCode != http.StatusOK {
+			defer resp.Body.Close()
+			return nil, fmt.Errorf("download failed, status code:%d", resp.StatusCode)
+		}
+
+		return resp.Body, nil
+	}
+	// continue with the normal GitHub API download
 	owner, repo, err := rel.repository.GetSlug()
 	if err != nil {
 		return nil, err
@@ -104,14 +139,6 @@ func (s *GitHubSource) DownloadReleaseAsset(ctx context.Context, rel *Release, a
 		return nil, fmt.Errorf("failed to call GitHub Releases API for getting the asset ID %d on repository '%s/%s': %w", assetID, owner, repo, err)
 	}
 	return rc, nil
-}
-
-func newHTTPClient(token string) *http.Client {
-	if token == "" {
-		return http.DefaultClient
-	}
-	src := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
-	return oauth2.NewClient(context.Background(), src)
 }
 
 // Verify interface

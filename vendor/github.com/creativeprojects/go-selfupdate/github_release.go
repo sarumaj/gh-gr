@@ -3,7 +3,7 @@ package selfupdate
 import (
 	"time"
 
-	"github.com/google/go-github/v74/github"
+	"github.com/google/go-github/v86/github"
 )
 
 type GitHubRelease struct {
@@ -36,8 +36,8 @@ func NewGitHubRelease(from *github.RepositoryRelease) *GitHubRelease {
 	return release
 }
 
-func (a *GitHubRelease) GetID() int64 {
-	return a.releaseID
+func (r *GitHubRelease) GetID() int64 {
+	return r.releaseID
 }
 
 func (r *GitHubRelease) GetTagName() string {
