@@ -15,23 +15,43 @@ import (
 	"unsafe"
 )
 
+// codec is the pair of functions that encode and decode values of one Go
+// type. constructCodec builds one per type, composing the codecs of element,
+// key and field types, and the type-to-codec cache (see cacheLoad and
+// cacheStore) memoizes the result, so the reflect work happens once per type
+// rather than once per value.
 type codec struct {
 	encode encodeFunc
 	decode decodeFunc
 }
 
+// encoder carries the per-call state of an encode walk: the AppendFlags in
+// effect, the color palette, and the indenter. It is passed by value to
+// every encodeFunc. A nil clrs selects the colorless fast paths; a nil or
+// disabled indentr produces compact output.
 type encoder struct {
 	flags   AppendFlags
 	clrs    *Colors
 	indentr *Indenter
 }
+
+// decoder carries the per-call state of a decode walk, which is just the
+// ParseFlags in effect. It is passed by value to every decodeFunc.
 type decoder struct{ flags ParseFlags }
 
+// encodeFunc appends the JSON encoding of the value at p to b and returns
+// the extended buffer. decodeFunc parses a value from b into the memory at
+// p and returns the unconsumed remainder. In both, p addresses a value of
+// the Go type the function was constructed for; the caller guarantees the
+// type, so the functions read and write through p without checks.
 type (
 	encodeFunc func(encoder, []byte, unsafe.Pointer) ([]byte, error)
 	decodeFunc func(decoder, []byte, unsafe.Pointer) ([]byte, error)
 )
 
+// emptyFunc reports whether the value at p is empty for the purposes of the
+// omitempty tag; emptyFuncOf builds one per type. sortFunc orders a slice of
+// map keys in place for SortMapKeys; constructMapCodec picks one by key type.
 type (
 	emptyFunc func(unsafe.Pointer) bool
 	sortFunc  func([]reflect.Value)
@@ -352,6 +372,20 @@ func constructMapCodec(t reflect.Type, seen map[reflect.Type]*structType) codec 
 	kc := codec{}
 	vc := constructCodec(v, seen, false)
 
+	// String-keyed maps of a few common value types get a specialized
+	// encoder that ranges over the map directly instead of going through
+	// reflect (see mapstring.go). Decoding still uses the generic path built
+	// below, so these cases fall through after setting the encoder.
+	var encode encodeFunc
+	switch {
+	case k == stringType && v == stringType:
+		encode = encoder.encodeMapStringString
+	case k == stringType && v == boolType:
+		encode = encoder.encodeMapStringBool
+	case k == stringType && v == stringsType:
+		encode = constructMapStringStringSliceEncodeFunc(vc.encode)
+	}
+
 	if k.Implements(textMarshalerType) || reflect.PointerTo(k).Implements(textUnmarshalerType) {
 		kc.encode = constructTextMarshalerEncodeFunc(k, false)
 		kc.decode = constructTextUnmarshalerDecodeFunc(k, true)
@@ -409,8 +443,12 @@ func constructMapCodec(t reflect.Type, seen map[reflect.Type]*structType) codec 
 		vc.encode = constructInlineValueEncodeFunc(vc.encode)
 	}
 
+	if encode == nil {
+		encode = constructMapEncodeFunc(t, kc.encode, vc.encode, sortKeys)
+	}
+
 	return codec{
-		encode: constructMapEncodeFunc(t, kc.encode, vc.encode, sortKeys),
+		encode: encode,
 		decode: constructMapDecodeFunc(t, kc.decode, vc.decode),
 	}
 }
@@ -482,10 +520,20 @@ func constructStructDecodeFunc(st *structType) decodeFunc {
 	}
 }
 
-func constructEmbeddedStructPointerCodec(t reflect.Type, unexported bool, offset uintptr, field codec) codec {
-	return codec{
-		encode: constructEmbeddedStructPointerEncodeFunc(t, unexported, offset, field.encode),
-		decode: constructEmbeddedStructPointerDecodeFunc(t, unexported, offset, field.decode),
+// constructEmbeddedStructPointerEmptyFunc wraps the emptiness check of a
+// field promoted through an embedded struct pointer. Like the codec wrapper
+// above, the returned function receives the address of the pointer word in
+// the outer struct: it dereferences the pointer and applies empty at the
+// field's offset within the embedded struct. A nil pointer is reported as
+// empty. Nested pointer embeds compose naturally, because each level wraps
+// the function produced by the level below. See issue #59.
+func constructEmbeddedStructPointerEmptyFunc(offset uintptr, empty emptyFunc) emptyFunc {
+	return func(p unsafe.Pointer) bool {
+		p = *(*unsafe.Pointer)(p)
+		if p == nil {
+			return true
+		}
+		return empty(unsafe.Pointer(uintptr(p) + offset))
 	}
 }
 
@@ -501,14 +549,77 @@ func constructEmbeddedStructPointerDecodeFunc(t reflect.Type, unexported bool, o
 	}
 }
 
+// embeddedField is a candidate for promotion: one field of a struct that is
+// embedded, by value or by pointer, in the struct type being constructed.
+// appendStructFields collects these for every embedded struct, resolves
+// which of them encoding/json would promote, and copies the survivors into
+// the outer struct's field list as structField entries.
 type embeddedField struct {
-	index      int
-	offset     uintptr
-	pointer    bool
+	// index is the ordering key the promoted field will carry: the
+	// embedding field's index in the high 32 bits and the field's own index
+	// within the embedded struct in the low 32 bits.
+	index int
+
+	// offset is the byte offset of the embedding field from the address of
+	// the outer struct: the start of the embedded struct when embedded by
+	// value, or of the pointer word when embedded by pointer.
+	offset uintptr
+
+	// pointer reports that the struct is embedded by pointer.
+	pointer bool
+
+	// unexported reports that the embedding field is unexported. Decoding
+	// cannot allocate through such a pointer when it is nil.
 	unexported bool
-	subtype    *structType
-	subfield   *structField
+
+	// subtype is the embedded struct's own structType, and subfield the
+	// entry in it that is being considered for promotion.
+	subtype  *structType
+	subfield *structField
 }
+
+// promoteThroughPointer adapts a field promoted through an embedded struct
+// pointer. On return, offset addresses the pointer word in the outer struct,
+// fieldViaPointer is set, and ptrOffset holds the field's offset from the pointer
+// target, so the struct encoders can read the pointer, omit the field when it
+// is nil, and otherwise call the codec on the dereferenced address, all
+// without an intermediate wrapper (#70).
+//
+// The decode side keeps the wrapper at every level, because decoding must
+// allocate the embedded struct when the pointer is nil. The emptiness check
+// is wrapped in two cases: a field tagged omitempty must be tested through
+// the pointer (#59), and a field that is not omitempty but is itself promoted
+// through a further embedded pointer needs a check that the inner pointer is
+// non-nil, since the encoders read only the outermost pointer word, so that
+// check becomes a synthesized omitempty. The inner dereference that such a
+// field needed moves into an encode wrapper. Each level wraps the function
+// from the level below, so deeper chains compose.
+func promoteThroughPointer(embfield embeddedField, subfield structField) structField {
+	typ, unexported := embfield.subtype.typ, embfield.unexported
+
+	subfield.codec.decode = constructEmbeddedStructPointerDecodeFunc(typ, unexported, subfield.offset, subfield.codec.decode)
+
+	switch {
+	case subfield.flags&fieldOmitEmpty != 0:
+		subfield.empty = constructEmbeddedStructPointerEmptyFunc(subfield.offset, subfield.empty)
+	case subfield.flags&fieldViaPointer != 0:
+		subfield.empty = constructEmbeddedStructPointerEmptyFunc(subfield.offset, pointerIsNil)
+		subfield.flags |= fieldOmitEmpty
+	}
+
+	if subfield.flags&fieldViaPointer != 0 {
+		subfield.codec.encode = constructEmbeddedStructPointerEncodeFunc(typ, unexported, subfield.ptrOffset, subfield.codec.encode)
+	}
+
+	subfield.flags |= fieldViaPointer
+	subfield.ptrOffset = subfield.offset
+	subfield.offset = embfield.offset
+	return subfield
+}
+
+// pointerIsNil is the emptiness check for a pointer word. It is the
+// building block promoteThroughPointer uses for inner embedded pointers.
+func pointerIsNil(p unsafe.Pointer) bool { return *(*unsafe.Pointer)(p) == nil }
 
 func appendStructFields(fields []structField, t reflect.Type, offset uintptr, seen map[reflect.Type]*structType, canAddr bool) []structField {
 	names := make(map[string]struct{})
@@ -521,7 +632,7 @@ func appendStructFields(fields []structField, t reflect.Type, offset uintptr, se
 			name             = f.Name
 			anonymous        = f.Anonymous
 			isTag            = false
-			omitempty        = false
+			flags            fieldFlags
 			stringifyEnabled = false
 			unexported       = len(f.PkgPath) != 0
 		)
@@ -546,7 +657,7 @@ func appendStructFields(fields []structField, t reflect.Type, offset uintptr, se
 			for _, tag := range parts[1:] {
 				switch tag {
 				case "omitempty":
-					omitempty = true
+					flags |= fieldOmitEmpty
 				case "string":
 					stringifyEnabled = true
 				}
@@ -594,15 +705,15 @@ func appendStructFields(fields []structField, t reflect.Type, offset uintptr, se
 		}
 
 		fields = append(fields, structField{
-			codec:     c,
-			offset:    offset + f.Offset,
-			empty:     emptyFuncOf(f.Type),
-			tag:       isTag,
-			omitempty: omitempty,
-			name:      name,
-			index:     i << 32,
-			typ:       f.Type,
-			zero:      reflect.Zero(f.Type),
+			codec:  c,
+			offset: offset + f.Offset,
+			empty:  emptyFuncOf(f.Type),
+			tag:    isTag,
+			flags:  flags,
+			name:   name,
+			index:  i << 32,
+			typ:    f.Type,
+			zero:   reflect.Zero(f.Type),
 		})
 
 		names[name] = struct{}{}
@@ -619,8 +730,7 @@ func appendStructFields(fields []structField, t reflect.Type, offset uintptr, se
 		}
 
 		if embfield.pointer {
-			subfield.codec = constructEmbeddedStructPointerCodec(embfield.subtype.typ, embfield.unexported, subfield.offset, subfield.codec)
-			subfield.offset = embfield.offset
+			subfield = promoteThroughPointer(embfield, subfield)
 		} else {
 			subfield.offset += embfield.offset
 		}
@@ -638,6 +748,10 @@ func appendStructFields(fields []structField, t reflect.Type, offset uintptr, se
 	for i := range fields {
 		fields[i].json = encodeString(fields[i].name, 0)
 		fields[i].html = encodeString(fields[i].name, EscapeHTML)
+		fields[i].keyPlain = "," + fields[i].json + ":"
+		fields[i].keyPlainHTML = "," + fields[i].html + ":"
+		fields[i].keyIndent = fields[i].json + ": "
+		fields[i].keyIndentHTML = fields[i].html + ": "
 	}
 
 	sort.Slice(fields, func(i, j int) bool { return fields[i].index < fields[j].index })
@@ -707,7 +821,7 @@ func stringify(f *reflect.StructField, c codec) codec {
 func encodeString(s string, flags AppendFlags) string {
 	b := make([]byte, 0, len(s)+2)
 	e := encoder{flags: flags}
-	b, _ = e.doEncodeString(b, unsafe.Pointer(&s))
+	b = e.doEncodeString(b, unsafe.Pointer(&s))
 	return *(*string)(unsafe.Pointer(&b))
 }
 
@@ -916,37 +1030,132 @@ func emptyFuncOf(t reflect.Type) emptyFunc {
 	return func(unsafe.Pointer) bool { return false }
 }
 
+// iface mirrors the runtime layout of an interface value, so that a codec
+// given the address of an interface can test it for nil without reflect.
 type iface struct {
 	typ unsafe.Pointer
 	ptr unsafe.Pointer
 }
 
+// slice mirrors the runtime layout of a slice header, so that a codec given
+// the address of a slice can read its length without reflect.
 type slice struct {
 	data unsafe.Pointer
 	len  int
 	cap  int
 }
 
+// structType is the cached description of a struct type that the struct
+// encoders and decoder walk. constructStructType builds it once per Go
+// type, including the fields promoted from embedded structs, and the codec
+// for the type closes over it.
 type structType struct {
-	fields      []structField
+	// fields lists the members to encode, in output order.
+	fields []structField
+
+	// fieldsIndex maps each JSON member name to its field, for the decoder's
+	// exact-match lookup.
 	fieldsIndex map[string]*structField
+
+	// ficaseIndex maps each lower-cased member name to the first field
+	// declared with it, for the decoder's case-insensitive fallback when an
+	// exact match fails, as encoding/json does.
 	ficaseIndex map[string]*structField
-	typ         reflect.Type
+
+	// typ is the Go struct type, used in error messages.
+	typ reflect.Type
 }
 
+// structField is the per-field entry in a structType. It is computed once
+// per struct type by constructStructType and cached, so the struct encoders
+// and decoder can walk a value without consulting reflect: each field is
+// reached by adding offset to the struct's address and handed to codec.
+//
+// Fields promoted from embedded structs appear here alongside the struct's
+// own fields, already resolved for ambiguity and dominance as encoding/json
+// specifies, and sorted into declaration order by index.
 type structField struct {
-	codec     codec
-	offset    uintptr
-	empty     emptyFunc
-	tag       bool
-	omitempty bool
-	json      string
-	html      string
-	name      string
-	typ       reflect.Type
-	zero      reflect.Value
-	index     int
+	// codec encodes and decodes the field's value, given its address.
+	codec codec
+
+	// offset is the field's byte offset from the address of the enclosing
+	// struct. For a field promoted through an embedded struct pointer
+	// (fieldViaPointer), it is the offset of that pointer word instead, and
+	// ptrOffset completes the path.
+	offset uintptr
+
+	// empty reports whether the value at the field's address is empty in
+	// the omitempty sense. It is consulted only when fieldOmitEmpty is set.
+	empty emptyFunc
+
+	// tag reports that name came from a json struct tag rather than the Go
+	// field name. When promoted fields collide on a name, a tagged field
+	// dominates untagged ones; it is cleared on promotion so that dominance
+	// does not carry more than one level up.
+	tag bool
+
+	// flags holds the per-field conditions the struct encoders test before
+	// writing a field. They share one byte so that a field with neither set,
+	// the common case, costs a single test in the encode loop.
+	flags fieldFlags
+
+	// ptrOffset applies to a fieldViaPointer field: the offset of the field
+	// (or, for deeper chains, of the next pointer word) from the target of
+	// the pointer that offset addresses.
+	ptrOffset uintptr
+
+	// json and html are the field's key as it is written to the output:
+	// name quoted and escaped, without and with HTML escaping respectively.
+	// They are precomputed so the encoders append them as-is. The colorized
+	// walk uses them directly, since it colors the key and the punctuation
+	// around it separately.
+	json string
+	html string
+
+	// keyPlain and keyPlainHTML are the key with the punctuation that the
+	// compact colorless encoder writes around it, `,"key":`, so a member's
+	// prefix is one append; the first member skips the leading comma.
+	// keyIndent and keyIndentHTML are the indented form, `"key": `, which
+	// follows the newline and indentation the encoder writes itself.
+	keyPlain      string
+	keyPlainHTML  string
+	keyIndent     string
+	keyIndentHTML string
+
+	// name is the JSON member name, from the json tag if present, otherwise
+	// the Go field name. The decoder looks fields up by it.
+	name string
+
+	// typ and zero are the field's Go type and its zero value. Neither is
+	// consulted by the encoder or decoder; they are retained from the
+	// upstream implementation.
+	typ  reflect.Type
+	zero reflect.Value
+
+	// index orders the fields as declared in the Go struct: the top-level
+	// field index in the high 32 bits, and for a promoted field the index
+	// within the embedded struct in the low 32 bits, so promoted fields sit
+	// where their embedding field is declared.
+	index int
 }
+
+// fieldFlags is the set of conditions in structField.flags.
+type fieldFlags uint8
+
+const (
+	// fieldOmitEmpty marks a field whose emptiness check, empty, decides
+	// whether it is written. It comes from the omitempty tag, and is also
+	// synthesized for a field promoted through more than one level of
+	// embedded struct pointers, whose inner pointer may be nil.
+	fieldOmitEmpty fieldFlags = 1 << iota
+
+	// fieldViaPointer marks a field promoted through an embedded struct
+	// pointer. offset then addresses the outermost such pointer word in the
+	// enclosing struct. The struct encoders skip the field when the pointer
+	// is nil, as encoding/json does, and otherwise encode it at
+	// target+ptrOffset. See issues #56 and #70.
+	fieldViaPointer
+)
 
 func unmarshalTypeError(b []byte, t reflect.Type) error {
 	return &UnmarshalTypeError{Value: strconv.Quote(prefix(b)), Type: t}
@@ -1035,6 +1244,7 @@ var (
 
 	numberType     = reflect.TypeOf(json.Number(""))
 	stringType     = reflect.TypeOf("")
+	stringsType    = reflect.TypeOf([]string(nil))
 	bytesType      = reflect.TypeOf(([]byte)(nil))
 	durationType   = reflect.TypeOf(time.Duration(0))
 	timeType       = reflect.TypeOf(time.Time{})

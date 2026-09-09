@@ -1,11 +1,11 @@
 package jsoncolor
 
-import (
-	"strconv"
-)
-
 // Colors specifies colorization of JSON output. Each field
 // is a Color, which is simply the bytes of the terminal color code.
+//
+// Each field supplies only the prefix for its token class; the encoder always
+// closes a colorized token with the fixed ANSI reset "\x1b[0m". See [Color]
+// for what that means when jsoncolor output is nested inside styled output.
 type Colors struct {
 	// Null is the color for JSON nil.
 	Null Color
@@ -62,12 +62,13 @@ type Colors struct {
 	Colon Color
 
 	// TextMarshaler is the color for values implementing encoding.TextMarshaler.
+	// When unset (the zero value), it falls back to String.
 	TextMarshaler Color
 }
 
 // appendNull appends a colorized "null" to b.
 func (c *Colors) appendNull(b []byte) []byte {
-	if c == nil {
+	if c == nil || len(c.Null) == 0 {
 		return append(b, "null"...)
 	}
 
@@ -78,7 +79,7 @@ func (c *Colors) appendNull(b []byte) []byte {
 
 // appendBool appends the colorized bool v to b.
 func (c *Colors) appendBool(b []byte, v bool) []byte {
-	if c == nil {
+	if c == nil || len(c.Bool) == 0 {
 		if v {
 			return append(b, "true"...)
 		}
@@ -98,23 +99,23 @@ func (c *Colors) appendBool(b []byte, v bool) []byte {
 
 // appendInt64 appends the colorized int64 v to b.
 func (c *Colors) appendInt64(b []byte, v int64) []byte {
-	if c == nil {
-		return strconv.AppendInt(b, v, 10)
+	if c == nil || len(c.Number) == 0 {
+		return appendInt(b, v)
 	}
 
 	b = append(b, c.Number...)
-	b = strconv.AppendInt(b, v, 10)
+	b = appendInt(b, v)
 	return append(b, ansiReset...)
 }
 
 // appendUint64 appends the colorized uint64 v to b.
 func (c *Colors) appendUint64(b []byte, v uint64) []byte {
-	if c == nil {
-		return strconv.AppendUint(b, v, 10)
+	if c == nil || len(c.Number) == 0 {
+		return appendUint(b, v)
 	}
 
 	b = append(b, c.Number...)
-	b = strconv.AppendUint(b, v, 10)
+	b = appendUint(b, v)
 	return append(b, ansiReset...)
 }
 
@@ -127,7 +128,12 @@ func (c *Colors) appendPunc(b []byte, v byte) []byte {
 		return append(b, v)
 	}
 
-	b = append(b, c.puncColor(v)...)
+	clr := c.puncColor(v)
+	if len(clr) == 0 {
+		return append(b, v)
+	}
+
+	b = append(b, clr...)
 	b = append(b, v)
 	return append(b, ansiReset...)
 }
@@ -156,6 +162,17 @@ func (c *Colors) puncColor(v byte) Color {
 	return clr
 }
 
+// textMarshalerColor returns the Color to use for values implementing
+// encoding.TextMarshaler. When TextMarshaler is the zero value (unset), it
+// falls back to String. This preserves backward compatibility for callers
+// written before TextMarshaler was added to Colors.
+func (c *Colors) textMarshalerColor() Color {
+	if len(c.TextMarshaler) == 0 {
+		return c.String
+	}
+	return c.TextMarshaler
+}
+
 // Color is used to render terminal colors. In effect, Color is
 // the bytes of the ANSI prefix code. The zero value is valid (results in
 // no colorization). When Color is non-zero, the encoder writes the prefix,
@@ -164,6 +181,19 @@ func (c *Colors) puncColor(v byte) Color {
 // Example value:
 //
 //	number := Color("\x1b[36m")
+//
+// Color is the prefix only: there is no mechanism for a caller to supply a
+// closer. Every colorized token is closed with the fixed sequence "\x1b[0m"
+// (SGR 0), which resets every terminal attribute, not merely those that the
+// prefix set. No attribute can leak out of a token, which is why this is the
+// default, but it does mean that jsoncolor output is not safe to nest inside
+// an already-styled region: the first colorized token clears the ambient
+// styling, and it stays cleared for the remainder of the output.
+//
+// So, writing colorized JSON into a line that carries a background color, or
+// into a TUI panel with an inherited style, drops that style at the first
+// token. A caller needing the surrounding style preserved must re-apply it
+// after encoding, or write the JSON outside the styled region.
 type Color []byte
 
 // ansiReset is the ANSI ansiReset escape code.

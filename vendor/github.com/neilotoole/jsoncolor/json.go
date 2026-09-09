@@ -137,6 +137,16 @@ func Append(b []byte, x interface{}, flags AppendFlags, clrs *Colors, indentr *I
 	}
 
 	b, err := c.encode(encoder{flags: flags, clrs: clrs, indentr: indentr}, b, p)
+	if err != nil && indentr != nil {
+		// A failed encode can return from inside a push/pop pair, leaving
+		// the Indenter at a stale depth that would poison later calls, since
+		// Encoder.Encode reuses its Indenter. Every caller enters the
+		// outermost Append at depth zero, and the re-entrant calls made for
+		// interface, Marshaler and sorted-map values all unwind with the
+		// same error, so zeroing here leaves the outermost caller with a
+		// clean Indenter. See issue #58.
+		indentr.depth = 0
+	}
 	runtime.KeepAlive(x)
 	return b, err
 }
@@ -158,10 +168,28 @@ func Indent(dst *bytes.Buffer, src []byte, prefix, indent string) error {
 
 // Marshal is documented at https://golang.org/pkg/encoding/json/#Marshal
 func Marshal(x interface{}) ([]byte, error) {
+	return marshalPooled(x, nil)
+}
+
+// MarshalIndent is documented at https://golang.org/pkg/encoding/json/#MarshalIndent
+//
+// Indentation is performed inline by the encoder, in the same single pass
+// as Encoder.SetIndent, rather than by marshaling compact output and
+// re-indenting it. The Indenter is constructed directly instead of via
+// NewIndenter so that an empty prefix and indent leave it enabled:
+// encoding/json.MarshalIndent still breaks lines in that case, whereas
+// Encoder.SetIndent("", "") disables indentation.
+func MarshalIndent(x interface{}, prefix, indent string) ([]byte, error) {
+	return marshalPooled(x, &Indenter{prefix: prefix, indent: indent})
+}
+
+// marshalPooled is the shared body of Marshal and MarshalIndent: encode x into a
+// pooled buffer with the package-level flags, then return a copy.
+func marshalPooled(x interface{}, indentr *Indenter) ([]byte, error) {
 	var err error
 	buf := encoderBufferPool.Get().(*encoderBuffer) //nolint:errcheck
 
-	if buf.data, err = Append(buf.data[:0], x, EscapeHTML|SortMapKeys, nil, nil); err != nil {
+	if buf.data, err = Append(buf.data[:0], x, EscapeHTML|SortMapKeys, nil, indentr); err != nil {
 		return nil, err
 	}
 
@@ -169,24 +197,6 @@ func Marshal(x interface{}) ([]byte, error) {
 	copy(b, buf.data)
 	encoderBufferPool.Put(buf)
 	return b, nil
-}
-
-// MarshalIndent is documented at https://golang.org/pkg/encoding/json/#MarshalIndent
-func MarshalIndent(x interface{}, prefix, indent string) ([]byte, error) {
-	b, err := Marshal(x)
-
-	if err == nil {
-		tmp := &bytes.Buffer{}
-		tmp.Grow(2 * len(b))
-
-		if err = Indent(tmp, b, prefix, indent); err != nil {
-			return b, err
-		}
-
-		b = tmp.Bytes()
-	}
-
-	return b, err
 }
 
 // Unmarshal is documented at https://golang.org/pkg/encoding/json/#Unmarshal
@@ -455,4 +465,7 @@ var encoderBufferPool = sync.Pool{
 	New: func() interface{} { return &encoderBuffer{data: make([]byte, 0, 4096)} },
 }
 
+// encoderBuffer is the reusable output buffer that Marshal and Encoder.Encode
+// borrow from encoderBufferPool for the duration of one encode. Pooling a
+// wrapper rather than the slice itself avoids an allocation on Put.
 type encoderBuffer struct{ data []byte }
