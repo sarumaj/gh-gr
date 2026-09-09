@@ -7,12 +7,12 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cli/go-gh/v2 v2.16.0
 	github.com/creativeprojects/go-selfupdate v1.6.0
-	github.com/dlclark/regexp2/v2 v2.7.2
+	github.com/dlclark/regexp2/v2 v2.8.0
 	github.com/fatih/color v1.19.0
 	github.com/go-git/go-git/v5 v5.19.2
 	github.com/goccy/go-json v0.10.6
 	github.com/goccy/go-yaml v1.19.2
-	github.com/neilotoole/jsoncolor v0.9.1
+	github.com/neilotoole/jsoncolor v0.10.1
 	github.com/sarumaj/go-super v1.0.2
 	github.com/schollz/progressbar/v3 v3.19.1
 	github.com/sirupsen/logrus v1.10.2
@@ -64,7 +64,7 @@ require (
 	github.com/kevinburke/ssh_config v1.4.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
-	github.com/mattn/go-colorable v0.1.14 // indirect
+	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/mattn/go-runewidth v0.0.19 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
