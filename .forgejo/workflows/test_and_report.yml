@@ -1,0 +1,41 @@
+# Converted from .github/workflows/test_and_report.yml for Forgejo by
+# scripts/github_to_forgejo.py (HomeLab); --move-ci rewrites it. Jobs needing
+# GitHub, macOS, Windows or secrets Forgejo lacks stay in the GitHub file.
+name: test_and_report
+'on':
+  push:
+    branches:
+    - main
+    - renovate/all-patch
+  workflow_dispatch: null
+jobs:
+  test_and_report:
+    strategy:
+      fail-fast: false
+      matrix:
+        go:
+        - 1.26
+        os:
+        - ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    name: Test and report maintainability of ldap-cli
+    steps:
+    - name: Check out repository
+      uses: https://github.com/actions/checkout@v7
+      with:
+        fetch-depth: 0
+    - name: Install go
+      uses: https://github.com/actions/setup-go@v7
+      with:
+        go-version: ${{ matrix.go }}
+    - name: Install go tools
+      run: |
+        go install golang.org/x/tools/gopls@latest && \
+        go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+    - name: Run linters
+      run: |
+        gofmt -s -d $(find . -type f -name '*.go'| grep -v "/vendor/")
+        golangci-lint run -v && golangci-lint run -v --exclude-dirs-use-default -e printf
+      shell: bash
+    - name: Run tests with coverage
+      run: go test ./... -coverprofile=coverage.out
