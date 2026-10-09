@@ -5,7 +5,7 @@ go 1.26.1
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cli/go-gh/v2 v2.16.1
+	github.com/cli/go-gh/v2 v2.16.2
 	github.com/creativeprojects/go-selfupdate v1.6.0
 	github.com/dlclark/regexp2/v2 v2.8.4
 	github.com/fatih/color v1.19.0
