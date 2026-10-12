@@ -32,6 +32,9 @@ jobs:
       run: |
         go install golang.org/x/tools/gopls@latest && \
         go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+    - name: Export Module Name
+      id: export_module_name
+      run: echo "MODULE_NAME=$(go mod edit -json | jq -r '.Module.Path')" >> "$GITHUB_OUTPUT"
     - name: Run linters
       run: |
         gofmt -s -d $(find . -type f -name '*.go'| grep -v "/vendor/")
@@ -39,3 +42,10 @@ jobs:
       shell: bash
     - name: Run tests with coverage
       run: go test ./... -coverprofile=coverage.out
+    - name: Publish code coverage
+      uses: https://github.com/qltysh/qlty-action/coverage@v2
+      with:
+        files: coverage.out
+        add-prefix: ${{ steps.export_module_name.outputs.MODULE_NAME }}
+        verbose: true
+        token: ${{ secrets.QLTY_COVERAGE_TOKEN }}
