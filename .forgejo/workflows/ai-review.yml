@@ -2,7 +2,7 @@
 # A review of a pull request by Claude Code, on request: asking claude for a
 # review starts it, and the request is taken off again with the review. Copy this
 # file to .forgejo/workflows/ai-review.yml of a repository of dawid; the steps
-# are the action beside it, the token the owner's secret.
+# are the action beside it, the tokens the owner's secrets.
 name: AI review
 "on":
   pull_request:
@@ -25,3 +25,4 @@ jobs:
         uses: https://git.ciepiela.org/dawid/ai-review@main
         with:
           token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          forgejo-token: ${{ secrets.AI_REVIEW_FORGEJO_TOKEN }}
