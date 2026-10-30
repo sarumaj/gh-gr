@@ -30,7 +30,6 @@ jobs:
         go-version: ${{ matrix.go }}
     - name: Install go tools
       run: |
-        go install golang.org/x/tools/gopls@latest && \
         go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
     - name: Run linters
       run: |

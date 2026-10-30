@@ -33,7 +33,6 @@ jobs:
 
       - name: Install go tools
         run: |
-          go install golang.org/x/tools/gopls@latest && \
           go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
       - name: Export Module Name
