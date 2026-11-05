@@ -1,0 +1,7 @@
+# The release bot (release-bot on git.ciepiela.org) tags the releases due from the
+# Conventional Commits since the last tag and writes CHANGELOG.md; cz works locally too.
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "v$version"
+# The tag is the version: the release workflow builds it in.
+version_provider = "scm"
