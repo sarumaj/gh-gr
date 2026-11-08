@@ -29,3 +29,5 @@ jobs:
         with:
           token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           forgejo-token: ${{ secrets.AI_REVIEW_FORGEJO_TOKEN }}
+          # Signs the fixes it pushes (a branch may require signed commits).
+          gpg-key: ${{ secrets.AI_REVIEW_GPG_KEY }}
