@@ -1,15 +1,9 @@
-[![test_and_report](https://github.com/sarumaj/gh-gr/actions/workflows/test_and_report.yml/badge.svg)](https://github.com/sarumaj/gh-gr/actions/workflows/test_and_report.yml)
-[![build_and_release](https://github.com/sarumaj/gh-gr/actions/workflows/build_and_release.yml/badge.svg)](https://github.com/sarumaj/gh-gr/actions/workflows/build_and_release.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/sarumaj/gh-gr)](https://goreportcard.com/report/github.com/sarumaj/gh-gr)
+[![test_and_report](https://git.ciepiela.org/dawid/gh-gr/actions/workflows/test_and_report.yml/badge.svg)](https://git.ciepiela.org/dawid/gh-gr/actions?workflow=test_and_report.yml)
 [![Maintainability](https://qlty.sh/gh/sarumaj/projects/gh-gr/maintainability.svg)](https://qlty.sh/gh/sarumaj/projects/gh-gr)
-[![Code Coverage](https://qlty.sh/gh/sarumaj/projects/gh-gr/coverage.svg)](https://qlty.sh/gh/sarumaj/projects/gh-gr)
 [![Go Reference](https://pkg.go.dev/badge/github.com/sarumaj/gh-gr/v2.svg)](https://pkg.go.dev/github.com/sarumaj/gh-gr/v2)
 [![Go version](https://img.shields.io/github/go-mod/go-version/sarumaj/gh-gr?logo=go&label=&labelColor=gray)](https://go.dev)
-[![Release](https://img.shields.io/github/v/release/sarumaj/gh-gr?logo=github)](https://github.com/sarumaj/gh-gr/releases/latest)
-[![Release Date](https://img.shields.io/github/release-date/sarumaj/gh-gr?logo=github)](https://github.com/sarumaj/gh-gr/releases/latest)
-[![Commits since latest release](https://img.shields.io/github/commits-since/sarumaj/gh-gr/latest?logo=github)](https://github.com/sarumaj/gh-gr/releases/latest)
+[![Release](https://img.shields.io/gitea/v/release/dawid/gh-gr?gitea_url=https%3A%2F%2Fgit.ciepiela.org&logo=forgejo)](https://git.ciepiela.org/dawid/gh-gr/releases/latest)
 [![Downloads (all assets, all releases)](https://img.shields.io/github/downloads/sarumaj/gh-gr/total?logo=github)](https://github.com/sarumaj/gh-gr/releases)
-[![Downloads (all assets, latest release)](https://img.shields.io/github/downloads/sarumaj/gh-gr/latest/total?logo=github)](https://github.com/sarumaj/gh-gr/releases/latest)
 
 ---
 
