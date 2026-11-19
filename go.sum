@@ -167,8 +167,8 @@ github.com/rivo/uniseg v0.4.7/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUc
 github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=
 github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
-github.com/sarumaj/go-super v1.0.2 h1:apZXvSjpI2RF2G2XGCJaZ+k7XW8NkTiDeHsUcAPB8UI=
-github.com/sarumaj/go-super v1.0.2/go.mod h1:pPeMPlfHJGB6ssR/9Ed578J7/8RE2vPNunJlfB1tr2w=
+github.com/sarumaj/go-super v1.0.3 h1:5rFUUrKAgVu5bDtkTkaq2fwZKiPY+7em55wSTROA9+g=
+github.com/sarumaj/go-super v1.0.3/go.mod h1:pPeMPlfHJGB6ssR/9Ed578J7/8RE2vPNunJlfB1tr2w=
 github.com/schollz/progressbar/v3 v3.19.1 h1:iv8BgwOvdML/S3p84uBpy/IMigv4U9594vPZYa2EdrU=
 github.com/schollz/progressbar/v3 v3.19.1/go.mod h1:LFL7jqimKxfhero4K1eCkUr/6R39AgQeiPCJtlTWIW8=
 github.com/segmentio/asm v1.1.3 h1:WM03sfUOENvvKexOLp+pCqgb/WDjsi7EK8gIsICtzhc=

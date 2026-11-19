@@ -307,7 +307,7 @@ github.com/pjbgf/sha1cd/ubc
 # github.com/rivo/uniseg v0.4.7
 ## explicit; go 1.18
 github.com/rivo/uniseg
-# github.com/sarumaj/go-super v1.0.2
+# github.com/sarumaj/go-super v1.0.3
 ## explicit; go 1.21.0
 github.com/sarumaj/go-super/errors
 # github.com/schollz/progressbar/v3 v3.19.1

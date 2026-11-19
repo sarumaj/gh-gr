@@ -13,7 +13,7 @@ require (
 	github.com/goccy/go-json v0.10.6
 	github.com/goccy/go-yaml v1.19.2
 	github.com/neilotoole/jsoncolor v0.10.1
-	github.com/sarumaj/go-super v1.0.2
+	github.com/sarumaj/go-super v1.0.3
 	github.com/schollz/progressbar/v3 v3.19.1
 	github.com/sirupsen/logrus v1.10.2
 	github.com/spf13/cobra v1.10.2
