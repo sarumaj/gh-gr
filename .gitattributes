@@ -1,0 +1,2 @@
+# The README's pictures, in Git LFS (only there: the Go module proxy fetches no LFS files, so nothing the code embeds).
+doc/*.png filter=lfs diff=lfs merge=lfs -text
