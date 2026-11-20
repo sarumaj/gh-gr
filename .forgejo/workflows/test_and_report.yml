@@ -7,6 +7,8 @@ name: test_and_report
     branches:
     - main
     - renovate/all-patch
+  # Pull requests too, for the test report's comment.
+  pull_request: null
   workflow_dispatch: null
 jobs:
   test_and_report:
@@ -18,7 +20,7 @@ jobs:
         os:
         - ubuntu-latest
     runs-on: ${{ matrix.os }}
-    name: Test and report maintainability of ldap-cli
+    name: Test gh-gr
     steps:
     - name: Check out repository
       uses: https://github.com/actions/checkout@v7
@@ -36,5 +38,16 @@ jobs:
         gofmt -s -d $(find . -type f -name '*.go'| grep -v "/vendor/")
         golangci-lint run -v --timeout 5m && golangci-lint run -v --timeout 5m --exclude-dirs-use-default -e printf
       shell: bash
+    # As JSON with the coverage, for the report below, which also prints the failed
+    # tests' output.
     - name: Run tests with coverage
-      run: go test ./... -coverprofile=coverage.out
+      id: tests
+      run: go test -json -coverprofile=/tmp/cover.out ./... > /tmp/go-test.json
+    # The results and the coverage as one comment on the pull request
+    # (dawid/ci-actions), also when tests failed.
+    - name: Test report
+      if: always() && steps.tests.outcome != 'skipped'
+      uses: https://git.ciepiela.org/dawid/ci-actions/test-report@main
+      with:
+        go-test-json: /tmp/go-test.json
+        coverage: /tmp/cover.out
