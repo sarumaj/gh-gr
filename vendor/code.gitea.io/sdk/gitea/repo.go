@@ -421,7 +421,7 @@ func (c *Client) CreateOrgRepo(org string, opt CreateRepoOption) (*Repository, *
 		return nil, nil, err
 	}
 	repo := new(Repository)
-	resp, err := c.getParsedResponse("POST", fmt.Sprintf("/org/%s/repos", org), jsonHeader, bytes.NewReader(body), repo)
+	resp, err := c.getParsedResponse("POST", fmt.Sprintf("/orgs/%s/repos", org), jsonHeader, bytes.NewReader(body), repo)
 	return repo, resp, err
 }
 
@@ -582,16 +582,7 @@ func (c *Client) GetArchiveReader(owner, repo, ref string, ext ArchiveType) (io.
 		return nil, nil, err
 	}
 	ref = pathEscapeSegments(ref)
-	resp, err := c.doRequest("GET", fmt.Sprintf("/repos/%s/%s/archive/%s%s", owner, repo, ref, ext), nil, nil)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	if _, err := statusCodeToErr(resp); err != nil {
-		return nil, resp, err
-	}
-
-	return resp.Body, resp, nil
+	return c.getResponseReader("GET", fmt.Sprintf("/repos/%s/%s/archive/%s%s", owner, repo, ref, ext), nil, nil)
 }
 
 // UpdateRepoAvatarOption options for updating repository avatar
