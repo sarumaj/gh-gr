@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file. The release bot
 writes each version's section from the commits (Conventional Commits) and the hand-written
 Unreleased section.
 
+## 2.8.7 - 2026-11-23
+
+### Dependencies
+
+- update module github.com/sarumaj/go-super to v1.0.3
+
 ## 2.8.6 - 2026-11-09
 
 ### Dependencies
@@ -12,4 +18,3 @@ Unreleased section.
 - update all patch dependencies
 - update module github.com/dlclark/regexp2/v2 to v2.7.2 (#153)
 - update module github.com/go-git/go-git/v5 to v5.19.2 [security] (#152)
-
